@@ -709,6 +709,24 @@ async function openMaqPanel(id, tipo, numero){
     `${icons[tipo]} ${labels[tipo]} ${String(numero).padStart(2,'0')}`;
   document.getElementById('mc-cap').value=m.capacidade;
   document.getElementById('mc-tempo').value=m.tempo_min;
+  document.getElementById('mc-op').oninput = async function(){
+  const opNum = this.value.trim();
+  if(!opNum) return;
+  const ops = await api('/api/ops');
+  const op = ops.find(o=>o.op==opNum);
+  if(op){
+    document.getElementById('mc-ref').value = op.referencia;
+    document.getElementById('mc-lav').value = op.lavacao||'';
+    const pesoTotal = op.peso_total||0;
+    const cap = m.capacidade||80;
+    const totalPecas = op.total_pecas||0;
+    const nCargas = Math.ceil(pesoTotal/cap);
+    const pecasPorCarga = nCargas>0 ? Math.round(totalPecas/nCargas) : 0;
+    document.getElementById('mc-qtd-cargas').value = nCargas;
+    document.getElementById('mc-pecas-carga').value = pecasPorCarga;
+  }
+};
+  document.getElementById('mc-tempo').value=m.tempo_min;
   document.getElementById('mc-op').value='';
   document.getElementById('mc-ref').value='';
   document.getElementById('mc-lav').value='';
