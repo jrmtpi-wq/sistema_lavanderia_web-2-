@@ -7,8 +7,7 @@ app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///lavanderia.db'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
-with app.app_context():
-    db.create_all()
+
 TAMANHOS = ['PP','P','M','G','GG','XG',
             '32','34','36','38','40','42','44','46','48','50',
             '01','02','03','04','06','08','10','12','14','16']
@@ -88,7 +87,8 @@ def init_db():
                 db.session.add(Maquina(tipo=tipo, numero=n,
                                        capacidade=cap, tempo_min=tempo))
     db.session.commit()
-
+with app.app_context():
+  init_db()
 # ── ROUTES ───────────────────────────────────────────────────────
 @app.route('/')
 def index():
