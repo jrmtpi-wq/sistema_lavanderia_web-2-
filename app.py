@@ -4,7 +4,7 @@ from datetime import datetime, date, timedelta
 import json, math
 
 app = Flask(__name__)
-app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres.xjkgqqshpdbpssnugwfd:Lavanderia2026@aws-0-us-west-1.pooler.supabase.com:6543/postgres'
+app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres.xjkgqqshpdbpssnugwfd:NkgivoWymEzGQFYM@aws-1-us-west-1.pooler.supabase.com:5432/postgres'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
 
@@ -87,8 +87,7 @@ def init_db():
                 db.session.add(Maquina(tipo=tipo, numero=n,
                                        capacidade=cap, tempo_min=tempo))
     db.session.commit()
-with app.app_context():
-  init_db()
+
 # ── ROUTES ───────────────────────────────────────────────────────
 @app.route('/')
 def index():
