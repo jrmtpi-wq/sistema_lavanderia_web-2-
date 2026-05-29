@@ -89,6 +89,12 @@ def init_db():
     db.session.commit()
 
 # ── ROUTES ───────────────────────────────────────────────────────
+@app.route('/init_db_agora')
+def init_db_route():
+    db.create_all()
+    init_db()
+    return 'Banco criado!'
+
 @app.route('/')
 def index():
     return render_template('index.html')
