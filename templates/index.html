@@ -1007,169 +1007,176 @@ document.querySelectorAll('.panel-overlay').forEach(p=>{
 // ── INIT ────────────────────────────────────────────────────────
 loadDashboard();
 </script>
-script>
-// ═══ PATCH: Copiar OP + Impressão Em Processo + Entrada/Saída ═══
-window.renderOps = function(){
-  const ops=DB.ops();
-  if(!ops.length){
-    document.getElementById('ops-tbody').innerHTML='<tr><td colspan="8" style="text-align:center;padding:32px;color:var(--muted)">Nenhuma OP cadastrada.</td></tr>';
-    return;
+<script>
+// ═══ PATCH v2: Copiar OP + Impressão Em Processo + Entrada/Saída ═══
+
+// ── 1. Adiciona print-area e estilos de impressão ──────────────
+(function(){
+  const pa = document.createElement('div');
+  pa.id = 'print-area';
+  pa.style.display = 'none';
+  document.body.appendChild(pa);
+
+  const st = document.createElement('style');
+  st.textContent = `
+    @media print {
+      * { -webkit-print-color-adjust:exact!important; print-color-adjust:exact!important; }
+      body > *:not(#print-area) { display:none!important; }
+      #print-area { display:block!important; font-family:Arial,sans-serif; font-size:11px; color:#000; background:#fff; padding:0; }
+      @page { margin:10mm 8mm; size:A4 landscape; }
+    }`;
+  document.head.appendChild(st);
+
+  // Adiciona botão Imprimir no rodapé do painel de máquina
+  const pf = document.querySelector('#maq-panel .panel-foot');
+  if(pf){
+    const btn = document.createElement('button');
+    btn.className = 'btn btn-primary btn-sm';
+    btn.innerHTML = '<i class="fas fa-print"></i> Imprimir Em Processo';
+    btn.onclick = imprimirMaquinaEmProcesso;
+    pf.appendChild(btn);
   }
-  document.getElementById('ops-tbody').innerHTML=ops.map(op=>{
-    const {pecas,peso}=calcTotaisOP(op);
-    const dt=new Date(op.created||op.updated).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'});
-    return `<tr>
-      <td class="mono" style="color:var(--ice);font-weight:600">${op.op}</td>
-      <td><b>${op.ref}</b></td>
-      <td style="color:var(--muted)">${op.lav||'--'}</td>
-      <td class="mono">${op.cap||'--'}</td>
-      <td class="mono">${pecas.toLocaleString('pt-BR')}</td>
-      <td class="mono" style="color:var(--ice)">${numBR(peso,3)} kg</td>
-      <td style="color:var(--muted);font-size:11px">${dt}</td>
-      <td><div style="display:flex;gap:5px;flex-wrap:wrap">
-        <button class="btn btn-g btn-xs" onclick='editarOP("${op.id}")'><i class="fas fa-edit"></i></button>
-        <button class="btn btn-xs" style="background:linear-gradient(135deg,#7c3aed,#8b5cf6);color:#fff;padding:3px 9px;border-radius:6px;font-size:11px;font-weight:700;border:none;cursor:pointer;display:inline-flex;align-items:center;gap:4px" onclick='copiarOP("${op.id}")'><i class="fas fa-copy"></i> Copiar</button>
-        <button class="btn btn-d btn-xs" onclick='excluirOP("${op.id}")'><i class="fas fa-trash"></i></button>
-      </div></td>
-    </tr>`;
-  }).join('');
+})();
+
+// ── 2. Override loadOps — adiciona botão Copiar ────────────────
+const _loadOpsOrig = window.loadOps;
+window.loadOps = async function(){
+  const ops = await api('/api/ops');
+  document.getElementById('ops-tbody').innerHTML = ops.map(o => `
+    <tr>
+      <td class="mono">${o.op}</td>
+      <td><b>${o.referencia}</b></td>
+      <td style="color:var(--txt2)">${o.lavacao||'--'}</td>
+      <td class="mono">${o.total_pecas.toLocaleString('pt-BR')}</td>
+      <td class="mono" style="color:var(--ciano)">${o.peso_total.toLocaleString('pt-BR',{minimumFractionDigits:3})} kg</td>
+      <td style="color:var(--txt2);font-size:11px">${o.created_at}</td>
+      <td style="display:flex;gap:5px;flex-wrap:wrap;align-items:center">
+        <button class="btn btn-ghost btn-xs" title="Editar"
+          onclick='openOpForm(${JSON.stringify(o).replace(/'/g,"&#39;")})'>
+          <i class="fas fa-edit"></i>
+        </button>
+        <button class="btn btn-xs" title="Copiar OP — duplica todos os dados"
+          style="background:linear-gradient(135deg,#7c3aed,#8b5cf6);color:#fff;padding:4px 9px;border-radius:6px;font-size:11px;font-weight:700;border:none;cursor:pointer;display:inline-flex;align-items:center;gap:4px"
+          onclick='copiarOp(${JSON.stringify(o).replace(/'/g,"&#39;")})'>
+          <i class="fas fa-copy"></i> Copiar
+        </button>
+        <button class="btn btn-danger btn-xs" title="Excluir" onclick="deleteOp(${o.id})">
+          <i class="fas fa-trash"></i>
+        </button>
+      </td>
+    </tr>`).join('');
 };
 
-window.copiarOP = function(id){
-  const op=DB.ops().find(o=>o.id===id);
-  if(!op) return;
-  document.getElementById('op-id').value='';
-  document.getElementById('op-panel-title').textContent=`📋 Cópia de: OP ${op.op} · ${op.ref||''} — Digite o NOVO número de OP`;
-  document.getElementById('f-op').value='';
-  document.getElementById('f-ref').value=op.ref||'';
-  document.getElementById('f-lav').value=op.lav||'';
-  document.getElementById('f-cap').value=op.cap||'';
-  document.getElementById('f-cap-arr').value='';
-  document.getElementById('arr-result').style.display='none';
-  buildAllSzGrids();
-  fillSzGrids(op);
-  liveCalc();
-  openOv('ov-op');
+// ── 3. Função copiarOp ─────────────────────────────────────────
+window.copiarOp = function(o){
+  // Cria cópia sem ID e sem número de OP
+  const clone = Object.assign({}, o, {id:'', op:''});
+  openOpForm(clone);
+  // Destaca o campo OP em amarelo por 6s
   setTimeout(()=>{
-    const f=document.getElementById('f-op');
+    const f = document.getElementById('op-num');
+    if(!f) return;
+    f.value = '';
     f.focus();
-    f.style.borderColor='#f59e0b';
-    f.style.boxShadow='0 0 0 4px rgba(245,158,11,0.4)';
-    f.style.backgroundColor='rgba(245,158,11,0.09)';
-    f.placeholder='⚠ Digite o NOVO número de OP aqui';
-    setTimeout(()=>{ f.style.borderColor=''; f.style.boxShadow=''; f.style.backgroundColor=''; f.placeholder='Ex: 48000'; },6000);
-  },220);
-  toast(`📋 OP ${op.op} copiada — informe o novo número!`,'in');
+    f.style.borderColor = '#f59e0b';
+    f.style.boxShadow = '0 0 0 3px rgba(245,158,11,0.35)';
+    f.placeholder = '⚠ Digite o NOVO número de OP aqui';
+    // Atualiza o título do painel
+    document.getElementById('op-panel-title').innerHTML =
+      `<i class="fas fa-copy" style="color:#f59e0b"></i> Cópia de: OP ${o.op} · ${o.referencia||''} — Digite o novo nº`;
+    setTimeout(()=>{
+      f.style.borderColor = '';
+      f.style.boxShadow = '';
+      f.placeholder = 'Ex: 48000';
+    }, 6000);
+  }, 300);
+  toast('📋 OP copiada — preencha o novo número de OP!', 'info');
 };
 
-window.imprimirMaquina = function(){
-  const info=MAQ_INFO[_maqTipo];
-  const m=getMaqAtual();
-  const cargas=m.cargas||[];
-  const blocos=m.opBlocos||[];
-  const reais=cargas.filter(c=>c.tipo!=='intervalo');
-  const emProcesso=reais.filter(c=>c.status==='pr');
-  const totalPecas=reais.reduce((a,c)=>a+fNum(c.pecas),0);
-  const totalPeso=reais.reduce((a,c)=>a+fFlt(c.peso),0);
-  const conc=reais.filter(c=>c.status==='ok').length;
-  const proc=reais.filter(c=>c.status==='pr').length;
-  const now=new Date().toLocaleString('pt-BR');
-  const CORES=['#1a6fd4','#7c3aed','#e86020','#059669','#c0392b','#0891b2','#7c2d12','#4338ca'];
-  const coresBlocos={};
-  blocos.forEach((b,i)=>{ coresBlocos[b.id]=CORES[i%CORES.length]; });
+// ── 4. Impressão: somente Em Processo + Entrada/Saída ──────────
+window.imprimirMaquinaEmProcesso = async function(){
+  if(!currentMaqId){ toast('Nenhuma máquina selecionada','error'); return; }
+  let data;
+  try { data = await api(`/api/maquinas/${currentMaqId}/cargas`); }
+  catch(e){ return; }
 
-  let opsSummaryHtml='';
-  if(blocos.length){
-    opsSummaryHtml='<div style="margin-bottom:8px"><div style="font-size:9px;font-weight:700;color:#0d47a1;text-transform:uppercase;letter-spacing:1px;margin-bottom:5px;border-bottom:1px solid #0d47a1;padding-bottom:3px">OPs Programadas</div>';
-    blocos.forEach((b,i)=>{
-      const cor=CORES[i%CORES.length];
-      const cb=cargas.filter(c=>c.blocoId===b.id&&c.tipo!=='intervalo');
-      const pb=cb.reduce((a,c)=>a+fFlt(c.peso),0);
-      const pcb=cb.reduce((a,c)=>a+fNum(c.pecas),0);
-      opsSummaryHtml+=`<div style="display:flex;align-items:center;gap:6px;padding:4px 0;border-bottom:1px dashed #ddd">
-        <span style="display:inline-block;padding:1px 7px;border-radius:10px;font-size:8.5px;font-weight:700;color:#fff;background:${cor}">${i+1}</span>
-        <div style="font-size:9px;color:#444"><b>OP ${b.op||'—'}</b> ${b.ref?'· '+b.ref:''} ${b.lav?'· <i>'+b.lav+'</i>':''}
-        <span style="color:#888;margin-left:4px">(${cb.length} cargas · ${pcb.toLocaleString('pt-BR')} pç · ${numBR(pb,1)} kg)</span></div>
-      </div>`;
-    });
-    opsSummaryHtml+='</div>';
-  }
+  const cargas = data.cargas || [];
+  const emProcesso = cargas.filter(c => c.status === 'em_processo');
+  const now = new Date().toLocaleString('pt-BR');
+  const titulo = document.getElementById('maq-panel-title').textContent.trim();
+  const totalPeso = cargas.reduce((a,c)=>a+(c.peso||0),0);
+  const conc = cargas.filter(c=>c.status==='concluido').length;
+  const proc = emProcesso.length;
 
-  let rowsHtml='';
+  let rowsHtml = '';
   if(!emProcesso.length){
-    rowsHtml='<tr><td colspan="9" style="text-align:center;padding:18px;color:#666;font-style:italic">Nenhuma carga com status "Em Processo" nesta máquina.</td></tr>';
+    rowsHtml = '<tr><td colspan="9" style="text-align:center;padding:18px;color:#666;font-style:italic">Nenhuma carga com status "Em Processo" nesta máquina.</td></tr>';
   } else {
     emProcesso.forEach((c,i)=>{
-      const cor=c.blocoId&&coresBlocos[c.blocoId]?coresBlocos[c.blocoId]:'#1a6fd4';
-      rowsHtml+=`<tr>
-        <td style="font-weight:900;color:#0d47a1;text-align:center;font-size:11px;background:#e3ecf8;border-left:3px solid ${cor};border:1px solid #ddd;padding:4px 6px">${c.num||i+1}</td>
-        <td style="font-weight:700;border:1px solid #ddd;padding:4px 6px">${c.op||'—'}</td>
-        <td style="border:1px solid #ddd;padding:4px 6px">${c.ref||'—'}</td>
-        <td style="font-size:9px;color:#444;border:1px solid #ddd;padding:4px 6px">${c.lav||'—'}</td>
-        <td style="text-align:right;border:1px solid #ddd;padding:4px 6px">${fNum(c.pecas).toLocaleString('pt-BR')}</td>
-        <td style="text-align:right;border:1px solid #ddd;padding:4px 6px">${numBR(fFlt(c.peso),3)}</td>
-        <td style="font-size:9px;border:1px solid #ddd;padding:4px 6px">${fmtDT(c.inicio)}</td>
-        <td style="font-size:9px;color:#b45309;border:1px solid #ddd;padding:4px 6px">${fmtDT(c.saida)}</td>
-        <td style="text-align:center;font-size:9px;color:#d97706;font-weight:700;border:1px solid #ddd;padding:4px 6px">🔄 Em Proc.</td>
+      rowsHtml += `<tr>
+        <td style="font-weight:900;color:#0d47a1;text-align:center;border:1px solid #ddd;padding:4px 6px;background:#e3ecf8">${c.numero}</td>
+        <td style="font-weight:700;border:1px solid #ddd;padding:4px 6px">${c.op_manual||'—'}</td>
+        <td style="border:1px solid #ddd;padding:4px 6px">${c.referencia||'—'}</td>
+        <td style="font-size:9px;border:1px solid #ddd;padding:4px 6px">${c.lavacao||'—'}</td>
+        <td style="text-align:right;border:1px solid #ddd;padding:4px 6px">${(c.qtde_pecas||0).toLocaleString('pt-BR')}</td>
+        <td style="text-align:right;border:1px solid #ddd;padding:4px 6px">${(c.peso||0).toFixed(3)}</td>
+        <td style="font-size:9px;border:1px solid #ddd;padding:4px 6px">${c.data_inicio?fmtDT(c.data_inicio):'--'}</td>
+        <td style="font-size:9px;color:#b45309;border:1px solid #ddd;padding:4px 6px">${c.data_saida?fmtDT(c.data_saida):'--'}</td>
+        <td style="text-align:center;color:#d97706;font-weight:700;border:1px solid #ddd;padding:4px 6px">🔄 Em Proc.</td>
       </tr>`;
     });
   }
 
   const entradaSaidaRows = emProcesso.length
-    ? emProcesso.map((c,i)=>`<tr>
-        <td style="border:1px solid #ccc;padding:5px 8px;font-size:9px;font-weight:700;color:#0d47a1;white-space:nowrap">#${c.num||i+1} · OP ${c.op||'—'}</td>
+    ? emProcesso.map(c=>`<tr>
+        <td style="border:1px solid #ccc;padding:5px 8px;font-size:9px;font-weight:700;color:#0d47a1;white-space:nowrap">#${c.numero} · OP ${c.op_manual||'—'}</td>
         <td style="border:1px solid #ccc;padding:5px 8px;height:28px"><span style="display:block;border-bottom:1px solid #aaa;width:100%;height:16px"></span></td>
         <td style="border:1px solid #ccc;padding:5px 8px;height:28px"><span style="display:block;border-bottom:1px solid #aaa;width:100%;height:16px"></span></td>
       </tr>`).join('')
-    : '<tr><td colspan="3" style="border:1px solid #ccc;padding:10px;text-align:center;color:#666;font-style:italic;font-size:9px">Sem cargas Em Processo</td></tr>';
+    : '<tr><td colspan="3" style="border:1px solid #ccc;padding:10px;text-align:center;color:#666;font-size:9px">Sem cargas Em Processo</td></tr>';
 
-  document.getElementById('print-area').innerHTML=`
+  document.getElementById('print-area').innerHTML = `
     <div style="display:flex;align-items:flex-start;justify-content:space-between;border-bottom:2.5px solid #0d47a1;padding-bottom:8px;margin-bottom:10px">
       <div>
         <div style="font-size:18px;font-weight:900;color:#0d47a1">🧺 LaundryPro</div>
         <div style="font-size:10px;color:#555;letter-spacing:2px;text-transform:uppercase">Sistema de Lavanderia — Programação de Máquina</div>
-        <div style="font-size:22px;font-weight:900;color:#111;margin-top:4px">${info.ico} ${info.sigla} ${String(_maqNum).padStart(2,'0')}</div>
+        <div style="font-size:20px;font-weight:900;color:#111;margin-top:4px">${titulo}</div>
       </div>
-      <div style="text-align:right;font-size:10px;color:#555;line-height:1.6">
+      <div style="text-align:right;font-size:10px;color:#555;line-height:1.8">
         <div>Emitido em: <b style="color:#0d47a1">${now}</b></div>
-        <div>Capacidade: <b style="color:#0d47a1">${numBR(m.cap||info.capDef,1)} kg/carga</b></div>
-        <div>Tempo/carga: <b style="color:#0d47a1">${m.tempo||info.tempoDef} min</b></div>
+        <div>Total cargas: <b style="color:#0d47a1">${cargas.length}</b> &nbsp;|&nbsp; Em Processo: <b style="color:#d97706">${proc}</b></div>
+        <div>✅ Concluídas: <b style="color:#059669">${conc}</b> &nbsp;|&nbsp; Peso total: <b style="color:#0d47a1">${totalPeso.toFixed(1)} kg</b></div>
       </div>
     </div>
-    <div style="display:grid;grid-template-columns:repeat(6,1fr);gap:6px;margin-bottom:8px">
-      <div style="border:1px solid #ddd;border-radius:6px;padding:6px 8px;text-align:center;background:#f8f9fa"><div style="font-size:16px;font-weight:900;color:#0d47a1">${blocos.length}</div><div style="font-size:8.5px;color:#666;margin-top:2px;text-transform:uppercase">OPs</div></div>
-      <div style="border:1px solid #ddd;border-radius:6px;padding:6px 8px;text-align:center;background:#f8f9fa"><div style="font-size:16px;font-weight:900;color:#0d47a1">${reais.length}</div><div style="font-size:8.5px;color:#666;margin-top:2px;text-transform:uppercase">Total Cargas</div></div>
-      <div style="border:1px solid #ddd;border-radius:6px;padding:6px 8px;text-align:center;background:#fff7ed"><div style="font-size:16px;font-weight:900;color:#d97706">${proc}</div><div style="font-size:8.5px;color:#666;margin-top:2px;text-transform:uppercase">🔄 Em Processo</div></div>
-      <div style="border:1px solid #ddd;border-radius:6px;padding:6px 8px;text-align:center;background:#f8f9fa"><div style="font-size:16px;font-weight:900;color:#0d47a1">${totalPecas.toLocaleString('pt-BR')}</div><div style="font-size:8.5px;color:#666;margin-top:2px;text-transform:uppercase">Total Peças</div></div>
-      <div style="border:1px solid #ddd;border-radius:6px;padding:6px 8px;text-align:center;background:#f8f9fa"><div style="font-size:16px;font-weight:900;color:#0d47a1">${numBR(totalPeso,1)}</div><div style="font-size:8.5px;color:#666;margin-top:2px;text-transform:uppercase">Peso Total kg</div></div>
-      <div style="border:1px solid #ddd;border-radius:6px;padding:6px 8px;text-align:center;background:#f0fdf4"><div style="font-size:16px;font-weight:900;color:#059669">${conc}</div><div style="font-size:8.5px;color:#666;margin-top:2px;text-transform:uppercase">✅ Concluídas</div></div>
+    <div style="background:#fff7ed;border:1.5px solid #d97706;border-radius:5px;padding:4px 10px;margin-bottom:8px;font-size:9px;font-weight:700;color:#b45309;text-align:center">
+      ★ Exibindo apenas cargas EM PROCESSO — ${proc} carga${proc!==1?'s':''}
     </div>
-    <div style="background:#fff7ed;border:1.5px solid #d97706;border-radius:5px;padding:4px 10px;margin-bottom:8px;font-size:9px;font-weight:700;color:#b45309;text-align:center">★ Exibindo apenas cargas EM PROCESSO — ${proc} carga${proc!==1?'s':''}</div>
-    <div style="display:grid;grid-template-columns:1fr 38%;gap:10px;align-items:start">
+    <div style="display:grid;grid-template-columns:1fr 36%;gap:10px;align-items:start">
       <div>
         <table style="width:100%;border-collapse:collapse;font-size:10px">
           <thead><tr>
-            <th style="background:#0d47a1;color:#fff;padding:5px 6px;text-align:left;font-size:8.5px;font-weight:700;letter-spacing:.5px;text-transform:uppercase;border:1px solid #0d47a1;width:28px">#</th>
-            <th style="background:#0d47a1;color:#fff;padding:5px 6px;text-align:left;font-size:8.5px;border:1px solid #0d47a1">OP</th>
-            <th style="background:#0d47a1;color:#fff;padding:5px 6px;text-align:left;font-size:8.5px;border:1px solid #0d47a1">Referência</th>
-            <th style="background:#0d47a1;color:#fff;padding:5px 6px;text-align:left;font-size:8.5px;border:1px solid #0d47a1">Lavação</th>
-            <th style="background:#0d47a1;color:#fff;padding:5px 6px;text-align:right;font-size:8.5px;border:1px solid #0d47a1">Peças</th>
-            <th style="background:#0d47a1;color:#fff;padding:5px 6px;text-align:right;font-size:8.5px;border:1px solid #0d47a1">Peso kg</th>
-            <th style="background:#0d47a1;color:#fff;padding:5px 6px;text-align:left;font-size:8.5px;border:1px solid #0d47a1">Início</th>
-            <th style="background:#0d47a1;color:#fff;padding:5px 6px;text-align:left;font-size:8.5px;border:1px solid #0d47a1">Saída</th>
-            <th style="background:#0d47a1;color:#fff;padding:5px 6px;text-align:center;font-size:8.5px;border:1px solid #0d47a1">Status</th>
+            <th style="background:#0d47a1;color:#fff;padding:5px 6px;font-size:8.5px;border:1px solid #0d47a1">#</th>
+            <th style="background:#0d47a1;color:#fff;padding:5px 6px;font-size:8.5px;border:1px solid #0d47a1">OP</th>
+            <th style="background:#0d47a1;color:#fff;padding:5px 6px;font-size:8.5px;border:1px solid #0d47a1">Referência</th>
+            <th style="background:#0d47a1;color:#fff;padding:5px 6px;font-size:8.5px;border:1px solid #0d47a1">Lavação</th>
+            <th style="background:#0d47a1;color:#fff;padding:5px 6px;font-size:8.5px;text-align:right;border:1px solid #0d47a1">Peças</th>
+            <th style="background:#0d47a1;color:#fff;padding:5px 6px;font-size:8.5px;text-align:right;border:1px solid #0d47a1">Peso kg</th>
+            <th style="background:#0d47a1;color:#fff;padding:5px 6px;font-size:8.5px;border:1px solid #0d47a1">Início</th>
+            <th style="background:#0d47a1;color:#fff;padding:5px 6px;font-size:8.5px;border:1px solid #0d47a1">Saída</th>
+            <th style="background:#0d47a1;color:#fff;padding:5px 6px;font-size:8.5px;border:1px solid #0d47a1">Status</th>
           </tr></thead>
           <tbody>${rowsHtml}</tbody>
         </table>
       </div>
       <div style="border:1.5px solid #0d47a1;border-radius:8px;padding:10px 12px">
-        <div style="font-size:10px;font-weight:900;color:#0d47a1;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:8px;padding-bottom:5px;border-bottom:1.5px solid #0d47a1">📋 Controle de Entrada / Saída</div>
-        ${opsSummaryHtml}
-        <table style="width:100%;border-collapse:collapse;margin-top:6px">
+        <div style="font-size:10px;font-weight:900;color:#0d47a1;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:8px;padding-bottom:5px;border-bottom:1.5px solid #0d47a1">
+          📋 Controle de Entrada / Saída
+        </div>
+        <table style="width:100%;border-collapse:collapse">
           <thead><tr>
-            <th style="background:#0d47a1;color:#fff;padding:5px 8px;font-size:8.5px;text-align:left;text-transform:uppercase;letter-spacing:.5px;border:1px solid #0d47a1">Carga</th>
-            <th style="background:#0d47a1;color:#fff;padding:5px 8px;font-size:8.5px;text-align:left;text-transform:uppercase;letter-spacing:.5px;border:1px solid #0d47a1;width:40%">Entrada</th>
-            <th style="background:#0d47a1;color:#fff;padding:5px 8px;font-size:8.5px;text-align:left;text-transform:uppercase;letter-spacing:.5px;border:1px solid #0d47a1;width:40%">Saída</th>
+            <th style="background:#0d47a1;color:#fff;padding:5px 8px;font-size:8.5px;border:1px solid #0d47a1">Carga</th>
+            <th style="background:#0d47a1;color:#fff;padding:5px 8px;font-size:8.5px;border:1px solid #0d47a1;width:38%">Entrada</th>
+            <th style="background:#0d47a1;color:#fff;padding:5px 8px;font-size:8.5px;border:1px solid #0d47a1;width:38%">Saída</th>
           </tr></thead>
           <tbody>${entradaSaidaRows}</tbody>
         </table>
@@ -1177,9 +1184,10 @@ window.imprimirMaquina = function(){
     </div>
     <div style="margin-top:10px;display:flex;justify-content:space-between;font-size:8.5px;color:#888;border-top:1px solid #ddd;padding-top:5px">
       <span>LaundryPro – Sistema de Lavanderia</span>
-      <span>${info.sigla} ${String(_maqNum).padStart(2,'0')} · ${proc} em processo de ${reais.length} total · ${numBR(totalPeso,1)} kg</span>
+      <span>${titulo} · ${proc} em processo · ${totalPeso.toFixed(1)} kg total</span>
       <span>Impresso: ${now}</span>
     </div>`;
+
   window.print();
 };
 </script>
