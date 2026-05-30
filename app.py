@@ -3,7 +3,7 @@ from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime, date, timedelta
 import json, math, calendar
 
-app = Flask(__name__, template_folder='modelos')
+app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres.xjkgqqshpdbpssnugwfd:NkgivoWymEzGQFYM@aws-1-us-west-1.pooler.supabase.com:5432/postgres'
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
