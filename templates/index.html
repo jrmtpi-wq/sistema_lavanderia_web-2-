@@ -1,4 +1,4 @@
-ss<!DOCTYPE html>
+<!DOCTYPE html>
 <html lang="pt-BR">
 <head>
 <meta charset="UTF-8">
@@ -28,33 +28,28 @@ ss<!DOCTYPE html>
 }
 *{box-sizing:border-box;margin:0;padding:0}
 body{font-family:'Nunito',sans-serif;background:var(--cinza1);color:var(--txt);min-height:100vh;overflow-x:hidden}
-/* SCROLLBAR */
 ::-webkit-scrollbar{width:6px;height:6px}
 ::-webkit-scrollbar-track{background:#0d1929}
 ::-webkit-scrollbar-thumb{background:#2458a8;border-radius:3px}
 
 /* ── SIDEBAR ── */
 .sidebar{position:fixed;left:0;top:0;bottom:0;width:230px;background:var(--cinza2);
-  border-right:1px solid var(--brd);display:flex;flex-direction:column;z-index:100;
-  transition:transform .3s}
-.logo{padding:24px 20px 18px;display:flex;align-items:center;gap:12px;
-  border-bottom:1px solid var(--brd)}
+  border-right:1px solid var(--brd);display:flex;flex-direction:column;z-index:100;transition:transform .3s}
+.logo{padding:24px 20px 18px;display:flex;align-items:center;gap:12px;border-bottom:1px solid var(--brd)}
 .logo-icon{width:42px;height:42px;background:linear-gradient(135deg,var(--ciano),var(--azul2));
   border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0}
-.logo-text{font-family:'Syne',sans-serif;font-size:13px;font-weight:700;
-  color:var(--txt);line-height:1.2}
+.logo-text{font-family:'Syne',sans-serif;font-size:13px;font-weight:700;color:var(--txt);line-height:1.2}
 .logo-text span{color:var(--ciano);display:block;font-size:10px;font-weight:400;letter-spacing:2px;text-transform:uppercase}
 nav{padding:16px 12px;flex:1;overflow-y:auto}
 .nav-section{font-size:9px;font-weight:700;letter-spacing:2.5px;text-transform:uppercase;
   color:var(--txt2);padding:10px 8px 6px;margin-top:8px}
 .nav-section:first-child{margin-top:0}
-.nav-btn{display:flex;align-items:center;gap:10px;width:100%;padding:10px 12px;
-  border:none;background:transparent;color:var(--txt2);font-size:13px;font-family:'Nunito',sans-serif;
+.nav-btn{display:flex;align-items:center;gap:10px;width:100%;padding:10px 12px;border:none;
+  background:transparent;color:var(--txt2);font-size:13px;font-family:'Nunito',sans-serif;
   border-radius:10px;cursor:pointer;transition:all .2s;text-align:left;font-weight:600}
 .nav-btn i{width:20px;text-align:center;font-size:14px}
 .nav-btn:hover{background:var(--cinza3);color:var(--txt)}
-.nav-btn.active{background:linear-gradient(135deg,var(--azul2),var(--ciano)20%);
-  color:#fff;box-shadow:0 4px 12px rgba(36,88,168,.35)}
+.nav-btn.active{background:linear-gradient(135deg,var(--azul2),var(--ciano)20%);color:#fff;box-shadow:0 4px 12px rgba(36,88,168,.35)}
 .nav-btn.active i{color:var(--ciano)}
 .sidebar-footer{padding:16px 20px;border-top:1px solid var(--brd);font-size:11px;color:var(--txt2)}
 
@@ -76,18 +71,15 @@ nav{padding:16px 12px;flex:1;overflow-y:auto}
 @keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
 
 /* ── CARDS ── */
-.card{background:var(--cinza2);border:1px solid var(--brd);border-radius:16px;
-  padding:24px;margin-bottom:20px}
+.card{background:var(--cinza2);border:1px solid var(--brd);border-radius:16px;padding:24px;margin-bottom:20px}
 .card-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px}
 .card-title{font-family:'Syne',sans-serif;font-size:15px;font-weight:700;display:flex;align-items:center;gap:8px}
 .card-title i{color:var(--ciano)}
 
 /* ── STATS GRID ── */
 .stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;margin-bottom:24px}
-.stat-card{background:var(--cinza2);border:1px solid var(--brd);border-radius:14px;padding:20px;
-  position:relative;overflow:hidden}
-.stat-card::before{content:'';position:absolute;top:-20px;right:-20px;width:80px;height:80px;
-  border-radius:50%;opacity:.08}
+.stat-card{background:var(--cinza2);border:1px solid var(--brd);border-radius:14px;padding:20px;position:relative;overflow:hidden}
+.stat-card::before{content:'';position:absolute;top:-20px;right:-20px;width:80px;height:80px;border-radius:50%;opacity:.08}
 .stat-card.blue::before{background:var(--ciano)}
 .stat-card.orange::before{background:var(--laranja)}
 .stat-card.purple::before{background:var(--roxo)}
@@ -101,11 +93,9 @@ nav{padding:16px 12px;flex:1;overflow-y:auto}
 .stat-label{font-size:12px;color:var(--txt2);margin-top:4px;font-weight:600}
 
 /* ── BUTTONS ── */
-.btn{display:inline-flex;align-items:center;gap:7px;padding:9px 18px;border-radius:9px;
-  border:none;cursor:pointer;font-size:13px;font-family:'Nunito',sans-serif;font-weight:700;
-  transition:all .2s;letter-spacing:.3px}
-.btn-primary{background:linear-gradient(135deg,var(--azul2),var(--ciano));color:#fff;
-  box-shadow:0 4px 14px rgba(36,88,168,.35)}
+.btn{display:inline-flex;align-items:center;gap:7px;padding:9px 18px;border-radius:9px;border:none;
+  cursor:pointer;font-size:13px;font-family:'Nunito',sans-serif;font-weight:700;transition:all .2s;letter-spacing:.3px}
+.btn-primary{background:linear-gradient(135deg,var(--azul2),var(--ciano));color:#fff;box-shadow:0 4px 14px rgba(36,88,168,.35)}
 .btn-primary:hover{transform:translateY(-1px);box-shadow:0 6px 20px rgba(36,88,168,.5)}
 .btn-danger{background:linear-gradient(135deg,#c0392b,var(--verm));color:#fff}
 .btn-danger:hover{transform:translateY(-1px)}
@@ -113,6 +103,7 @@ nav{padding:16px 12px;flex:1;overflow-y:auto}
 .btn-warning{background:linear-gradient(135deg,#d97706,var(--amarelo));color:#fff}
 .btn-ghost{background:var(--cinza3);color:var(--txt2);border:1px solid var(--brd)}
 .btn-ghost:hover{color:var(--txt);background:var(--cinza4)}
+.btn-purple{background:linear-gradient(135deg,#7c3aed,#8b5cf6);color:#fff}
 .btn-sm{padding:6px 12px;font-size:12px;border-radius:7px}
 .btn-xs{padding:4px 9px;font-size:11px;border-radius:6px}
 
@@ -126,14 +117,13 @@ nav{padding:16px 12px;flex:1;overflow-y:auto}
 .form-control:focus{outline:none;border-color:var(--ciano);box-shadow:0 0 0 3px rgba(0,197,215,.12)}
 .form-control::placeholder{color:var(--txt2)}
 
-/* ── TAMANHOS GRID ── */
+/* ── TAMANHOS ── */
 .sizes-section{margin-top:20px}
 .sizes-group-title{font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;
   color:var(--txt2);margin-bottom:10px;padding:6px 10px;background:var(--cinza3);border-radius:6px;display:inline-block}
 .sizes-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(90px,1fr));gap:8px;margin-bottom:16px}
 .size-input-group{background:var(--cinza3);border:1px solid var(--brd);border-radius:10px;padding:10px;text-align:center}
-.size-label{font-family:'DM Mono',monospace;font-size:11px;font-weight:500;color:var(--ciano);
-  margin-bottom:6px;display:block}
+.size-label{font-family:'DM Mono',monospace;font-size:11px;font-weight:500;color:var(--ciano);margin-bottom:6px;display:block}
 .size-input-group input{width:100%;background:var(--cinza1);border:1px solid var(--brd);border-radius:6px;
   padding:5px;color:var(--txt);font-size:12px;text-align:center;font-family:'DM Mono',monospace}
 .size-input-group input:focus{outline:none;border-color:var(--ciano)}
@@ -143,8 +133,7 @@ nav{padding:16px 12px;flex:1;overflow-y:auto}
 .tbl-wrap{overflow-x:auto;border-radius:12px;border:1px solid var(--brd)}
 table{width:100%;border-collapse:collapse;font-size:13px}
 thead th{background:var(--cinza3);padding:11px 14px;text-align:left;font-size:10px;
-  font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--txt2);
-  white-space:nowrap;border-bottom:1px solid var(--brd)}
+  font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--txt2);white-space:nowrap;border-bottom:1px solid var(--brd)}
 tbody tr{border-bottom:1px solid var(--brd);transition:background .15s}
 tbody tr:last-child{border-bottom:none}
 tbody tr:hover{background:var(--cinza3)}
@@ -156,6 +145,8 @@ tbody td{padding:10px 14px;vertical-align:middle;color:var(--txt)}
 .pill-aguardando{background:rgba(245,158,11,.15);color:var(--amarelo)}
 .pill-em_processo{background:rgba(36,88,168,.25);color:var(--ciano)}
 .pill-concluido{background:rgba(16,185,129,.15);color:var(--verde)}
+.pill-faturado{background:rgba(16,185,129,.2);color:var(--verde)}
+.pill-pendente{background:rgba(245,158,11,.2);color:var(--amarelo)}
 
 /* ── MACHINES GRID ── */
 .maq-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px}
@@ -176,15 +167,13 @@ tbody td{padding:10px 14px;vertical-align:middle;color:var(--txt)}
 .maq-progress{height:4px;background:var(--cinza3);border-radius:2px;margin-top:12px;overflow:hidden}
 .maq-progress-bar{height:100%;border-radius:2px;background:linear-gradient(90deg,var(--ciano),var(--azul2));transition:width .5s}
 
-/* ── CARGA MODAL / PANEL ── */
-.panel-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:200;
-  backdrop-filter:blur(4px)}
+/* ── PANEL ── */
+.panel-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:200;backdrop-filter:blur(4px)}
 .panel-overlay.open{display:flex;align-items:stretch;justify-content:flex-end}
 .panel{width:min(700px,95vw);background:var(--cinza2);border-left:1px solid var(--brd);
   display:flex;flex-direction:column;animation:slideIn .3s ease}
 @keyframes slideIn{from{transform:translateX(100%)}to{transform:translateX(0)}}
-.panel-head{padding:20px 24px;border-bottom:1px solid var(--brd);display:flex;
-  align-items:center;justify-content:space-between}
+.panel-head{padding:20px 24px;border-bottom:1px solid var(--brd);display:flex;align-items:center;justify-content:space-between}
 .panel-title{font-family:'Syne',sans-serif;font-size:16px;font-weight:700}
 .panel-body{flex:1;overflow-y:auto;padding:24px}
 .panel-foot{padding:16px 24px;border-top:1px solid var(--brd);display:flex;gap:10px;justify-content:flex-end}
@@ -204,54 +193,43 @@ tbody td{padding:10px 14px;vertical-align:middle;color:var(--txt)}
 
 /* ── CALENDARIO ── */
 .cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:6px}
-.cal-day-head{text-align:center;font-size:10px;font-weight:700;letter-spacing:1px;
-  text-transform:uppercase;color:var(--txt2);padding:8px}
-.cal-day{background:var(--cinza3);border:1px solid var(--brd);border-radius:10px;
-  min-height:90px;padding:8px;cursor:pointer;transition:all .2s}
+.cal-day-head{text-align:center;font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--txt2);padding:8px}
+.cal-day{background:var(--cinza3);border:1px solid var(--brd);border-radius:10px;min-height:90px;padding:8px;cursor:pointer;transition:all .2s}
 .cal-day:hover{border-color:var(--ciano);background:var(--cinza4)}
 .cal-day.today{border-color:var(--ciano);background:rgba(0,197,215,.07)}
 .cal-day.empty{background:transparent;border-color:transparent;cursor:default}
 .cal-day.has-data{border-color:rgba(36,88,168,.5)}
-.cal-day-num{font-family:'DM Mono',monospace;font-size:13px;font-weight:500;
-  margin-bottom:5px;color:var(--txt)}
+.cal-day-num{font-family:'DM Mono',monospace;font-size:13px;font-weight:500;margin-bottom:5px;color:var(--txt)}
 .cal-day.today .cal-day-num{color:var(--ciano);font-weight:700}
 .cal-turn-dot{display:flex;gap:3px;flex-wrap:wrap}
 .dot{width:7px;height:7px;border-radius:50%}
-.dot-t1{background:var(--azul2)}
-.dot-t2{background:var(--ciano)}
-.dot-t3{background:var(--roxo)}
-.dot-he{background:var(--laranja)}
+.dot-t1{background:var(--azul2)}.dot-t2{background:var(--ciano)}.dot-t3{background:var(--roxo)}.dot-he{background:var(--laranja)}
 .cal-nav{display:flex;align-items:center;gap:16px;margin-bottom:20px}
-.cal-nav-btn{background:var(--cinza3);border:1px solid var(--brd);color:var(--txt);
-  width:34px;height:34px;border-radius:8px;cursor:pointer;display:flex;align-items:center;
-  justify-content:center;font-size:14px;transition:all .2s}
+.cal-nav-btn{background:var(--cinza3);border:1px solid var(--brd);color:var(--txt);width:34px;height:34px;
+  border-radius:8px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:14px;transition:all .2s}
 .cal-nav-btn:hover{background:var(--cinza4);border-color:var(--ciano)}
 .cal-month{font-family:'Syne',sans-serif;font-size:20px;font-weight:700}
 
-/* ── TURNO EDITOR ── */
+/* ── TURNO ── */
 .turno-editor{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:16px}
 .turno-block{background:var(--cinza3);border-radius:12px;padding:14px;border:1px solid var(--brd)}
 .turno-block.t1{border-top:3px solid var(--azul2)}
 .turno-block.t2{border-top:3px solid var(--ciano)}
 .turno-block.t3{border-top:3px solid var(--roxo)}
-.turno-block-title{font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;
-  color:var(--txt2);margin-bottom:10px}
+.turno-block-title{font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--txt2);margin-bottom:10px}
 .turno-row{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:6px}
 .turno-label{font-size:10px;color:var(--txt2);margin-bottom:3px}
-.he-block{background:rgba(255,107,43,.1);border:1px solid rgba(255,107,43,.25);
-  border-radius:12px;padding:14px;margin-top:0}
+.he-block{background:rgba(255,107,43,.1);border:1px solid rgba(255,107,43,.25);border-radius:12px;padding:14px;margin-top:0}
 
-/* ── ARREDONDAR MODAL ── */
-.arr-result{background:var(--cinza3);border-radius:12px;padding:16px;margin-top:14px;
-  border:1px solid var(--brd)}
+/* ── ARREDONDAR ── */
+.arr-result{background:var(--cinza3);border-radius:12px;padding:16px;margin-top:14px;border:1px solid var(--brd)}
 .arr-big{font-family:'Syne',sans-serif;font-size:36px;font-weight:800;color:var(--ciano)}
 .arr-sub{font-size:12px;color:var(--txt2);margin-top:2px}
 
 /* ── TOAST ── */
 .toast-area{position:fixed;bottom:24px;right:24px;z-index:999;display:flex;flex-direction:column;gap:8px}
 .toast{background:var(--cinza2);border:1px solid var(--brd);border-radius:10px;padding:12px 18px;
-  font-size:13px;display:flex;align-items:center;gap:10px;animation:toastIn .3s ease;
-  box-shadow:var(--shadow)}
+  font-size:13px;display:flex;align-items:center;gap:10px;animation:toastIn .3s ease;box-shadow:var(--shadow)}
 .toast.success{border-left:3px solid var(--verde)}
 .toast.error{border-left:3px solid var(--verm)}
 .toast.info{border-left:3px solid var(--ciano)}
@@ -261,16 +239,32 @@ tbody td{padding:10px 14px;vertical-align:middle;color:var(--txt)}
 .tabs{display:flex;gap:4px;background:var(--cinza3);padding:5px;border-radius:12px;margin-bottom:20px;width:fit-content}
 .tab{padding:8px 18px;border-radius:9px;border:none;background:transparent;color:var(--txt2);
   font-size:13px;font-family:'Nunito',sans-serif;font-weight:700;cursor:pointer;transition:all .2s}
-.tab.active{background:linear-gradient(135deg,var(--azul2),var(--ciano));color:#fff;
-  box-shadow:0 3px 10px rgba(36,88,168,.35)}
+.tab.active{background:linear-gradient(135deg,var(--azul2),var(--ciano));color:#fff;box-shadow:0 3px 10px rgba(36,88,168,.35)}
 .tab:hover:not(.active){color:var(--txt)}
 
-/* responsive */
+/* ── FATURAMENTO ── */
+.fat-valor{font-family:'Syne',sans-serif;font-size:32px;font-weight:800;color:var(--verde)}
+.fat-sub{font-size:12px;color:var(--txt2);margin-top:2px}
+.dre-box{background:linear-gradient(135deg,rgba(16,185,129,.15),rgba(16,185,129,.05));
+  border:1px solid rgba(16,185,129,.3);border-radius:16px;padding:28px;text-align:center;margin-bottom:20px}
+.dre-mes{font-family:'Syne',sans-serif;font-size:14px;font-weight:700;color:var(--verde);
+  letter-spacing:2px;text-transform:uppercase;margin-bottom:8px}
+.dre-total{font-family:'Syne',sans-serif;font-size:48px;font-weight:800;color:var(--verde);line-height:1}
+.dre-currency{font-size:20px;vertical-align:top;margin-top:8px;display:inline-block}
+.dre-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:20px}
+.dre-stat{background:var(--cinza3);border-radius:12px;padding:16px;text-align:center}
+.dre-stat-val{font-family:'Syne',sans-serif;font-size:22px;font-weight:800;color:var(--txt)}
+.dre-stat-lbl{font-size:11px;color:var(--txt2);margin-top:3px}
+.sigla-badge{display:inline-flex;align-items:center;gap:4px;background:rgba(124,58,237,.2);
+  border:1px solid rgba(124,58,237,.4);border-radius:6px;padding:3px 10px;font-size:11px;
+  font-weight:700;color:#a78bfa;font-family:'DM Mono',monospace}
+
 @media(max-width:900px){
   .sidebar{transform:translateX(-230px)}
   .sidebar.open{transform:translateX(0)}
   .main{margin-left:0}
   .turno-editor{grid-template-columns:1fr}
+  .dre-stats{grid-template-columns:1fr}
 }
 </style>
 </head>
@@ -300,6 +294,10 @@ tbody td{padding:10px 14px;vertical-align:middle;color:var(--txt)}
 
     <div class="nav-section">Calendário</div>
     <button class="nav-btn" onclick="goPage('calendario')"><i class="fas fa-calendar-alt"></i>Turnos e H.Extra</button>
+
+    <div class="nav-section">Financeiro</div>
+    <button class="nav-btn" onclick="goPage('faturamento')"><i class="fas fa-file-invoice-dollar"></i>Faturamento</button>
+    <button class="nav-btn" onclick="goPage('dre')"><i class="fas fa-chart-bar"></i>DRE Mensal</button>
   </nav>
   <div class="sidebar-footer"><i class="fas fa-circle" style="color:var(--verde);font-size:8px"></i> Sistema Online</div>
 </aside>
@@ -319,9 +317,7 @@ tbody td{padding:10px 14px;vertical-align:middle;color:var(--txt)}
     <div class="page active" id="page-dashboard">
       <div class="stats-grid" id="dash-stats"></div>
       <div class="card">
-        <div class="card-header">
-          <div class="card-title"><i class="fas fa-soap"></i>Máquinas de Lavar</div>
-        </div>
+        <div class="card-header"><div class="card-title"><i class="fas fa-soap"></i>Máquinas de Lavar</div></div>
         <div class="maq-grid" id="dash-lavar"></div>
       </div>
       <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
@@ -344,7 +340,7 @@ tbody td{padding:10px 14px;vertical-align:middle;color:var(--txt)}
           <button class="btn btn-primary" onclick="openOpForm()"><i class="fas fa-plus"></i>Nova OP</button>
         </div>
         <div class="tbl-wrap">
-          <table id="ops-table">
+          <table>
             <thead><tr>
               <th>OP</th><th>Referência</th><th>Lavação</th>
               <th>Total Peças</th><th>Peso Total (kg)</th><th>Cadastro</th><th>Ações</th>
@@ -355,7 +351,7 @@ tbody td{padding:10px 14px;vertical-align:middle;color:var(--txt)}
       </div>
     </div>
 
-    <!-- MÁQUINAS (lavar / centrifuga / secador) -->
+    <!-- MÁQUINAS -->
     <div class="page" id="page-maquinas">
       <div class="tabs" id="maq-tabs"></div>
       <div class="maq-grid" id="maq-grid"></div>
@@ -364,9 +360,7 @@ tbody td{padding:10px 14px;vertical-align:middle;color:var(--txt)}
     <!-- CALENDÁRIO -->
     <div class="page" id="page-calendario">
       <div class="card">
-        <div class="card-header">
-          <div class="card-title"><i class="fas fa-calendar-alt"></i>Calendário de Turnos</div>
-        </div>
+        <div class="card-header"><div class="card-title"><i class="fas fa-calendar-alt"></i>Calendário de Turnos</div></div>
         <div class="cal-nav">
           <button class="cal-nav-btn" onclick="calNav(-1)"><i class="fas fa-chevron-left"></i></button>
           <div class="cal-month" id="cal-month-label">--</div>
@@ -376,10 +370,143 @@ tbody td{padding:10px 14px;vertical-align:middle;color:var(--txt)}
       </div>
     </div>
 
+    <!-- FATURAMENTO -->
+    <div class="page" id="page-faturamento">
+      <!-- Tabs faturamento -->
+      <div class="tabs">
+        <button class="tab active" onclick="switchFatTab('precos',this)">📋 Tabela de Preços</button>
+        <button class="tab" onclick="switchFatTab('prontas',this)">✅ OPs Prontas</button>
+        <button class="tab" onclick="switchFatTab('historico',this)">📂 Histórico</button>
+      </div>
+
+      <!-- Tabela de Preços -->
+      <div id="fat-tab-precos">
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title"><i class="fas fa-tags"></i>Tabela de Preços por Referência</div>
+            <button class="btn btn-primary" onclick="openPrecoForm()"><i class="fas fa-plus"></i>Nova Referência</button>
+          </div>
+          <div style="background:rgba(124,58,237,.1);border:1px solid rgba(124,58,237,.3);border-radius:10px;padding:12px 16px;margin-bottom:16px;font-size:13px;color:#c4b5fd">
+            <i class="fas fa-info-circle" style="margin-right:6px"></i>
+            Cadastre a referência, o preço por peça e a <b>sigla de finalização</b>.
+            Quando essa sigla aparecer na lavação da OP, o sistema entenderá que o produto está pronto para faturar.
+          </div>
+          <div class="tbl-wrap">
+            <table>
+              <thead><tr>
+                <th>Referência</th><th>Preço/Peça (R$)</th><th>Sigla Finalização</th><th>Cadastro</th><th>Ações</th>
+              </tr></thead>
+              <tbody id="precos-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- OPs Prontas -->
+      <div id="fat-tab-prontas" style="display:none">
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title"><i class="fas fa-check-circle"></i>OPs Prontas para Faturar</div>
+            <button class="btn btn-ghost btn-sm" onclick="loadOpsProntas()"><i class="fas fa-sync"></i>Atualizar</button>
+          </div>
+          <div style="background:rgba(16,185,129,.1);border:1px solid rgba(16,185,129,.3);border-radius:10px;padding:12px 16px;margin-bottom:16px;font-size:13px;color:#6ee7b7">
+            <i class="fas fa-info-circle" style="margin-right:6px"></i>
+            OPs cuja lavação contém a sigla de finalização cadastrada na tabela de preços.
+          </div>
+          <div class="tbl-wrap">
+            <table>
+              <thead><tr>
+                <th>OP</th><th>Referência</th><th>Lavação</th><th>Peças</th>
+                <th>Preço/Peça</th><th>Valor Total</th><th>Status</th><th>Ação</th>
+              </tr></thead>
+              <tbody id="prontas-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+
+      <!-- Histórico -->
+      <div id="fat-tab-historico" style="display:none">
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title"><i class="fas fa-history"></i>Histórico de Faturamento</div>
+            <div style="display:flex;gap:8px;align-items:center">
+              <input class="form-control" id="fat-hist-mes" type="month" style="width:160px">
+              <button class="btn btn-ghost btn-sm" onclick="loadHistorico()"><i class="fas fa-search"></i>Filtrar</button>
+            </div>
+          </div>
+          <div class="tbl-wrap">
+            <table>
+              <thead><tr>
+                <th>Data</th><th>OP</th><th>Referência</th><th>Peças</th>
+                <th>Preço/Peça</th><th>Valor Total</th><th>Ações</th>
+              </tr></thead>
+              <tbody id="historico-tbody"></tbody>
+            </table>
+          </div>
+          <div style="padding:16px 0 0;display:flex;gap:20px;align-items:center">
+            <span style="font-size:13px;color:var(--txt2)">Total do período:</span>
+            <span id="hist-total" style="font-family:'Syne',sans-serif;font-size:22px;font-weight:800;color:var(--verde)">R$ 0,00</span>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- DRE -->
+    <div class="page" id="page-dre">
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title"><i class="fas fa-chart-bar"></i>DRE — Demonstrativo de Resultado</div>
+          <div style="display:flex;gap:8px;align-items:center">
+            <input class="form-control" id="dre-mes" type="month" style="width:160px">
+            <button class="btn btn-primary btn-sm" onclick="loadDRE()"><i class="fas fa-search"></i>Gerar</button>
+          </div>
+        </div>
+
+        <!-- Caixa principal DRE -->
+        <div class="dre-box" id="dre-box">
+          <div class="dre-mes" id="dre-mes-label">-- / ----</div>
+          <div style="margin-bottom:4px;font-size:13px;color:var(--txt2)">Total Faturado</div>
+          <div class="dre-total">
+            <span class="dre-currency">R$</span>
+            <span id="dre-total-val">0,00</span>
+          </div>
+          <div class="dre-stats">
+            <div class="dre-stat">
+              <div class="dre-stat-val" id="dre-ops">0</div>
+              <div class="dre-stat-lbl">OPs Faturadas</div>
+            </div>
+            <div class="dre-stat">
+              <div class="dre-stat-val" id="dre-pecas">0</div>
+              <div class="dre-stat-lbl">Peças Processadas</div>
+            </div>
+            <div class="dre-stat">
+              <div class="dre-stat-val" id="dre-ticket">R$ 0,00</div>
+              <div class="dre-stat-lbl">Ticket Médio/OP</div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Detalhamento por semana -->
+        <div class="card-header" style="margin-bottom:12px">
+          <div class="card-title"><i class="fas fa-list"></i>Detalhamento por Operação</div>
+        </div>
+        <div class="tbl-wrap">
+          <table>
+            <thead><tr>
+              <th>Data</th><th>OP</th><th>Referência</th>
+              <th>Peças</th><th>Preço/Peça</th><th>Valor</th>
+            </tr></thead>
+            <tbody id="dre-tbody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
   </div><!-- /content -->
 </div><!-- /main -->
 
-<!-- PANEL OPS FORM -->
+<!-- PANEL OP FORM -->
 <div class="panel-overlay" id="op-panel">
   <div class="panel">
     <div class="panel-head">
@@ -406,20 +533,14 @@ tbody td{padding:10px 14px;vertical-align:middle;color:var(--txt)}
           <input class="form-control" id="op-cap" type="number" placeholder="134">
         </div>
       </div>
-
-      <!-- Tamanhos -->
       <div class="sizes-section">
         <p class="sizes-group-title" style="color:var(--laranja)">🅰️ ADULTO – LETRAS</p>
         <div class="sizes-grid" id="sizes-letras"></div>
-
         <p class="sizes-group-title" style="color:var(--roxo)">🔢 ADULTO – NUMÉRICO</p>
         <div class="sizes-grid" id="sizes-num"></div>
-
         <p class="sizes-group-title" style="color:var(--verde)">👶 INFANTIL</p>
         <div class="sizes-grid" id="sizes-inf"></div>
       </div>
-
-      <!-- Peso -->
       <div style="margin-top:20px;padding-top:20px;border-top:1px solid var(--brd)">
         <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
           <p class="sizes-group-title" style="margin:0">⚖️ PESO POR TAMANHO (kg/peça)</p>
@@ -457,49 +578,24 @@ tbody td{padding:10px 14px;vertical-align:middle;color:var(--txt)}
       <button class="btn btn-ghost btn-sm" onclick="closePanel('maq-panel')"><i class="fas fa-times"></i></button>
     </div>
     <div class="panel-body">
-      <!-- Config -->
       <div class="card" style="margin-bottom:16px;padding:16px">
         <div class="form-grid" style="grid-template-columns:repeat(auto-fill,minmax(160px,1fr))">
-          <div class="form-group">
-            <label>OP</label>
-            <input class="form-control" id="mc-op" placeholder="Nº OP">
-          </div>
-          <div class="form-group">
-            <label>Referência</label>
-            <input class="form-control" id="mc-ref" placeholder="Referência">
-          </div>
-          <div class="form-group">
-            <label>Tipo Lavação</label>
-            <input class="form-control" id="mc-lav" placeholder="Tipo">
-          </div>
-          <div class="form-group">
-            <label>Cap. Peso (kg)</label>
-            <input class="form-control" id="mc-cap" type="number" step="0.1">
-          </div>
-          <div class="form-group">
-            <label>Tempo/Carga (min)</label>
-            <input class="form-control" id="mc-tempo" type="number">
-          </div>
-          <div class="form-group">
-            <label>Data 1ª Carga</label>
-            <input class="form-control" id="mc-data" type="date">
-          </div>
-          <div class="form-group">
-            <label>Hora 1ª Carga</label>
-            <input class="form-control" id="mc-hora" type="time">
-          </div>
-          <div class="form-group">
-            <label>Qtde Cargas</label>
-            <input class="form-control" id="mc-qtd-cargas" type="number" value="10" min="1" max="60">
-          </div>
+          <div class="form-group"><label>OP</label><input class="form-control" id="mc-op" placeholder="Nº OP"></div>
+          <div class="form-group"><label>Referência</label><input class="form-control" id="mc-ref" placeholder="Referência"></div>
+          <div class="form-group"><label>Tipo Lavação</label><input class="form-control" id="mc-lav" placeholder="Tipo"></div>
+          <div class="form-group"><label>Cap. Peso (kg)</label><input class="form-control" id="mc-cap" type="number" step="0.1"></div>
+          <div class="form-group"><label>Tempo/Carga (min)</label><input class="form-control" id="mc-tempo" type="number"></div>
+          <div class="form-group"><label>Data 1ª Carga</label><input class="form-control" id="mc-data" type="date"></div>
+          <div class="form-group"><label>Hora 1ª Carga</label><input class="form-control" id="mc-hora" type="time"></div>
+          <div class="form-group"><label>Qtde Cargas</label><input class="form-control" id="mc-qtd-cargas" type="number" value="10" min="1" max="60"></div>
         </div>
         <div style="display:flex;gap:10px;margin-top:14px;flex-wrap:wrap">
           <button class="btn btn-primary" onclick="gerarCargas()"><i class="fas fa-magic"></i>Gerar Cargas Automático</button>
           <button class="btn btn-success" onclick="saveMaqConfig()"><i class="fas fa-save"></i>Salvar Config.</button>
           <button class="btn btn-ghost" onclick="addCargaManual()"><i class="fas fa-plus"></i>Adicionar Carga</button>
+          <button class="btn btn-warning btn-sm" onclick="imprimirMaquinaEmProcesso()"><i class="fas fa-print"></i>Imprimir Em Processo</button>
         </div>
       </div>
-      <!-- Cargas -->
       <div class="carga-row head">
         <div>Nº</div><div>OP</div><div>Referência</div><div>Lavação</div>
         <div>Peças</div><div>Peso(kg)</div><div>Início</div><div>Saída</div>
@@ -569,15 +665,61 @@ tbody td{padding:10px 14px;vertical-align:middle;color:var(--txt)}
   </div>
 </div>
 
+<!-- PANEL PREÇO FORM -->
+<div class="panel-overlay" id="preco-panel">
+  <div class="panel" style="width:min(500px,97vw)">
+    <div class="panel-head">
+      <div class="panel-title" id="preco-panel-title"><i class="fas fa-tags" style="color:var(--ciano)"></i> Nova Referência</div>
+      <button class="btn btn-ghost btn-sm" onclick="closePanel('preco-panel')"><i class="fas fa-times"></i></button>
+    </div>
+    <div class="panel-body">
+      <input type="hidden" id="preco-edit-id">
+      <div class="form-grid" style="grid-template-columns:1fr">
+        <div class="form-group">
+          <label>Referência</label>
+          <input class="form-control" id="preco-ref" placeholder="Ex: CFHV41827-1" style="text-transform:uppercase">
+        </div>
+        <div class="form-group">
+          <label>Preço por Peça (R$)</label>
+          <input class="form-control" id="preco-val" type="number" step="0.01" min="0" placeholder="Ex: 2.50">
+        </div>
+        <div class="form-group">
+          <label>Sigla de Finalização</label>
+          <input class="form-control" id="preco-sigla" placeholder="Ex: SKY, LASER, STONE" style="text-transform:uppercase">
+          <div style="font-size:11px;color:var(--txt2);margin-top:4px">
+            <i class="fas fa-info-circle"></i>
+            Quando essa sigla aparecer na lavação da OP, ela ficará disponível para faturar.
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="panel-foot">
+      <button class="btn btn-ghost" onclick="closePanel('preco-panel')">Cancelar</button>
+      <button class="btn btn-primary" onclick="savePreco()"><i class="fas fa-save"></i>Salvar</button>
+    </div>
+  </div>
+</div>
+
 <!-- TOASTS -->
 <div class="toast-area" id="toast-area"></div>
+
+<!-- PRINT AREA -->
+<div id="print-area" style="display:none"></div>
+<style>
+@media print {
+  * { -webkit-print-color-adjust:exact!important; print-color-adjust:exact!important; }
+  body > *:not(#print-area) { display:none!important; }
+  #print-area { display:block!important; font-family:Arial,sans-serif; font-size:11px; color:#000; background:#fff; padding:0; }
+  @page { margin:10mm 8mm; size:A4 landscape; }
+}
+</style>
 
 <script>
 const TAMANHOS = ['PP','P','M','G','GG','XG',
   '32','34','36','38','40','42','44','46','48','50',
   '01','02','03','04','06','08','10','12','14','16'];
 
-// ── UTILS ──────────────────────────────────────────────────────
+// ── UTILS ─────────────────────────────────────────────────────
 function toast(msg, type='info'){
   const a = document.getElementById('toast-area');
   const t = document.createElement('div');
@@ -596,13 +738,12 @@ async function api(url, method='GET', body=null){
     if(!r.ok) throw new Error(data.error || `Erro ${r.status}`);
     return data;
   } catch(e) {
-    const msg = e.message || 'Erro de conexão com o servidor';
-    toast('❌ ' + msg, 'error');
+    toast('❌ ' + (e.message || 'Erro de conexão'), 'error');
     throw e;
   }
 }
 function fmtDT(dt){ if(!dt)return '--'; const d=new Date(dt); return d.toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'}); }
-function fmtDate(dt){ if(!dt)return '--'; const d=new Date(dt+'T00:00'); return d.toLocaleDateString('pt-BR'); }
+function fmtBRL(v){ return 'R$ '+Number(v||0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2}); }
 
 // ── CLOCK ──────────────────────────────────────────────────────
 function updateClock(){
@@ -612,19 +753,27 @@ function updateClock(){
 }
 setInterval(updateClock,1000); updateClock();
 
-// ── NAVIGATION ─────────────────────────────────────────────────
+// ── NAVIGATION ────────────────────────────────────────────────
 let currentMaqTipo = 'lavar';
 function goPage(page){
   document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
   document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
   document.getElementById('page-'+page)?.classList.add('active');
   event?.currentTarget?.classList.add('active');
-  const titles={dashboard:'Dashboard / Resumo',ops:'Ordens de Produção',
-    maquinas:'Máquinas',calendario:'Calendário de Turnos'};
-  document.getElementById('topbar-title').innerHTML = (titles[page]||page).replace('/',`<span>/</span>`);
+  const titles={
+    dashboard:'Dashboard / Resumo', ops:'Ordens de Produção',
+    maquinas:'Máquinas', calendario:'Calendário de Turnos',
+    faturamento:'Faturamento', dre:'DRE / Demonstrativo de Resultado'
+  };
+  const t = titles[page]||page;
+  document.getElementById('topbar-title').innerHTML = t.includes('/')
+    ? t.replace(/\/(.*)/, `<span>/ $1</span>`)
+    : t;
   if(page==='dashboard') loadDashboard();
   if(page==='ops') loadOps();
   if(page==='calendario') renderCalendario();
+  if(page==='faturamento'){ loadPrecos(); }
+  if(page==='dre'){ initDRE(); }
 }
 function goMaqPage(tipo){
   currentMaqTipo=tipo;
@@ -638,12 +787,9 @@ function goMaqPage(tipo){
   loadMaquinas(tipo);
 }
 
-// ── DASHBOARD ──────────────────────────────────────────────────
+// ── DASHBOARD ─────────────────────────────────────────────────
 async function loadDashboard(){
   const d = await api('/api/dashboard');
-  const total_lavar = d.lavar.reduce((a,m)=>a+m.total_cargas,0);
-  const total_cf   = d.centrifuga.reduce((a,m)=>a+m.total_cargas,0);
-  const total_sec  = d.secador.reduce((a,m)=>a+m.total_cargas,0);
   const total_peso = [...d.lavar,...d.centrifuga,...d.secador].reduce((a,m)=>a+m.peso_total,0);
   document.getElementById('dash-stats').innerHTML=`
     <div class="stat-card blue"><div class="stat-icon"><i class="fas fa-soap"></i></div>
@@ -682,7 +828,7 @@ function renderMaqCards(containerId, maquinas, tipo){
   }).join('');
 }
 
-// ── MÁQUINAS PAGE ──────────────────────────────────────────────
+// ── MÁQUINAS PAGE ─────────────────────────────────────────────
 function renderMaqTabs(tipoAtivo){
   const tabs=[{k:'lavar',l:'🫧 Lavar'},{k:'centrifuga',l:'🌀 Centrífugas'},{k:'secador',l:'♨️ Secadores'}];
   document.getElementById('maq-tabs').innerHTML=tabs.map(t=>
@@ -695,25 +841,19 @@ async function loadMaquinas(tipo){
   renderMaqCards('maq-grid', maquinas, tipo);
 }
 
-// ── PANEL MÁQUINA ──────────────────────────────────────────────
+// ── PANEL MÁQUINA ─────────────────────────────────────────────
 let currentMaqId = null;
 async function openMaqPanel(id, tipo, numero){
-  // find maq id if not provided
   const maquinas = await api(`/api/maquinas?tipo=${tipo}`);
   const m = maquinas.find(x=>x.numero===numero);
   if(!m){ toast('Máquina não encontrada','error'); return; }
   currentMaqId = m.id;
   const icons={lavar:'🫧',centrifuga:'🌀',secador:'♨️'};
   const labels={lavar:'Máquina de Lavar',centrifuga:'Centrífuga',secador:'Secador'};
-  document.getElementById('maq-panel-title').innerHTML=
-    `${icons[tipo]} ${labels[tipo]} ${String(numero).padStart(2,'0')}`;
+  document.getElementById('maq-panel-title').innerHTML=`${icons[tipo]} ${labels[tipo]} ${String(numero).padStart(2,'0')}`;
   document.getElementById('mc-cap').value=m.capacidade;
   document.getElementById('mc-tempo').value=m.tempo_min;
-  document.getElementById('mc-op').value='';
-  document.getElementById('mc-ref').value='';
-  document.getElementById('mc-lav').value='';
-  document.getElementById('mc-data').value='';
-  document.getElementById('mc-hora').value='';
+  ['mc-op','mc-ref','mc-lav','mc-data','mc-hora'].forEach(id=>document.getElementById(id).value='');
   document.getElementById('mc-qtd-cargas').value=10;
   await loadCargas();
   document.getElementById('maq-panel').classList.add('open');
@@ -721,11 +861,10 @@ async function openMaqPanel(id, tipo, numero){
 async function loadCargas(){
   if(!currentMaqId) return;
   const data = await api(`/api/maquinas/${currentMaqId}/cargas`);
-  const list = document.getElementById('cargas-list');
   const totalPeso = data.cargas.reduce((a,c)=>a+c.peso,0);
   document.getElementById('maq-total-cargas').textContent=data.cargas.length;
   document.getElementById('maq-total-peso').textContent=totalPeso.toLocaleString('pt-BR',{maximumFractionDigits:3,minimumFractionDigits:3});
-  list.innerHTML = data.cargas.map(c=>`
+  document.getElementById('cargas-list').innerHTML = data.cargas.map(c=>`
     <div class="carga-row" id="cr-${c.id}">
       <div class="carga-num">${c.numero}</div>
       <input class="carga-input" value="${c.op_manual||''}" onchange="patchCarga(${c.id},'op',this.value)" placeholder="OP">
@@ -744,46 +883,34 @@ async function loadCargas(){
     </div>`).join('');
 }
 async function gerarCargas(){
-  const data = document.getElementById('mc-data').value;
-  const hora = document.getElementById('mc-hora').value;
+  const data=document.getElementById('mc-data').value, hora=document.getElementById('mc-hora').value;
   if(!data||!hora){ toast('Informe data e hora da 1ª carga','error'); return; }
-  const payload = {
-    op: document.getElementById('mc-op').value,
-    referencia: document.getElementById('mc-ref').value,
-    lavacao: document.getElementById('mc-lav').value,
-    data_inicio: `${data}T${hora}`,
-    quantidade: document.getElementById('mc-qtd-cargas').value,
-    peso_carga: document.getElementById('mc-cap').value
-  };
-  await api(`/api/maquinas/${currentMaqId}/gerar_cargas`,'POST',payload);
-  toast('Cargas geradas com sucesso!','success');
-  await loadCargas();
+  await api(`/api/maquinas/${currentMaqId}/gerar_cargas`,'POST',{
+    op:document.getElementById('mc-op').value, referencia:document.getElementById('mc-ref').value,
+    lavacao:document.getElementById('mc-lav').value, data_inicio:`${data}T${hora}`,
+    quantidade:document.getElementById('mc-qtd-cargas').value, peso_carga:document.getElementById('mc-cap').value
+  });
+  toast('Cargas geradas!','success'); await loadCargas();
 }
 async function saveMaqConfig(){
   await api(`/api/maquinas/${currentMaqId}`,'PUT',{
-    capacidade: document.getElementById('mc-cap').value,
-    tempo_min: document.getElementById('mc-tempo').value
+    capacidade:document.getElementById('mc-cap').value, tempo_min:document.getElementById('mc-tempo').value
   });
   toast('Configuração salva','success');
 }
 async function addCargaManual(){
-  await api(`/api/maquinas/${currentMaqId}/cargas`,'POST',{
-    op:'',referencia:'',lavacao:'',qtde_pecas:0,peso:0
-  });
+  await api(`/api/maquinas/${currentMaqId}/cargas`,'POST',{op:'',referencia:'',lavacao:'',qtde_pecas:0,peso:0});
   await loadCargas();
 }
-async function patchCarga(id, field, value){
+async function patchCarga(id,field,value){
   await api(`/api/cargas/${id}`,'PUT',{[field]:value});
   if(field==='peso') await loadCargas();
 }
 async function deleteCarga(id){
-  await api(`/api/cargas/${id}`,'DELETE');
-  await loadCargas();
-  toast('Carga removida','info');
+  await api(`/api/cargas/${id}`,'DELETE'); await loadCargas(); toast('Carga removida','info');
 }
 
-// ── OPS ────────────────────────────────────────────────────────
-const opWeights = {}; // live peso
+// ── OPS ───────────────────────────────────────────────────────
 function buildSizeInputs(){
   const groups=[
     {id:'sizes-letras',sizes:['PP','P','M','G','GG','XG']},
@@ -798,7 +925,6 @@ function buildSizeInputs(){
         <div class="size-sublabel">peças</div>
       </div>`).join('');
   });
-  // Pesos
   document.getElementById('pesos-grid').innerHTML=TAMANHOS.map(s=>`
     <div class="size-input-group">
       <span class="size-label">${s}</span>
@@ -817,7 +943,7 @@ function liveCalc(){
   document.getElementById('live-peso').textContent=totalPeso.toLocaleString('pt-BR',{minimumFractionDigits:3,maximumFractionDigits:3})+' kg';
 }
 function openOpForm(op=null){
-  document.getElementById('op-edit-id').value = op?op.id:'';
+  document.getElementById('op-edit-id').value=op?op.id:'';
   document.getElementById('op-panel-title').innerHTML = op
     ? `<i class="fas fa-edit" style="color:var(--ciano)"></i> Editar OP ${op.op}`
     : `<i class="fas fa-file-alt" style="color:var(--ciano)"></i> Nova Ordem de Produção`;
@@ -828,8 +954,7 @@ function openOpForm(op=null){
   buildSizeInputs();
   if(op){
     TAMANHOS.forEach(s=>{
-      const qEl=document.getElementById('qtd-'+s);
-      const pEl=document.getElementById('peso-'+s);
+      const qEl=document.getElementById('qtd-'+s), pEl=document.getElementById('peso-'+s);
       if(qEl) qEl.value=op.qtd[s]||0;
       if(pEl) pEl.value=op.peso_unit[s]||0;
     });
@@ -838,48 +963,48 @@ function openOpForm(op=null){
   liveCalc();
   document.getElementById('op-panel').classList.add('open');
 }
+// Copiar OP
+function copiarOp(o){
+  const clone = Object.assign({}, o, {id:'', op:''});
+  openOpForm(clone);
+  setTimeout(()=>{
+    const f=document.getElementById('op-num');
+    if(!f) return;
+    f.value=''; f.focus();
+    f.style.borderColor='#f59e0b';
+    f.style.boxShadow='0 0 0 3px rgba(245,158,11,0.35)';
+    f.placeholder='⚠ Digite o NOVO número de OP';
+    document.getElementById('op-panel-title').innerHTML=
+      `<i class="fas fa-copy" style="color:#f59e0b"></i> Cópia de OP ${o.op} · ${o.referencia||''} — Digite o novo nº`;
+    setTimeout(()=>{ f.style.borderColor=''; f.style.boxShadow=''; f.placeholder='Ex: 48000'; }, 6000);
+  }, 300);
+  toast('📋 OP copiada — preencha o novo número!','info');
+}
 async function saveOp(){
-  const id = document.getElementById('op-edit-id').value;
-  const opVal  = document.getElementById('op-num').value.trim();
-  const refVal = document.getElementById('op-ref').value.trim();
-  if(!opVal || !refVal){
-    toast('Preencha o Nº da OP e a Referência', 'error');
-    return;
-  }
-  const qtd = {}, peso_unit = {};
-  TAMANHOS.forEach(s => {
-    const qEl = document.getElementById('qtd-'  + s);
-    const pEl = document.getElementById('peso-' + s);
-    qtd[s]       = qEl ? (parseFloat(qEl.value)  || 0) : 0;
-    peso_unit[s] = pEl ? (parseFloat(pEl.value)  || 0) : 0;
+  const id=document.getElementById('op-edit-id').value;
+  const opVal=document.getElementById('op-num').value.trim();
+  const refVal=document.getElementById('op-ref').value.trim();
+  if(!opVal||!refVal){ toast('Preencha o Nº da OP e a Referência','error'); return; }
+  const qtd={}, peso_unit={};
+  TAMANHOS.forEach(s=>{
+    qtd[s]=parseFloat(document.getElementById('qtd-'+s)?.value||0)||0;
+    peso_unit[s]=parseFloat(document.getElementById('peso-'+s)?.value||0)||0;
   });
-  const capRaw = document.getElementById('op-cap').value;
-  const body = {
-    op: opVal,
-    referencia: refVal,
-    lavacao:   document.getElementById('op-lav').value.trim(),
-    cap_pecas: capRaw !== '' ? parseInt(capRaw, 10) || 0 : 0,
-    qtd, peso_unit
-  };
-  const btn = document.querySelector('#op-panel .btn-primary');
-  btn.disabled = true;
-  btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Salvando…';
+  const body={op:opVal, referencia:refVal,
+    lavacao:document.getElementById('op-lav').value.trim(),
+    cap_pecas:parseInt(document.getElementById('op-cap').value||0)||0,
+    qtd, peso_unit};
+  const btn=document.querySelector('#op-panel .btn-primary');
+  btn.disabled=true; btn.innerHTML='<i class="fas fa-spinner fa-spin"></i> Salvando…';
   try {
-    if(id) await api(`/api/ops/${id}`, 'PUT', body);
-    else   await api('/api/ops', 'POST', body);
-    toast('OP salva com sucesso!', 'success');
-    closePanel('op-panel');
-    loadOps();
-  } catch(e) {
-    // error already shown by api()
-  } finally {
-    btn.disabled = false;
-    btn.innerHTML = '<i class="fas fa-save"></i>Salvar OP';
-  }
+    if(id) await api(`/api/ops/${id}`,'PUT',body);
+    else   await api('/api/ops','POST',body);
+    toast('OP salva!','success'); closePanel('op-panel'); loadOps();
+  } finally { btn.disabled=false; btn.innerHTML='<i class="fas fa-save"></i>Salvar OP'; }
 }
 async function calcArredondar(){
   const id=document.getElementById('op-edit-id').value;
-  if(!id){ toast('Salve a OP primeiro para arredondar','error'); return; }
+  if(!id){ toast('Salve a OP primeiro','error'); return; }
   const cap=document.getElementById('cap-arredondar').value||80;
   const r=await api(`/api/ops/${id}/arredondar?cap=${cap}`);
   document.getElementById('arr-result').style.display='block';
@@ -897,9 +1022,13 @@ async function loadOps(){
       <td class="mono">${o.total_pecas.toLocaleString('pt-BR')}</td>
       <td class="mono" style="color:var(--ciano)">${o.peso_total.toLocaleString('pt-BR',{minimumFractionDigits:3})} kg</td>
       <td style="color:var(--txt2);font-size:11px">${o.created_at}</td>
-      <td style="display:flex;gap:6px;flex-wrap:wrap">
-        <button class="btn btn-ghost btn-xs" onclick='openOpForm(${JSON.stringify(o).replace(/'/g,"&#39;")})'>
+      <td style="display:flex;gap:5px;flex-wrap:wrap;align-items:center">
+        <button class="btn btn-ghost btn-xs" title="Editar"
+          onclick='openOpForm(${JSON.stringify(o).replace(/'/g,"&#39;")})'>
           <i class="fas fa-edit"></i></button>
+        <button class="btn btn-purple btn-xs" title="Copiar OP"
+          onclick='copiarOp(${JSON.stringify(o).replace(/'/g,"&#39;")})'>
+          <i class="fas fa-copy"></i> Copiar</button>
         <button class="btn btn-danger btn-xs" onclick="deleteOp(${o.id})">
           <i class="fas fa-trash"></i></button>
       </td>
@@ -907,16 +1036,12 @@ async function loadOps(){
 }
 async function deleteOp(id){
   if(!confirm('Excluir esta OP?')) return;
-  await api(`/api/ops/${id}`,'DELETE');
-  toast('OP excluída','info');
-  loadOps();
+  await api(`/api/ops/${id}`,'DELETE'); toast('OP excluída','info'); loadOps();
 }
 
-// ── CALENDÁRIO ─────────────────────────────────────────────────
-let calAno=new Date().getFullYear(), calMes=new Date().getMonth()+1;
-let turnosData={};
-const meses=['Janeiro','Fevereiro','Março','Abril','Maio','Junho',
-              'Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+// ── CALENDÁRIO ────────────────────────────────────────────────
+let calAno=new Date().getFullYear(), calMes=new Date().getMonth()+1, turnosData={};
+const meses=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
 const diasSem=['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
 function calNav(d){ calMes+=d; if(calMes>12){calMes=1;calAno++;} if(calMes<1){calMes=12;calAno--;} renderCalendario(); }
 async function renderCalendario(){
@@ -927,34 +1052,31 @@ async function renderCalendario(){
   const grid=document.getElementById('cal-grid');
   const primeiroDia=new Date(calAno,calMes-1,1).getDay();
   const diasNoMes=new Date(calAno,calMes,0).getDate();
-  const hoje=new Date(); const hj=`${calAno}-${String(calMes).padStart(2,'0')}-${String(hoje.getDate()).padStart(2,'0')}`;
+  const hoje=new Date();
+  const hj=`${calAno}-${String(calMes).padStart(2,'0')}-${String(hoje.getDate()).padStart(2,'0')}`;
   let html=diasSem.map(d=>`<div class="cal-day-head">${d}</div>`).join('');
   for(let i=0;i<primeiroDia;i++) html+=`<div class="cal-day empty"></div>`;
   for(let d=1;d<=diasNoMes;d++){
     const ds=`${calAno}-${String(calMes).padStart(2,'0')}-${String(d).padStart(2,'0')}`;
     const ts=turnosData[ds]||[];
     const hasHe=ts.some(t=>t.he_inicio);
-    const isHoje=ds===hj;
-    html+=`<div class="cal-day ${isHoje?'today':''} ${ts.length?'has-data':''}" onclick="openCalDia('${ds}')">
+    html+=`<div class="cal-day ${ds===hj?'today':''} ${ts.length?'has-data':''}" onclick="openCalDia('${ds}')">
       <div class="cal-day-num">${d}</div>
       <div class="cal-turn-dot">
-        ${ts.find(t=>t.turno_num===1)?'<div class="dot dot-t1" title="Turno 1"></div>':''}
-        ${ts.find(t=>t.turno_num===2)?'<div class="dot dot-t2" title="Turno 2"></div>':''}
-        ${ts.find(t=>t.turno_num===3)?'<div class="dot dot-t3" title="Turno 3"></div>':''}
-        ${hasHe?'<div class="dot dot-he" title="H.Extra"></div>':''}
-      </div>
-    </div>`;
+        ${ts.find(t=>t.turno_num===1)?'<div class="dot dot-t1"></div>':''}
+        ${ts.find(t=>t.turno_num===2)?'<div class="dot dot-t2"></div>':''}
+        ${ts.find(t=>t.turno_num===3)?'<div class="dot dot-t3"></div>':''}
+        ${hasHe?'<div class="dot dot-he"></div>':''}
+      </div></div>`;
   }
   grid.innerHTML=html;
 }
 function openCalDia(data){
   document.getElementById('cal-selected-date').value=data;
   const [y,m,d]=data.split('-');
-  document.getElementById('cal-panel-title').innerHTML=
-    `<i class="fas fa-calendar-day" style="color:var(--ciano)"></i> Turnos: ${d}/${m}/${y}`;
+  document.getElementById('cal-panel-title').innerHTML=`<i class="fas fa-calendar-day" style="color:var(--ciano)"></i> Turnos: ${d}/${m}/${y}`;
   const ts=turnosData[data]||[];
-  const defaults=[[1,'05:00','13:00'],[2,'13:00','21:00'],[3,'21:00','05:00']];
-  defaults.forEach(([n,ei,si])=>{
+  [[1,'05:00','13:00'],[2,'13:00','21:00'],[3,'21:00','05:00']].forEach(([n,ei,si])=>{
     const t=ts.find(x=>x.turno_num===n);
     document.getElementById(`t${n}-entrada`).value=t?.entrada||ei;
     document.getElementById(`t${n}-saida`).value=t?.saida||si;
@@ -967,8 +1089,7 @@ function openCalDia(data){
   document.getElementById('cal-panel').classList.add('open');
 }
 function calcHe(){
-  const i=document.getElementById('he-inicio').value;
-  const f=document.getElementById('he-fim').value;
+  const i=document.getElementById('he-inicio').value, f=document.getElementById('he-fim').value;
   if(!i||!f){ document.getElementById('he-total').textContent='--'; return; }
   let [ih,im]=i.split(':').map(Number), [fh,fm]=f.split(':').map(Number);
   let mins=(fh*60+fm)-(ih*60+im);
@@ -980,140 +1101,182 @@ document.getElementById('he-fim').addEventListener('input',calcHe);
 async function saveTurnos(){
   const data=document.getElementById('cal-selected-date').value;
   const obs=document.getElementById('cal-obs').value;
-  const heI=document.getElementById('he-inicio').value;
-  const heF=document.getElementById('he-fim').value;
+  const heI=document.getElementById('he-inicio').value, heF=document.getElementById('he-fim').value;
   for(const n of [1,2,3]){
-    await api('/api/turnos','POST',{
-      data, turno_num:n,
+    await api('/api/turnos','POST',{data,turno_num:n,
       entrada:document.getElementById(`t${n}-entrada`).value,
       saida:document.getElementById(`t${n}-saida`).value,
-      he_inicio:n===1?heI:'', he_fim:n===1?heF:'',
-      observacao:n===1?obs:''
-    });
+      he_inicio:n===1?heI:'', he_fim:n===1?heF:'', observacao:n===1?obs:''});
   }
-  toast('Turnos salvos!','success');
-  closePanel('cal-panel');
-  renderCalendario();
+  toast('Turnos salvos!','success'); closePanel('cal-panel'); renderCalendario();
 }
 
-// ── PANEL UTILS ─────────────────────────────────────────────────
-function closePanel(id){
-  document.getElementById(id).classList.remove('open');
+// ── TABELA DE PREÇOS ──────────────────────────────────────────
+async function loadPrecos(){
+  const rows=await api('/api/precos');
+  document.getElementById('precos-tbody').innerHTML = rows.length
+    ? rows.map(r=>`
+      <tr>
+        <td><b style="font-family:'DM Mono',monospace">${r.referencia}</b></td>
+        <td class="mono" style="color:var(--verde)">${fmtBRL(r.preco_peca)}</td>
+        <td><span class="sigla-badge"><i class="fas fa-flag" style="font-size:9px"></i>${r.sigla_fim}</span></td>
+        <td style="font-size:11px;color:var(--txt2)">${r.created_at}</td>
+        <td style="display:flex;gap:5px">
+          <button class="btn btn-ghost btn-xs" onclick='openPrecoForm(${JSON.stringify(r).replace(/'/g,"&#39;")})'>
+            <i class="fas fa-edit"></i></button>
+          <button class="btn btn-danger btn-xs" onclick="deletePreco(${r.id})">
+            <i class="fas fa-trash"></i></button>
+        </td>
+      </tr>`).join('')
+    : '<tr><td colspan="5" style="text-align:center;padding:24px;color:var(--txt2)">Nenhuma referência cadastrada ainda.</td></tr>';
 }
-document.querySelectorAll('.panel-overlay').forEach(p=>{
-  p.addEventListener('click',e=>{ if(e.target===p) p.classList.remove('open'); });
-});
+function openPrecoForm(r=null){
+  document.getElementById('preco-edit-id').value=r?r.id:'';
+  document.getElementById('preco-panel-title').innerHTML = r
+    ? `<i class="fas fa-edit" style="color:var(--ciano)"></i> Editar: ${r.referencia}`
+    : `<i class="fas fa-tags" style="color:var(--ciano)"></i> Nova Referência`;
+  document.getElementById('preco-ref').value=r?.referencia||'';
+  document.getElementById('preco-val').value=r?.preco_peca||'';
+  document.getElementById('preco-sigla').value=r?.sigla_fim||'';
+  document.getElementById('preco-panel').classList.add('open');
+}
+async function savePreco(){
+  const id=document.getElementById('preco-edit-id').value;
+  const body={
+    referencia:document.getElementById('preco-ref').value.trim().toUpperCase(),
+    preco_peca:parseFloat(document.getElementById('preco-val').value||0),
+    sigla_fim:document.getElementById('preco-sigla').value.trim().toUpperCase()
+  };
+  if(!body.referencia||!body.sigla_fim){ toast('Preencha Referência e Sigla','error'); return; }
+  if(id) await api(`/api/precos/${id}`,'PUT',body);
+  else   await api('/api/precos','POST',body);
+  toast('Preço salvo!','success'); closePanel('preco-panel'); loadPrecos();
+}
+async function deletePreco(id){
+  if(!confirm('Excluir esta referência?')) return;
+  await api(`/api/precos/${id}`,'DELETE'); toast('Referência excluída','info'); loadPrecos();
+}
 
-// ── INIT ────────────────────────────────────────────────────────
-loadDashboard();
-</script>
-<script>
-// ═══ PATCH v2: Copiar OP + Impressão Em Processo + Entrada/Saída ═══
+// ── OPs PRONTAS ───────────────────────────────────────────────
+function switchFatTab(tab, el){
+  ['precos','prontas','historico'].forEach(t=>{
+    document.getElementById(`fat-tab-${t}`).style.display = t===tab ? '' : 'none';
+  });
+  document.querySelectorAll('#page-faturamento .tab').forEach(b=>b.classList.remove('active'));
+  if(el) el.classList.add('active');
+  if(tab==='prontas') loadOpsProntas();
+  if(tab==='historico') loadHistorico();
+}
+async function loadOpsProntas(){
+  const ops=await api('/api/ops_prontas');
+  document.getElementById('prontas-tbody').innerHTML = ops.length
+    ? ops.map(o=>`
+      <tr>
+        <td class="mono">${o.op}</td>
+        <td><b>${o.referencia}</b></td>
+        <td style="color:var(--txt2);font-size:12px">${o.lavacao||'--'}</td>
+        <td class="mono">${o.total_pecas.toLocaleString('pt-BR')}</td>
+        <td class="mono" style="color:var(--ciano)">${fmtBRL(o.preco_peca)}</td>
+        <td class="mono" style="color:var(--verde);font-weight:700">${fmtBRL(o.valor_total)}</td>
+        <td>${o.ja_faturada
+          ? '<span class="pill pill-faturado"><i class="fas fa-check"></i>Faturada</span>'
+          : '<span class="pill pill-pendente"><i class="fas fa-clock"></i>Pendente</span>'}</td>
+        <td>${!o.ja_faturada
+          ? `<button class="btn btn-success btn-xs" onclick="faturarOp(${JSON.stringify(o).replace(/'/g,"&#39;")})">
+              <i class="fas fa-file-invoice-dollar"></i> Faturar</button>`
+          : '<span style="font-size:11px;color:var(--txt2)">—</span>'}</td>
+      </tr>`).join('')
+    : '<tr><td colspan="8" style="text-align:center;padding:24px;color:var(--txt2)">Nenhuma OP pronta para faturar. Verifique a tabela de preços e as siglas.</td></tr>';
+}
+async function faturarOp(o){
+  if(!confirm(`Faturar OP ${o.op} — ${o.referencia}?\nValor: ${fmtBRL(o.valor_total)}`)) return;
+  const hoje=new Date().toISOString().slice(0,10);
+  await api('/api/faturamento','POST',{
+    op_numero:o.op, referencia:o.referencia, lavacao:o.lavacao,
+    qtd_pecas:o.total_pecas, preco_peca:o.preco_peca,
+    valor_total:o.valor_total, data_faturamento:hoje
+  });
+  toast(`✅ OP ${o.op} faturada — ${fmtBRL(o.valor_total)}`,'success');
+  loadOpsProntas();
+}
 
-// ── 1. Adiciona print-area e estilos de impressão ──────────────
-(function(){
-  const pa = document.createElement('div');
-  pa.id = 'print-area';
-  pa.style.display = 'none';
-  document.body.appendChild(pa);
+// ── HISTÓRICO ─────────────────────────────────────────────────
+function initHistMes(){
+  const n=new Date();
+  document.getElementById('fat-hist-mes').value=`${n.getFullYear()}-${String(n.getMonth()+1).padStart(2,'0')}`;
+}
+async function loadHistorico(){
+  const v=document.getElementById('fat-hist-mes').value;
+  const [ano,mes]=v ? v.split('-') : [new Date().getFullYear(), new Date().getMonth()+1];
+  const rows=await api(`/api/faturamento?ano=${ano}&mes=${mes}`);
+  let total=0;
+  document.getElementById('historico-tbody').innerHTML = rows.length
+    ? rows.map(r=>{ total+=r.valor_total; return `
+      <tr>
+        <td style="font-size:12px;color:var(--txt2)">${r.data_faturamento}</td>
+        <td class="mono">${r.op_numero}</td>
+        <td><b>${r.referencia}</b></td>
+        <td class="mono">${r.qtd_pecas.toLocaleString('pt-BR')}</td>
+        <td class="mono" style="color:var(--ciano)">${fmtBRL(r.preco_peca)}</td>
+        <td class="mono" style="color:var(--verde);font-weight:700">${fmtBRL(r.valor_total)}</td>
+        <td><button class="btn btn-danger btn-xs" onclick="deleteFaturamento(${r.id})">
+          <i class="fas fa-trash"></i></button></td>
+      </tr>`; }).join('')
+    : '<tr><td colspan="7" style="text-align:center;padding:24px;color:var(--txt2)">Nenhum registro neste período.</td></tr>';
+  document.getElementById('hist-total').textContent=fmtBRL(total);
+}
+async function deleteFaturamento(id){
+  if(!confirm('Excluir este registro de faturamento?')) return;
+  await api(`/api/faturamento/${id}`,'DELETE'); toast('Registro excluído','info'); loadHistorico();
+}
 
-  const st = document.createElement('style');
-  st.textContent = `
-    @media print {
-      * { -webkit-print-color-adjust:exact!important; print-color-adjust:exact!important; }
-      body > *:not(#print-area) { display:none!important; }
-      #print-area { display:block!important; font-family:Arial,sans-serif; font-size:11px; color:#000; background:#fff; padding:0; }
-      @page { margin:10mm 8mm; size:A4 landscape; }
-    }`;
-  document.head.appendChild(st);
+// ── DRE ───────────────────────────────────────────────────────
+function initDRE(){
+  const n=new Date();
+  const input=document.getElementById('dre-mes');
+  if(!input.value) input.value=`${n.getFullYear()}-${String(n.getMonth()+1).padStart(2,'0')}`;
+  loadDRE();
+}
+const mesesNomes=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+async function loadDRE(){
+  const v=document.getElementById('dre-mes').value;
+  if(!v) return;
+  const [ano,mes]=v.split('-');
+  const d=await api(`/api/dre?ano=${ano}&mes=${mes}`);
+  document.getElementById('dre-mes-label').textContent=`${mesesNomes[parseInt(mes)-1]} / ${ano}`;
+  document.getElementById('dre-total-val').textContent=
+    d.total_faturado.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});
+  document.getElementById('dre-ops').textContent=d.total_ops;
+  document.getElementById('dre-pecas').textContent=d.total_pecas.toLocaleString('pt-BR');
+  const ticket=d.total_ops>0 ? d.total_faturado/d.total_ops : 0;
+  document.getElementById('dre-ticket').textContent=fmtBRL(ticket);
+  document.getElementById('dre-tbody').innerHTML = d.registros.length
+    ? d.registros.map(r=>`
+      <tr>
+        <td style="font-size:12px;color:var(--txt2)">${r.data_faturamento}</td>
+        <td class="mono">${r.op_numero}</td>
+        <td><b>${r.referencia}</b></td>
+        <td class="mono">${r.qtd_pecas.toLocaleString('pt-BR')}</td>
+        <td class="mono" style="color:var(--ciano)">${fmtBRL(r.preco_peca)}</td>
+        <td class="mono" style="color:var(--verde);font-weight:700">${fmtBRL(r.valor_total)}</td>
+      </tr>`).join('')
+    : '<tr><td colspan="6" style="text-align:center;padding:24px;color:var(--txt2)">Nenhum faturamento neste período.</td></tr>';
+}
 
-  // Adiciona botão Imprimir no rodapé do painel de máquina
-  const pf = document.querySelector('#maq-panel .panel-foot');
-  if(pf){
-    const btn = document.createElement('button');
-    btn.className = 'btn btn-primary btn-sm';
-    btn.innerHTML = '<i class="fas fa-print"></i> Imprimir Em Processo';
-    btn.onclick = imprimirMaquinaEmProcesso;
-    pf.appendChild(btn);
-  }
-})();
-
-// ── 2. Override loadOps — adiciona botão Copiar ────────────────
-const _loadOpsOrig = window.loadOps;
-window.loadOps = async function(){
-  const ops = await api('/api/ops');
-  document.getElementById('ops-tbody').innerHTML = ops.map(o => `
-    <tr>
-      <td class="mono">${o.op}</td>
-      <td><b>${o.referencia}</b></td>
-      <td style="color:var(--txt2)">${o.lavacao||'--'}</td>
-      <td class="mono">${o.total_pecas.toLocaleString('pt-BR')}</td>
-      <td class="mono" style="color:var(--ciano)">${o.peso_total.toLocaleString('pt-BR',{minimumFractionDigits:3})} kg</td>
-      <td style="color:var(--txt2);font-size:11px">${o.created_at}</td>
-      <td style="display:flex;gap:5px;flex-wrap:wrap;align-items:center">
-        <button class="btn btn-ghost btn-xs" title="Editar"
-          onclick='openOpForm(${JSON.stringify(o).replace(/'/g,"&#39;")})'>
-          <i class="fas fa-edit"></i>
-        </button>
-        <button class="btn btn-xs" title="Copiar OP — duplica todos os dados"
-          style="background:linear-gradient(135deg,#7c3aed,#8b5cf6);color:#fff;padding:4px 9px;border-radius:6px;font-size:11px;font-weight:700;border:none;cursor:pointer;display:inline-flex;align-items:center;gap:4px"
-          onclick='copiarOp(${JSON.stringify(o).replace(/'/g,"&#39;")})'>
-          <i class="fas fa-copy"></i> Copiar
-        </button>
-        <button class="btn btn-danger btn-xs" title="Excluir" onclick="deleteOp(${o.id})">
-          <i class="fas fa-trash"></i>
-        </button>
-      </td>
-    </tr>`).join('');
-};
-
-// ── 3. Função copiarOp ─────────────────────────────────────────
-window.copiarOp = function(o){
-  // Cria cópia sem ID e sem número de OP
-  const clone = Object.assign({}, o, {id:'', op:''});
-  openOpForm(clone);
-  // Destaca o campo OP em amarelo por 6s
-  setTimeout(()=>{
-    const f = document.getElementById('op-num');
-    if(!f) return;
-    f.value = '';
-    f.focus();
-    f.style.borderColor = '#f59e0b';
-    f.style.boxShadow = '0 0 0 3px rgba(245,158,11,0.35)';
-    f.placeholder = '⚠ Digite o NOVO número de OP aqui';
-    // Atualiza o título do painel
-    document.getElementById('op-panel-title').innerHTML =
-      `<i class="fas fa-copy" style="color:#f59e0b"></i> Cópia de: OP ${o.op} · ${o.referencia||''} — Digite o novo nº`;
-    setTimeout(()=>{
-      f.style.borderColor = '';
-      f.style.boxShadow = '';
-      f.placeholder = 'Ex: 48000';
-    }, 6000);
-  }, 300);
-  toast('📋 OP copiada — preencha o novo número de OP!', 'info');
-};
-
-// ── 4. Impressão: somente Em Processo + Entrada/Saída ──────────
-window.imprimirMaquinaEmProcesso = async function(){
+// ── IMPRESSÃO ─────────────────────────────────────────────────
+async function imprimirMaquinaEmProcesso(){
   if(!currentMaqId){ toast('Nenhuma máquina selecionada','error'); return; }
-  let data;
-  try { data = await api(`/api/maquinas/${currentMaqId}/cargas`); }
-  catch(e){ return; }
+  const data=await api(`/api/maquinas/${currentMaqId}/cargas`);
+  const cargas=data.cargas||[];
+  const emProcesso=cargas.filter(c=>c.status==='em_processo');
+  const now=new Date().toLocaleString('pt-BR');
+  const titulo=document.getElementById('maq-panel-title').textContent.trim();
+  const totalPeso=cargas.reduce((a,c)=>a+(c.peso||0),0);
+  const conc=cargas.filter(c=>c.status==='concluido').length;
+  const proc=emProcesso.length;
 
-  const cargas = data.cargas || [];
-  const emProcesso = cargas.filter(c => c.status === 'em_processo');
-  const now = new Date().toLocaleString('pt-BR');
-  const titulo = document.getElementById('maq-panel-title').textContent.trim();
-  const totalPeso = cargas.reduce((a,c)=>a+(c.peso||0),0);
-  const conc = cargas.filter(c=>c.status==='concluido').length;
-  const proc = emProcesso.length;
-
-  let rowsHtml = '';
-  if(!emProcesso.length){
-    rowsHtml = '<tr><td colspan="9" style="text-align:center;padding:18px;color:#666;font-style:italic">Nenhuma carga com status "Em Processo" nesta máquina.</td></tr>';
-  } else {
-    emProcesso.forEach((c,i)=>{
-      rowsHtml += `<tr>
+  let rowsHtml=emProcesso.length
+    ? emProcesso.map(c=>`<tr>
         <td style="font-weight:900;color:#0d47a1;text-align:center;border:1px solid #ddd;padding:4px 6px;background:#e3ecf8">${c.numero}</td>
         <td style="font-weight:700;border:1px solid #ddd;padding:4px 6px">${c.op_manual||'—'}</td>
         <td style="border:1px solid #ddd;padding:4px 6px">${c.referencia||'—'}</td>
@@ -1123,19 +1286,18 @@ window.imprimirMaquinaEmProcesso = async function(){
         <td style="font-size:9px;border:1px solid #ddd;padding:4px 6px">${c.data_inicio?fmtDT(c.data_inicio):'--'}</td>
         <td style="font-size:9px;color:#b45309;border:1px solid #ddd;padding:4px 6px">${c.data_saida?fmtDT(c.data_saida):'--'}</td>
         <td style="text-align:center;color:#d97706;font-weight:700;border:1px solid #ddd;padding:4px 6px">🔄 Em Proc.</td>
-      </tr>`;
-    });
-  }
+      </tr>`).join('')
+    : '<tr><td colspan="9" style="text-align:center;padding:18px;color:#666;font-style:italic">Nenhuma carga Em Processo.</td></tr>';
 
-  const entradaSaidaRows = emProcesso.length
+  const entradaSaidaRows=emProcesso.length
     ? emProcesso.map(c=>`<tr>
-        <td style="border:1px solid #ccc;padding:5px 8px;font-size:9px;font-weight:700;color:#0d47a1;white-space:nowrap">#${c.numero} · OP ${c.op_manual||'—'}</td>
+        <td style="border:1px solid #ccc;padding:5px 8px;font-size:9px;font-weight:700;color:#0d47a1">#${c.numero} · OP ${c.op_manual||'—'}</td>
         <td style="border:1px solid #ccc;padding:5px 8px;height:28px"><span style="display:block;border-bottom:1px solid #aaa;width:100%;height:16px"></span></td>
         <td style="border:1px solid #ccc;padding:5px 8px;height:28px"><span style="display:block;border-bottom:1px solid #aaa;width:100%;height:16px"></span></td>
       </tr>`).join('')
     : '<tr><td colspan="3" style="border:1px solid #ccc;padding:10px;text-align:center;color:#666;font-size:9px">Sem cargas Em Processo</td></tr>';
 
-  document.getElementById('print-area').innerHTML = `
+  document.getElementById('print-area').innerHTML=`
     <div style="display:flex;align-items:flex-start;justify-content:space-between;border-bottom:2.5px solid #0d47a1;padding-bottom:8px;margin-bottom:10px">
       <div>
         <div style="font-size:18px;font-weight:900;color:#0d47a1">🧺 LaundryPro</div>
@@ -1143,34 +1305,32 @@ window.imprimirMaquinaEmProcesso = async function(){
         <div style="font-size:20px;font-weight:900;color:#111;margin-top:4px">${titulo}</div>
       </div>
       <div style="text-align:right;font-size:10px;color:#555;line-height:1.8">
-        <div>Emitido em: <b style="color:#0d47a1">${now}</b></div>
-        <div>Total cargas: <b style="color:#0d47a1">${cargas.length}</b> &nbsp;|&nbsp; Em Processo: <b style="color:#d97706">${proc}</b></div>
-        <div>✅ Concluídas: <b style="color:#059669">${conc}</b> &nbsp;|&nbsp; Peso total: <b style="color:#0d47a1">${totalPeso.toFixed(1)} kg</b></div>
+        <div>Emitido: <b style="color:#0d47a1">${now}</b></div>
+        <div>Total: <b>${cargas.length}</b> | Em Processo: <b style="color:#d97706">${proc}</b> | Concluídas: <b style="color:#059669">${conc}</b></div>
+        <div>Peso total: <b>${totalPeso.toFixed(1)} kg</b></div>
       </div>
     </div>
     <div style="background:#fff7ed;border:1.5px solid #d97706;border-radius:5px;padding:4px 10px;margin-bottom:8px;font-size:9px;font-weight:700;color:#b45309;text-align:center">
       ★ Exibindo apenas cargas EM PROCESSO — ${proc} carga${proc!==1?'s':''}
     </div>
     <div style="display:grid;grid-template-columns:1fr 36%;gap:10px;align-items:start">
-      <div>
-        <table style="width:100%;border-collapse:collapse;font-size:10px">
-          <thead><tr>
-            <th style="background:#0d47a1;color:#fff;padding:5px 6px;font-size:8.5px;border:1px solid #0d47a1">#</th>
-            <th style="background:#0d47a1;color:#fff;padding:5px 6px;font-size:8.5px;border:1px solid #0d47a1">OP</th>
-            <th style="background:#0d47a1;color:#fff;padding:5px 6px;font-size:8.5px;border:1px solid #0d47a1">Referência</th>
-            <th style="background:#0d47a1;color:#fff;padding:5px 6px;font-size:8.5px;border:1px solid #0d47a1">Lavação</th>
-            <th style="background:#0d47a1;color:#fff;padding:5px 6px;font-size:8.5px;text-align:right;border:1px solid #0d47a1">Peças</th>
-            <th style="background:#0d47a1;color:#fff;padding:5px 6px;font-size:8.5px;text-align:right;border:1px solid #0d47a1">Peso kg</th>
-            <th style="background:#0d47a1;color:#fff;padding:5px 6px;font-size:8.5px;border:1px solid #0d47a1">Início</th>
-            <th style="background:#0d47a1;color:#fff;padding:5px 6px;font-size:8.5px;border:1px solid #0d47a1">Saída</th>
-            <th style="background:#0d47a1;color:#fff;padding:5px 6px;font-size:8.5px;border:1px solid #0d47a1">Status</th>
-          </tr></thead>
-          <tbody>${rowsHtml}</tbody>
-        </table>
-      </div>
+      <table style="width:100%;border-collapse:collapse;font-size:10px">
+        <thead><tr>
+          <th style="background:#0d47a1;color:#fff;padding:5px 6px;font-size:8.5px;border:1px solid #0d47a1">#</th>
+          <th style="background:#0d47a1;color:#fff;padding:5px 6px;font-size:8.5px;border:1px solid #0d47a1">OP</th>
+          <th style="background:#0d47a1;color:#fff;padding:5px 6px;font-size:8.5px;border:1px solid #0d47a1">Referência</th>
+          <th style="background:#0d47a1;color:#fff;padding:5px 6px;font-size:8.5px;border:1px solid #0d47a1">Lavação</th>
+          <th style="background:#0d47a1;color:#fff;padding:5px 6px;font-size:8.5px;text-align:right;border:1px solid #0d47a1">Peças</th>
+          <th style="background:#0d47a1;color:#fff;padding:5px 6px;font-size:8.5px;text-align:right;border:1px solid #0d47a1">kg</th>
+          <th style="background:#0d47a1;color:#fff;padding:5px 6px;font-size:8.5px;border:1px solid #0d47a1">Início</th>
+          <th style="background:#0d47a1;color:#fff;padding:5px 6px;font-size:8.5px;border:1px solid #0d47a1">Saída</th>
+          <th style="background:#0d47a1;color:#fff;padding:5px 6px;font-size:8.5px;border:1px solid #0d47a1">Status</th>
+        </tr></thead>
+        <tbody>${rowsHtml}</tbody>
+      </table>
       <div style="border:1.5px solid #0d47a1;border-radius:8px;padding:10px 12px">
         <div style="font-size:10px;font-weight:900;color:#0d47a1;text-transform:uppercase;letter-spacing:1.5px;margin-bottom:8px;padding-bottom:5px;border-bottom:1.5px solid #0d47a1">
-          📋 Controle de Entrada / Saída
+          📋 Controle Entrada / Saída
         </div>
         <table style="width:100%;border-collapse:collapse">
           <thead><tr>
@@ -1184,12 +1344,21 @@ window.imprimirMaquinaEmProcesso = async function(){
     </div>
     <div style="margin-top:10px;display:flex;justify-content:space-between;font-size:8.5px;color:#888;border-top:1px solid #ddd;padding-top:5px">
       <span>LaundryPro – Sistema de Lavanderia</span>
-      <span>${titulo} · ${proc} em processo · ${totalPeso.toFixed(1)} kg total</span>
+      <span>${titulo} · ${proc} em processo · ${totalPeso.toFixed(1)} kg</span>
       <span>Impresso: ${now}</span>
     </div>`;
-
   window.print();
-};
+}
+
+// ── PANEL UTILS ───────────────────────────────────────────────
+function closePanel(id){ document.getElementById(id).classList.remove('open'); }
+document.querySelectorAll('.panel-overlay').forEach(p=>{
+  p.addEventListener('click',e=>{ if(e.target===p) p.classList.remove('open'); });
+});
+
+// ── INIT ──────────────────────────────────────────────────────
+initHistMes();
+loadDashboard();
 </script>
 </body>
 </html>

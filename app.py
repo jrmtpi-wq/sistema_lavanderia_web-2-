@@ -1,7 +1,7 @@
 from flask import Flask, render_template, request, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime, date, timedelta
-import json, math
+import json, math, calendar
 
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres.xjkgqqshpdbpssnugwfd:NkgivoWymEzGQFYM@aws-1-us-west-1.pooler.supabase.com:5432/postgres'
@@ -19,8 +19,8 @@ class OrdemProducao(db.Model):
     referencia  = db.Column(db.String(50), nullable=False)
     lavacao     = db.Column(db.String(80))
     cap_pecas   = db.Column(db.Integer, default=0)
-    qtd         = db.Column(db.Text, default='{}')   # JSON {tamanho: qty}
-    peso_unit   = db.Column(db.Text, default='{}')   # JSON {tamanho: kg}
+    qtd         = db.Column(db.Text, default='{}')
+    peso_unit   = db.Column(db.Text, default='{}')
     created_at  = db.Column(db.DateTime, default=datetime.utcnow)
 
     @property
@@ -40,7 +40,7 @@ class OrdemProducao(db.Model):
 class Turno(db.Model):
     id          = db.Column(db.Integer, primary_key=True)
     data        = db.Column(db.Date, nullable=False)
-    turno_num   = db.Column(db.Integer)   # 1,2,3
+    turno_num   = db.Column(db.Integer)
     entrada     = db.Column(db.String(5))
     saida       = db.Column(db.String(5))
     he_inicio   = db.Column(db.String(5))
@@ -49,7 +49,7 @@ class Turno(db.Model):
 
 class Maquina(db.Model):
     id          = db.Column(db.Integer, primary_key=True)
-    tipo        = db.Column(db.String(20))   # lavar / centrifuga / secador
+    tipo        = db.Column(db.String(20))
     numero      = db.Column(db.Integer)
     capacidade  = db.Column(db.Float, default=80.0)
     tempo_min   = db.Column(db.Integer, default=90)
@@ -76,6 +76,29 @@ class Carga(db.Model):
         if self.data_inicio and self.maquina:
             return self.data_inicio + timedelta(minutes=self.maquina.tempo_min)
         return None
+
+# ── FATURAMENTO MODELS ────────────────────────────────────────────
+class TabelaPreco(db.Model):
+    """Tabela de preços por referência + sigla de finalização."""
+    id              = db.Column(db.Integer, primary_key=True)
+    referencia      = db.Column(db.String(50), nullable=False, unique=True)
+    preco_peca      = db.Column(db.Float, nullable=False, default=0.0)
+    sigla_fim       = db.Column(db.String(30), nullable=False)  # sigla que indica produto finalizado
+    created_at      = db.Column(db.DateTime, default=datetime.utcnow)
+
+class Faturamento(db.Model):
+    """Registro de faturamento — criado quando OP com sigla_fim é faturada."""
+    id              = db.Column(db.Integer, primary_key=True)
+    op_id           = db.Column(db.Integer, db.ForeignKey('ordem_producao.id'), nullable=True)
+    op_numero       = db.Column(db.String(20), nullable=False)
+    referencia      = db.Column(db.String(50), nullable=False)
+    lavacao         = db.Column(db.String(80))
+    qtd_pecas       = db.Column(db.Integer, default=0)
+    preco_peca      = db.Column(db.Float, default=0.0)
+    valor_total     = db.Column(db.Float, default=0.0)
+    data_faturamento = db.Column(db.Date, default=date.today)
+    observacao      = db.Column(db.String(200))
+    created_at      = db.Column(db.DateTime, default=datetime.utcnow)
 
 # ── INIT DB ──────────────────────────────────────────────────────
 def init_db():
@@ -184,7 +207,6 @@ def get_turnos():
     ano  = int(request.args.get('ano', date.today().year))
     mes  = int(request.args.get('mes', date.today().month))
     d1   = date(ano, mes, 1)
-    import calendar
     d2   = date(ano, mes, calendar.monthrange(ano,mes)[1])
     rows = Turno.query.filter(Turno.data.between(d1,d2)).all()
     return jsonify([{
@@ -250,7 +272,6 @@ def add_carga(mid):
     m = Maquina.query.get_or_404(mid)
     d = request.json
     num = len(m.cargas) + 1
-    # calcular data_inicio automaticamente
     dt_inicio = None
     if d.get('data_inicio'):
         try:
@@ -293,7 +314,6 @@ def update_carga(cid):
 def delete_carga(cid):
     c = Carga.query.get_or_404(cid); m = c.maquina
     db.session.delete(c)
-    # renumber
     for i, cc in enumerate(sorted(m.cargas, key=lambda x: x.numero), 1):
         cc.numero = i
     db.session.commit()
@@ -301,7 +321,6 @@ def delete_carga(cid):
 
 @app.route('/api/maquinas/<int:mid>/gerar_cargas', methods=['POST'])
 def gerar_cargas(mid):
-    """Gera cargas em cascata a partir da 1ª data/hora e OP/REF informados."""
     m   = Maquina.query.get_or_404(mid)
     d   = request.json
     op  = d.get('op',''); ref = d.get('referencia',''); lav = d.get('lavacao','')
@@ -333,6 +352,164 @@ def dashboard():
             'aguardando': sum(1 for c in m.cargas if c.status=='aguardando'),
         } for m in maquinas]
     return jsonify(result)
+
+# ─ TABELA DE PREÇOS ─
+@app.route('/api/precos', methods=['GET'])
+def get_precos():
+    rows = TabelaPreco.query.order_by(TabelaPreco.referencia).all()
+    return jsonify([{
+        'id': r.id, 'referencia': r.referencia,
+        'preco_peca': r.preco_peca, 'sigla_fim': r.sigla_fim,
+        'created_at': r.created_at.strftime('%d/%m/%Y %H:%M')
+    } for r in rows])
+
+@app.route('/api/precos', methods=['POST'])
+def create_preco():
+    try:
+        d = request.json
+        if not d.get('referencia') or not d.get('sigla_fim'):
+            return jsonify({'ok': False, 'error': 'Referência e Sigla são obrigatórias'}), 400
+        existing = TabelaPreco.query.filter_by(referencia=d['referencia'].strip().upper()).first()
+        if existing:
+            return jsonify({'ok': False, 'error': 'Referência já cadastrada. Use editar.'}), 400
+        r = TabelaPreco(
+            referencia=d['referencia'].strip().upper(),
+            preco_peca=safe_float(d.get('preco_peca', 0)),
+            sigla_fim=d['sigla_fim'].strip().upper()
+        )
+        db.session.add(r); db.session.commit()
+        return jsonify({'ok': True, 'id': r.id})
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'ok': False, 'error': str(e)}), 500
+
+@app.route('/api/precos/<int:pid>', methods=['PUT'])
+def update_preco(pid):
+    try:
+        r = TabelaPreco.query.get_or_404(pid)
+        d = request.json
+        r.referencia = d.get('referencia', r.referencia).strip().upper()
+        r.preco_peca = safe_float(d.get('preco_peca', r.preco_peca))
+        r.sigla_fim  = d.get('sigla_fim', r.sigla_fim).strip().upper()
+        db.session.commit()
+        return jsonify({'ok': True})
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'ok': False, 'error': str(e)}), 500
+
+@app.route('/api/precos/<int:pid>', methods=['DELETE'])
+def delete_preco(pid):
+    r = TabelaPreco.query.get_or_404(pid)
+    db.session.delete(r); db.session.commit()
+    return jsonify({'ok': True})
+
+# ─ OPs PRONTAS PARA FATURAR ─
+@app.route('/api/ops_prontas', methods=['GET'])
+def get_ops_prontas():
+    """Retorna OPs cuja lavação contém a sigla de finalização cadastrada para a referência."""
+    ops = OrdemProducao.query.order_by(OrdemProducao.id.desc()).all()
+    precos = TabelaPreco.query.all()
+    # mapa referencia -> tabela_preco
+    mapa = {p.referencia.upper(): p for p in precos}
+
+    prontas = []
+    for o in ops:
+        ref_key = o.referencia.strip().upper()
+        tp = mapa.get(ref_key)
+        if not tp:
+            continue
+        lav = (o.lavacao or '').upper()
+        if tp.sigla_fim.upper() not in lav:
+            continue
+        # verifica se já foi faturada
+        ja_faturada = Faturamento.query.filter_by(op_numero=o.op, referencia=o.referencia).first()
+        prontas.append({
+            'id': o.id, 'op': o.op, 'referencia': o.referencia,
+            'lavacao': o.lavacao, 'total_pecas': o.total_pecas,
+            'peso_total': round(o.peso_total, 3),
+            'preco_peca': tp.preco_peca,
+            'sigla_fim': tp.sigla_fim,
+            'valor_total': round(o.total_pecas * tp.preco_peca, 2),
+            'ja_faturada': bool(ja_faturada),
+            'created_at': o.created_at.strftime('%d/%m/%Y %H:%M')
+        })
+    return jsonify(prontas)
+
+# ─ FATURAMENTO ─
+@app.route('/api/faturamento', methods=['GET'])
+def get_faturamento():
+    ano = int(request.args.get('ano', date.today().year))
+    mes = int(request.args.get('mes', date.today().month))
+    d1  = date(ano, mes, 1)
+    d2  = date(ano, mes, calendar.monthrange(ano,mes)[1])
+    rows = Faturamento.query.filter(
+        Faturamento.data_faturamento.between(d1, d2)
+    ).order_by(Faturamento.data_faturamento.desc()).all()
+    return jsonify([{
+        'id': f.id, 'op_numero': f.op_numero, 'referencia': f.referencia,
+        'lavacao': f.lavacao, 'qtd_pecas': f.qtd_pecas,
+        'preco_peca': f.preco_peca, 'valor_total': f.valor_total,
+        'data_faturamento': f.data_faturamento.strftime('%d/%m/%Y'),
+        'observacao': f.observacao
+    } for r in rows for f in [r]])
+
+@app.route('/api/faturamento', methods=['POST'])
+def create_faturamento():
+    try:
+        d = request.json
+        f = Faturamento(
+            op_numero=str(d.get('op_numero','')).strip(),
+            referencia=str(d.get('referencia','')).strip(),
+            lavacao=d.get('lavacao',''),
+            qtd_pecas=safe_int(d.get('qtd_pecas',0)),
+            preco_peca=safe_float(d.get('preco_peca',0)),
+            valor_total=safe_float(d.get('valor_total',0)),
+            data_faturamento=datetime.strptime(d['data_faturamento'], '%Y-%m-%d').date() if d.get('data_faturamento') else date.today(),
+            observacao=d.get('observacao','')
+        )
+        db.session.add(f); db.session.commit()
+        return jsonify({'ok': True, 'id': f.id})
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'ok': False, 'error': str(e)}), 500
+
+@app.route('/api/faturamento/<int:fid>', methods=['DELETE'])
+def delete_faturamento(fid):
+    f = Faturamento.query.get_or_404(fid)
+    db.session.delete(f); db.session.commit()
+    return jsonify({'ok': True})
+
+# ─ DRE ─
+@app.route('/api/dre', methods=['GET'])
+def get_dre():
+    ano = int(request.args.get('ano', date.today().year))
+    mes = int(request.args.get('mes', date.today().month))
+    d1  = date(ano, mes, 1)
+    d2  = date(ano, mes, calendar.monthrange(ano,mes)[1])
+    rows = Faturamento.query.filter(
+        Faturamento.data_faturamento.between(d1, d2)
+    ).all()
+    total_faturado = round(sum(r.valor_total for r in rows), 2)
+    total_pecas    = sum(r.qtd_pecas for r in rows)
+    total_ops      = len(rows)
+    # por semana
+    semanas = {}
+    for r in rows:
+        sem = r.data_faturamento.isocalendar()[1]
+        semanas[sem] = semanas.get(sem, 0) + r.valor_total
+    return jsonify({
+        'ano': ano, 'mes': mes,
+        'total_faturado': total_faturado,
+        'total_pecas': total_pecas,
+        'total_ops': total_ops,
+        'por_semana': [{'semana': k, 'valor': round(v,2)} for k,v in sorted(semanas.items())],
+        'registros': [{
+            'op_numero': r.op_numero, 'referencia': r.referencia,
+            'qtd_pecas': r.qtd_pecas, 'preco_peca': r.preco_peca,
+            'valor_total': r.valor_total,
+            'data_faturamento': r.data_faturamento.strftime('%d/%m/%Y')
+        } for r in rows]
+    })
 
 if __name__ == '__main__':
     with app.app_context():
