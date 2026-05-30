@@ -117,7 +117,14 @@ def init_db():
 def init_db_route():
     db.create_all()
     init_db()
+    try:
+        db.session.execute(db.text('ALTER TABLE carga ADD COLUMN IF NOT EXISTS parada_min INTEGER DEFAULT 0'))
+        db.session.execute(db.text('ALTER TABLE carga ADD COLUMN IF NOT EXISTS observacao VARCHAR(200)'))
+        db.session.commit()
+    except:
+        db.session.rollback()
     return 'Banco criado!'
+    
 
 @app.route('/')
 def index():
