@@ -578,8 +578,8 @@ tbody td{padding:10px 14px;vertical-align:middle;color:var(--txt)}
       <button class="btn btn-ghost btn-sm" onclick="closePanel('maq-panel')"><i class="fas fa-times"></i></button>
     </div>
     <div class="panel-body">
-      <div class="card" style="margin-bottom:16px;padding:16px">
-        <div class="form-grid" style="grid-template-columns:repeat(auto-fill,minmax(160px,1fr))">
+      <div class="card" style="margin-bottom:12px;padding:16px">
+        <div class="form-grid" style="grid-template-columns:repeat(auto-fill,minmax(150px,1fr))">
           <div class="form-group"><label>OP</label><input class="form-control" id="mc-op" placeholder="Nº OP"></div>
           <div class="form-group"><label>Referência</label><input class="form-control" id="mc-ref" placeholder="Referência"></div>
           <div class="form-group"><label>Tipo Lavação</label><input class="form-control" id="mc-lav" placeholder="Tipo"></div>
@@ -590,18 +590,77 @@ tbody td{padding:10px 14px;vertical-align:middle;color:var(--txt)}
           <div class="form-group"><label>Qtde Cargas</label><input class="form-control" id="mc-qtd-cargas" type="number" value="10" min="1" max="60"></div>
         </div>
         <div style="display:flex;gap:10px;margin-top:14px;flex-wrap:wrap">
-          <button class="btn btn-primary" onclick="gerarCargas()"><i class="fas fa-magic"></i>Gerar Cargas Automático</button>
+          <button class="btn btn-primary" onclick="gerarCargas()"><i class="fas fa-magic"></i>Gerar Automático</button>
           <button class="btn btn-success" onclick="saveMaqConfig()"><i class="fas fa-save"></i>Salvar Config.</button>
-          <button class="btn btn-ghost" onclick="addCargaManual()"><i class="fas fa-plus"></i>Adicionar Carga</button>
+          <button class="btn btn-ghost" onclick="addCargaManual()"><i class="fas fa-plus"></i>Add Carga</button>
           <button class="btn btn-warning btn-sm" onclick="imprimirMaquinaEmProcesso()"><i class="fas fa-print"></i>Imprimir Em Processo</button>
         </div>
       </div>
-      <div class="carga-row head">
-        <div>Nº</div><div>OP</div><div>Referência</div><div>Lavação</div>
-        <div>Peças</div><div>Peso(kg)</div><div>Início</div><div>Saída</div>
-        <div>Status</div><div></div>
+
+      <!-- Calculadora de Cargas por OP -->
+      <div class="card" style="margin-bottom:12px;padding:16px;border-color:rgba(124,58,237,.3);background:rgba(124,58,237,.07)">
+        <div style="font-family:'Syne',sans-serif;font-size:13px;font-weight:700;color:#a78bfa;margin-bottom:12px">
+          <i class="fas fa-calculator"></i> Calculadora de Cargas por OP
+        </div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end">
+          <div class="form-group" style="min-width:160px">
+            <label>Selecionar OP</label>
+            <select class="form-control" id="calc-op-select"><option value="">-- Selecione --</option></select>
+          </div>
+          <div class="form-group" style="width:110px">
+            <label>Capacidade (kg)</label>
+            <input class="form-control" id="calc-cap" type="number" step="0.1" placeholder="80">
+          </div>
+          <div class="form-group" style="width:130px">
+            <label>Arred. Cargas</label>
+            <select class="form-control" id="calc-arred-cargas">
+              <option value="baixo">↓ Para baixo</option>
+              <option value="cima">↑ Para cima</option>
+            </select>
+          </div>
+          <div class="form-group" style="width:130px">
+            <label>Arred. Peças</label>
+            <select class="form-control" id="calc-arred-pecas">
+              <option value="baixo">↓ Para baixo</option>
+              <option value="cima">↑ Para cima</option>
+            </select>
+          </div>
+          <button class="btn btn-purple btn-sm" onclick="calcularCargasOP()" style="margin-bottom:1px"><i class="fas fa-calculator"></i>Calcular</button>
+        </div>
+        <div id="calc-resultado" style="display:none;margin-top:12px;background:var(--cinza3);border-radius:10px;padding:14px">
+          <div style="display:flex;gap:20px;flex-wrap:wrap;align-items:center">
+            <div style="text-align:center">
+              <div style="font-family:'Syne',sans-serif;font-size:28px;font-weight:800;color:#a78bfa" id="calc-num-cargas">0</div>
+              <div style="font-size:11px;color:var(--txt2)">Cargas</div>
+            </div>
+            <div style="text-align:center">
+              <div style="font-family:'DM Mono',monospace;font-size:18px;color:var(--ciano)" id="calc-peso-carga">0</div>
+              <div style="font-size:11px;color:var(--txt2)">kg/carga</div>
+            </div>
+            <div style="text-align:center">
+              <div style="font-family:'DM Mono',monospace;font-size:18px;color:var(--verde)" id="calc-pecas-carga">0</div>
+              <div style="font-size:11px;color:var(--txt2)">peças/carga</div>
+            </div>
+            <div style="text-align:center">
+              <div style="font-family:'DM Mono',monospace;font-size:14px;color:var(--amarelo)" id="calc-peso-total-res">0</div>
+              <div style="font-size:11px;color:var(--txt2)">peso total kg</div>
+            </div>
+            <button class="btn btn-primary btn-sm" onclick="aplicarCalculoCargas()"><i class="fas fa-check"></i>Aplicar nas Cargas</button>
+          </div>
+        </div>
       </div>
-      <div id="cargas-list"></div>
+
+      <!-- Lista de Cargas -->
+      <div style="overflow-x:auto">
+        <div style="display:grid;grid-template-columns:52px 36px 82px 82px 90px 65px 68px 110px 110px 90px 75px 36px;
+          gap:4px;align-items:center;padding:7px 8px;margin-bottom:4px;
+          background:var(--cinza1);font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--txt2);border-radius:6px">
+          <div>Mover</div><div>Nº</div><div>OP</div><div>Referência</div><div>Lavação</div>
+          <div>Peças</div><div>Peso(kg)</div><div>Início</div><div>Saída</div>
+          <div>Status</div><div>Parada(min)</div><div></div>
+        </div>
+        <div id="cargas-list"></div>
+      </div>
     </div>
     <div class="panel-foot">
       <div style="flex:1;font-size:13px;color:var(--txt2)">
@@ -856,32 +915,65 @@ async function openMaqPanel(id, tipo, numero){
   ['mc-op','mc-ref','mc-lav','mc-data','mc-hora'].forEach(id=>document.getElementById(id).value='');
   document.getElementById('mc-qtd-cargas').value=10;
   await loadCargas();
+  await loadOpsParaCalc();
+  document.getElementById('calc-resultado').style.display='none';
+  document.getElementById('calc-cap').value=m.capacidade;
   document.getElementById('maq-panel').classList.add('open');
 }
+// variável para guardar resultado do cálculo
+let _calcResultado = null;
+
 async function loadCargas(){
   if(!currentMaqId) return;
   const data = await api(`/api/maquinas/${currentMaqId}/cargas`);
   const totalPeso = data.cargas.reduce((a,c)=>a+c.peso,0);
   document.getElementById('maq-total-cargas').textContent=data.cargas.length;
   document.getElementById('maq-total-peso').textContent=totalPeso.toLocaleString('pt-BR',{maximumFractionDigits:3,minimumFractionDigits:3});
-  document.getElementById('cargas-list').innerHTML = data.cargas.map(c=>`
-    <div class="carga-row" id="cr-${c.id}">
-      <div class="carga-num">${c.numero}</div>
+  const ids = data.cargas.map(c=>c.id);
+  document.getElementById('cargas-list').innerHTML = data.cargas.map((c,idx)=>`
+    <div class="carga-row" id="cr-${c.id}" style="display:grid;grid-template-columns:52px 36px 82px 82px 90px 65px 68px 110px 110px 90px 75px 36px;gap:4px;align-items:center;padding:7px 8px;border-radius:8px;margin-bottom:4px;background:var(--cinza3);border:1px solid var(--brd)">
+      <div style="display:flex;flex-direction:column;gap:2px">
+        <button class="btn btn-ghost btn-xs" title="Mover para cima" ${idx===0?'disabled':''} onclick="moverCarga(${c.id},'cima')" style="padding:2px 6px"><i class="fas fa-chevron-up"></i></button>
+        <button class="btn btn-ghost btn-xs" title="Mover para baixo" ${idx===data.cargas.length-1?'disabled':''} onclick="moverCarga(${c.id},'baixo')" style="padding:2px 6px"><i class="fas fa-chevron-down"></i></button>
+      </div>
+      <div style="font-family:'DM Mono',monospace;font-size:13px;font-weight:500;text-align:center;background:var(--cinza4);border-radius:6px;padding:4px;color:var(--ciano)">${c.numero}</div>
       <input class="carga-input" value="${c.op_manual||''}" onchange="patchCarga(${c.id},'op',this.value)" placeholder="OP">
       <input class="carga-input" value="${c.referencia||''}" onchange="patchCarga(${c.id},'referencia',this.value)" placeholder="Ref.">
       <input class="carga-input" value="${c.lavacao||''}" onchange="patchCarga(${c.id},'lavacao',this.value)" placeholder="Lavação">
-      <input class="carga-input" value="${c.qtde_pecas||0}" type="number" onchange="patchCarga(${c.id},'qtde_pecas',this.value)" style="width:70px">
-      <input class="carga-input" value="${c.peso||0}" type="number" step="0.001" onchange="patchCarga(${c.id},'peso',this.value)" style="width:75px">
-      <div class="carga-time">${c.data_inicio?fmtDT(c.data_inicio):'--'}</div>
-      <div class="carga-time" style="color:var(--laranja)">${c.data_saida?fmtDT(c.data_saida):'--'}</div>
+      <input class="carga-input" value="${c.qtde_pecas||0}" type="number" onchange="patchCarga(${c.id},'qtde_pecas',this.value)">
+      <input class="carga-input" value="${c.peso||0}" type="number" step="0.001" onchange="patchCarga(${c.id},'peso',this.value)">
+      <div style="font-family:'DM Mono',monospace;font-size:10px;color:var(--ciano);line-height:1.3">${c.data_inicio?fmtDT(c.data_inicio):'--'}</div>
+      <div style="font-family:'DM Mono',monospace;font-size:10px;color:var(--laranja);line-height:1.3">${c.data_saida?fmtDT(c.data_saida):'--'}</div>
       <select class="carga-input" onchange="patchCarga(${c.id},'status',this.value)">
-        <option value="aguardando" ${c.status==='aguardando'?'selected':''}>⏳ Aguardando</option>
-        <option value="em_processo" ${c.status==='em_processo'?'selected':''}>🔄 Em Processo</option>
+        <option value="aguardando" ${c.status==='aguardando'?'selected':''}>⏳ Aguard.</option>
+        <option value="em_processo" ${c.status==='em_processo'?'selected':''}>🔄 Em Proc.</option>
         <option value="concluido" ${c.status==='concluido'?'selected':''}>✅ Concluído</option>
       </select>
+      <div style="display:flex;flex-direction:column;gap:2px;align-items:center">
+        <input class="carga-input" type="number" min="0" value="${c.parada_min||0}" 
+          title="Parada após esta carga (min)"
+          onchange="patchCarga(${c.id},'parada_min',this.value)" style="width:60px;text-align:center">
+        <span style="font-size:8px;color:var(--txt2)">min parada</span>
+      </div>
       <button class="btn btn-danger btn-xs" onclick="deleteCarga(${c.id})"><i class="fas fa-trash"></i></button>
     </div>`).join('');
 }
+
+async function moverCarga(id, direcao){
+  const list = document.getElementById('cargas-list');
+  const rows = [...list.querySelectorAll('[id^="cr-"]')];
+  const ids = rows.map(r=>parseInt(r.id.replace('cr-','')));
+  const idx = ids.indexOf(id);
+  if(direcao==='cima' && idx>0){
+    ids.splice(idx,1); ids.splice(idx-1,0,id);
+  } else if(direcao==='baixo' && idx<ids.length-1){
+    ids.splice(idx,1); ids.splice(idx+1,0,id);
+  } else return;
+  await api(`/api/maquinas/${currentMaqId}/reordenar`,'POST',{ordem:ids});
+  toast('Ordem atualizada!','success');
+  await loadCargas();
+}
+
 async function gerarCargas(){
   const data=document.getElementById('mc-data').value, hora=document.getElementById('mc-hora').value;
   if(!data||!hora){ toast('Informe data e hora da 1ª carga','error'); return; }
@@ -899,15 +991,67 @@ async function saveMaqConfig(){
   toast('Configuração salva','success');
 }
 async function addCargaManual(){
-  await api(`/api/maquinas/${currentMaqId}/cargas`,'POST',{op:'',referencia:'',lavacao:'',qtde_pecas:0,peso:0});
+  await api(`/api/maquinas/${currentMaqId}/cargas`,'POST',{op:'',referencia:'',lavacao:'',qtde_pecas:0,peso:0,parada_min:0});
   await loadCargas();
 }
 async function patchCarga(id,field,value){
   await api(`/api/cargas/${id}`,'PUT',{[field]:value});
-  if(field==='peso') await loadCargas();
+  if(field==='peso'||field==='parada_min') await loadCargas();
 }
 async function deleteCarga(id){
   await api(`/api/cargas/${id}`,'DELETE'); await loadCargas(); toast('Carga removida','info');
+}
+
+// ── CALCULADORA DE CARGAS POR OP ──────────────────────────────
+async function loadOpsParaCalc(){
+  const ops = await api('/api/ops');
+  const sel = document.getElementById('calc-op-select');
+  if(!sel) return;
+  sel.innerHTML = '<option value="">-- Selecione --</option>' +
+    ops.map(o=>`<option value="${o.id}">${o.op} — ${o.referencia} (${o.peso_total} kg / ${o.total_pecas} pç)</option>`).join('');
+}
+async function calcularCargasOP(){
+  const opId = document.getElementById('calc-op-select').value;
+  const cap   = parseFloat(document.getElementById('calc-cap').value||80);
+  const arredC = document.getElementById('calc-arred-cargas').value;
+  const arredP = document.getElementById('calc-arred-pecas').value;
+  if(!opId){ toast('Selecione uma OP','error'); return; }
+  const r = await api(`/api/ops/${opId}/calcular_cargas`,'POST',{
+    capacidade: cap, arred_cargas: arredC, arred_pecas: arredP
+  });
+  _calcResultado = r;
+  document.getElementById('calc-num-cargas').textContent = r.num_cargas;
+  document.getElementById('calc-peso-carga').textContent = r.peso_carga.toLocaleString('pt-BR',{minimumFractionDigits:3}) + ' kg';
+  document.getElementById('calc-pecas-carga').textContent = r.pecas_carga.toLocaleString('pt-BR') + ' pç';
+  document.getElementById('calc-peso-total-res').textContent = r.peso_total.toLocaleString('pt-BR',{minimumFractionDigits:3}) + ' kg';
+  document.getElementById('calc-resultado').style.display = 'block';
+}
+async function aplicarCalculoCargas(){
+  if(!_calcResultado){ toast('Calcule primeiro','error'); return; }
+  const data=document.getElementById('mc-data').value, hora=document.getElementById('mc-hora').value;
+  if(!data||!hora){ toast('Informe data e hora da 1ª carga antes de aplicar','error'); return; }
+  // pegar OP selecionada
+  const sel = document.getElementById('calc-op-select');
+  const opTxt = sel.options[sel.selectedIndex]?.text || '';
+  const opNum = opTxt.split('—')[0]?.trim() || '';
+  document.getElementById('mc-qtd-cargas').value = _calcResultado.num_cargas;
+  await api(`/api/maquinas/${currentMaqId}/gerar_cargas`,'POST',{
+    op: opNum,
+    referencia: '',
+    lavacao: '',
+    data_inicio: `${data}T${hora}`,
+    quantidade: _calcResultado.num_cargas,
+    peso_carga: _calcResultado.peso_carga
+  });
+  // Atualizar peças em cada carga
+  const dadosM = await api(`/api/maquinas/${currentMaqId}/cargas`);
+  for(const c of dadosM.cargas){
+    await api(`/api/cargas/${c.id}`,'PUT',{qtde_pecas: _calcResultado.pecas_carga});
+  }
+  toast(`✅ ${_calcResultado.num_cargas} cargas de ${_calcResultado.peso_carga} kg / ${_calcResultado.pecas_carga} peças geradas!`,'success');
+  document.getElementById('calc-resultado').style.display='none';
+  _calcResultado = null;
+  await loadCargas();
 }
 
 // ── OPS ───────────────────────────────────────────────────────

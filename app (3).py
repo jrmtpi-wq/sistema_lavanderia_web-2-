@@ -70,6 +70,7 @@ class Carga(db.Model):
     data_inicio = db.Column(db.DateTime, nullable=True)
     status      = db.Column(db.String(20), default='aguardando')
     observacao  = db.Column(db.String(200))
+    parada_min  = db.Column(db.Integer, default=0)  # tempo de parada APÓS esta carga
 
     @property
     def data_saida(self):
@@ -254,17 +255,23 @@ def update_maquina(mid):
 @app.route('/api/maquinas/<int:mid>/cargas', methods=['GET'])
 def get_cargas(mid):
     m = Maquina.query.get_or_404(mid)
-    return jsonify({
-        'maquina': {'id': m.id, 'tipo': m.tipo, 'numero': m.numero,
-                    'capacidade': m.capacidade, 'tempo_min': m.tempo_min},
-        'cargas': [{
+    cargas = sorted(m.cargas, key=lambda x: x.numero)
+    resultado = []
+    for c in cargas:
+        ds = c.data_saida
+        resultado.append({
             'id': c.id, 'numero': c.numero,
             'op_manual': c.op_manual, 'referencia': c.referencia,
             'lavacao': c.lavacao, 'qtde_pecas': c.qtde_pecas,
             'peso': c.peso, 'status': c.status, 'observacao': c.observacao,
+            'parada_min': c.parada_min or 0,
             'data_inicio': c.data_inicio.strftime('%Y-%m-%dT%H:%M') if c.data_inicio else None,
-            'data_saida': c.data_saida.strftime('%Y-%m-%dT%H:%M') if c.data_saida else None,
-        } for c in sorted(m.cargas, key=lambda x: x.numero)]
+            'data_saida': ds.strftime('%Y-%m-%dT%H:%M') if ds else None,
+        })
+    return jsonify({
+        'maquina': {'id': m.id, 'tipo': m.tipo, 'numero': m.numero,
+                    'capacidade': m.capacidade, 'tempo_min': m.tempo_min},
+        'cargas': resultado
     })
 
 @app.route('/api/maquinas/<int:mid>/cargas', methods=['POST'])
@@ -303,6 +310,7 @@ def update_carga(cid):
     if 'peso' in d: c.peso = float(d['peso'])
     if 'status' in d: c.status = d['status']
     if 'observacao' in d: c.observacao = d['observacao']
+    if 'parada_min' in d: c.parada_min = int(d['parada_min'] or 0)
     if 'data_inicio' in d:
         try: c.data_inicio = datetime.strptime(d['data_inicio'], '%Y-%m-%dT%H:%M')
         except: c.data_inicio = None
@@ -510,6 +518,89 @@ def get_dre():
             'data_faturamento': r.data_faturamento.strftime('%d/%m/%Y')
         } for r in rows]
     })
+
+@app.route('/api/ops/<int:oid>/calcular_cargas', methods=['POST'])
+def calcular_cargas_op(oid):
+    """Calcula distribuição de cargas a partir do peso/peças da OP."""
+    op = OrdemProducao.query.get_or_404(oid)
+    d  = request.json
+    capacidade   = safe_float(d.get('capacidade', 80))
+    arred_cargas = d.get('arred_cargas', 'baixo')   # 'cima' ou 'baixo'
+    arred_pecas  = d.get('arred_pecas', 'baixo')
+
+    peso_total  = op.peso_total
+    total_pecas = op.total_pecas
+
+    if capacidade <= 0:
+        return jsonify({'ok': False, 'error': 'Capacidade inválida'}), 400
+
+    cargas_raw = peso_total / capacidade
+    if arred_cargas == 'cima':
+        num_cargas = math.ceil(cargas_raw)
+    else:
+        num_cargas = math.floor(cargas_raw)
+    if num_cargas < 1:
+        num_cargas = 1
+
+    peso_carga  = round(peso_total / num_cargas, 3)
+    pecas_raw   = total_pecas / num_cargas
+    if arred_pecas == 'cima':
+        pecas_carga = math.ceil(pecas_raw)
+    else:
+        pecas_carga = math.floor(pecas_raw)
+
+    return jsonify({
+        'ok': True,
+        'peso_total': round(peso_total, 3),
+        'total_pecas': total_pecas,
+        'num_cargas': num_cargas,
+        'peso_carga': peso_carga,
+        'pecas_carga': pecas_carga,
+        'cargas_raw': round(cargas_raw, 4)
+    })
+
+@app.route('/api/maquinas/<int:mid>/reordenar', methods=['POST'])
+def reordenar_cargas(mid):
+    """Reordena cargas e recalcula horários em cascata."""
+    d = request.json
+    ordem = d.get('ordem', [])  # lista de IDs na nova ordem
+    m = Maquina.query.get_or_404(mid)
+    cargas = {c.id: c for c in m.cargas}
+
+    # Reordenar numeração
+    for i, cid in enumerate(ordem, 1):
+        if cid in cargas:
+            cargas[cid].numero = i
+
+    db.session.flush()
+
+    # Recalcular horários em cascata
+    cargas_ord = sorted([cargas[cid] for cid in ordem if cid in cargas], key=lambda x: x.numero)
+    _recalcular_horarios(cargas_ord, m.tempo_min)
+
+    db.session.commit()
+    return jsonify({'ok': True})
+
+@app.route('/api/maquinas/<int:mid>/recalcular_horarios', methods=['POST'])
+def recalcular_horarios(mid):
+    """Recalcula horários em cascata mantendo a ordem atual."""
+    m = Maquina.query.get_or_404(mid)
+    cargas = sorted(m.cargas, key=lambda x: x.numero)
+    _recalcular_horarios(cargas, m.tempo_min)
+    db.session.commit()
+    return jsonify({'ok': True})
+
+def _recalcular_horarios(cargas, tempo_min):
+    """Recalcula data_inicio de cada carga em cascata, respeitando parada_min."""
+    dt_atual = None
+    for c in cargas:
+        if c.numero == 1:
+            dt_atual = c.data_inicio  # mantém o horário da 1ª carga
+        else:
+            if dt_atual:
+                c.data_inicio = dt_atual
+        if dt_atual and c.data_inicio:
+            dt_atual = c.data_inicio + timedelta(minutes=tempo_min + (c.parada_min or 0))
 
 if __name__ == '__main__':
     with app.app_context():
