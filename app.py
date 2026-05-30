@@ -121,7 +121,7 @@ def init_db_route():
 
 @app.route('/')
 def index():
-    return open('/opt/render/project/src/modelos/index.html', encoding='utf-8').read()
+    return open('/opt/render/project/src/templates/index.html', encoding='utf-8').read()
 
 # ─ OP ─
 @app.route('/api/ops', methods=['GET'])
