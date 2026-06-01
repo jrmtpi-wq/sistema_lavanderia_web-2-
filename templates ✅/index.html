@@ -6,3 +6,540 @@
 <title>Sistema de Lavanderia</title>
 <link href="https://fonts.googleapis.com/css2?family=Syne:wght@400;600;700;800&family=DM+Mono:wght@400;500&family=Nunito:wght@400;500;600;700&display=swap" rel="stylesheet">
 <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+<style>
+:root{--azul:#1a2e5a;--azul2:#2458a8;--ciano:#00c5d7;--laranja:#ff6b2b;--roxo:#7c3aed;--verde:#10b981;--verm:#ef4444;--amarelo:#f59e0b;--cinza1:#0d1929;--cinza2:#132038;--cinza3:#1e3050;--cinza4:#243a60;--txt:#e2eaf8;--txt2:#94aac8;--brd:rgba(0,197,215,.13);--shadow:0 8px 32px rgba(0,0,0,.45)}
+*{box-sizing:border-box;margin:0;padding:0}
+body{font-family:'Nunito',sans-serif;background:var(--cinza1);color:var(--txt);min-height:100vh;overflow-x:hidden}
+::-webkit-scrollbar{width:6px;height:6px}::-webkit-scrollbar-track{background:#0d1929}::-webkit-scrollbar-thumb{background:#2458a8;border-radius:3px}
+.sidebar{position:fixed;left:0;top:0;bottom:0;width:230px;background:var(--cinza2);border-right:1px solid var(--brd);display:flex;flex-direction:column;z-index:100;transition:transform .3s}
+.logo{padding:24px 20px 18px;display:flex;align-items:center;gap:12px;border-bottom:1px solid var(--brd)}
+.logo-icon{width:42px;height:42px;background:linear-gradient(135deg,var(--ciano),var(--azul2));border-radius:12px;display:flex;align-items:center;justify-content:center;font-size:20px;flex-shrink:0}
+.logo-text{font-family:'Syne',sans-serif;font-size:13px;font-weight:700;color:var(--txt);line-height:1.2}
+.logo-text span{color:var(--ciano);display:block;font-size:10px;font-weight:400;letter-spacing:2px;text-transform:uppercase}
+nav{padding:16px 12px;flex:1;overflow-y:auto}
+.nav-section{font-size:9px;font-weight:700;letter-spacing:2.5px;text-transform:uppercase;color:var(--txt2);padding:10px 8px 6px;margin-top:8px}
+.nav-section:first-child{margin-top:0}
+.nav-btn{display:flex;align-items:center;gap:10px;width:100%;padding:10px 12px;border:none;background:transparent;color:var(--txt2);font-size:13px;font-family:'Nunito',sans-serif;border-radius:10px;cursor:pointer;transition:all .2s;text-align:left;font-weight:600}
+.nav-btn i{width:20px;text-align:center;font-size:14px}
+.nav-btn:hover{background:var(--cinza3);color:var(--txt)}
+.nav-btn.active{background:linear-gradient(135deg,var(--azul2),var(--ciano)20%);color:#fff;box-shadow:0 4px 12px rgba(36,88,168,.35)}
+.nav-btn.active i{color:var(--ciano)}
+.sidebar-footer{padding:16px 20px;border-top:1px solid var(--brd);font-size:11px;color:var(--txt2)}
+.main{margin-left:230px;min-height:100vh;display:flex;flex-direction:column}
+.topbar{height:60px;background:var(--cinza2);border-bottom:1px solid var(--brd);display:flex;align-items:center;justify-content:space-between;padding:0 28px;position:sticky;top:0;z-index:50}
+.topbar-title{font-family:'Syne',sans-serif;font-size:18px;font-weight:700;color:var(--txt)}
+.topbar-title span{color:var(--ciano)}
+.topbar-right{display:flex;align-items:center;gap:14px}
+.badge{background:var(--cinza3);border:1px solid var(--brd);border-radius:8px;padding:6px 14px;font-size:12px;color:var(--txt2);display:flex;align-items:center;gap:6px}
+.badge i{color:var(--ciano)}
+.content{padding:28px;flex:1}
+.page{display:none;animation:fadeIn .3s ease}.page.active{display:block}
+@keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
+.card{background:var(--cinza2);border:1px solid var(--brd);border-radius:16px;padding:24px;margin-bottom:20px}
+.card-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px}
+.card-title{font-family:'Syne',sans-serif;font-size:15px;font-weight:700;display:flex;align-items:center;gap:8px}
+.card-title i{color:var(--ciano)}
+.stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;margin-bottom:24px}
+.stat-card{background:var(--cinza2);border:1px solid var(--brd);border-radius:14px;padding:20px;position:relative;overflow:hidden}
+.stat-card::before{content:'';position:absolute;top:-20px;right:-20px;width:80px;height:80px;border-radius:50%;opacity:.08}
+.stat-card.blue::before{background:var(--ciano)}.stat-card.orange::before{background:var(--laranja)}.stat-card.purple::before{background:var(--roxo)}.stat-card.green::before{background:var(--verde)}
+.stat-icon{font-size:24px;margin-bottom:10px}
+.stat-card.blue .stat-icon{color:var(--ciano)}.stat-card.orange .stat-icon{color:var(--laranja)}.stat-card.purple .stat-icon{color:var(--roxo)}.stat-card.green .stat-icon{color:var(--verde)}
+.stat-value{font-family:'Syne',sans-serif;font-size:28px;font-weight:800;line-height:1}
+.stat-label{font-size:12px;color:var(--txt2);margin-top:4px;font-weight:600}
+.btn{display:inline-flex;align-items:center;gap:7px;padding:9px 18px;border-radius:9px;border:none;cursor:pointer;font-size:13px;font-family:'Nunito',sans-serif;font-weight:700;transition:all .2s;letter-spacing:.3px}
+.btn-primary{background:linear-gradient(135deg,var(--azul2),var(--ciano));color:#fff;box-shadow:0 4px 14px rgba(36,88,168,.35)}
+.btn-primary:hover{transform:translateY(-1px);box-shadow:0 6px 20px rgba(36,88,168,.5)}
+.btn-danger{background:linear-gradient(135deg,#c0392b,var(--verm));color:#fff}.btn-danger:hover{transform:translateY(-1px)}
+.btn-success{background:linear-gradient(135deg,#059669,var(--verde));color:#fff}
+.btn-warning{background:linear-gradient(135deg,#d97706,var(--amarelo));color:#fff}
+.btn-ghost{background:var(--cinza3);color:var(--txt2);border:1px solid var(--brd)}.btn-ghost:hover{color:var(--txt);background:var(--cinza4)}
+.btn-purple{background:linear-gradient(135deg,#7c3aed,#8b5cf6);color:#fff}
+.btn-sm{padding:6px 12px;font-size:12px;border-radius:7px}.btn-xs{padding:4px 9px;font-size:11px;border-radius:6px}
+.form-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:14px}
+.form-group{display:flex;flex-direction:column;gap:5px}
+.form-group label{font-size:11px;font-weight:700;color:var(--txt2);letter-spacing:.8px;text-transform:uppercase}
+.form-control{background:var(--cinza3);border:1px solid var(--brd);border-radius:9px;padding:9px 13px;color:var(--txt);font-size:13px;font-family:'Nunito',sans-serif;transition:border-color .2s;width:100%}
+.form-control:focus{outline:none;border-color:var(--ciano);box-shadow:0 0 0 3px rgba(0,197,215,.12)}
+.form-control::placeholder{color:var(--txt2)}
+.sizes-section{margin-top:20px}
+.sizes-group-title{font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--txt2);margin-bottom:10px;padding:6px 10px;background:var(--cinza3);border-radius:6px;display:inline-block}
+.sizes-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(90px,1fr));gap:8px;margin-bottom:16px}
+.size-input-group{background:var(--cinza3);border:1px solid var(--brd);border-radius:10px;padding:10px;text-align:center}
+.size-label{font-family:'DM Mono',monospace;font-size:11px;font-weight:500;color:var(--ciano);margin-bottom:6px;display:block}
+.size-input-group input{width:100%;background:var(--cinza1);border:1px solid var(--brd);border-radius:6px;padding:5px;color:var(--txt);font-size:12px;text-align:center;font-family:'DM Mono',monospace}
+.size-input-group input:focus{outline:none;border-color:var(--ciano)}
+.size-sublabel{font-size:9px;color:var(--txt2);margin-top:3px}
+.tbl-wrap{overflow-x:auto;border-radius:12px;border:1px solid var(--brd)}
+table{width:100%;border-collapse:collapse;font-size:13px}
+thead th{background:var(--cinza3);padding:11px 14px;text-align:left;font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--txt2);white-space:nowrap;border-bottom:1px solid var(--brd)}
+tbody tr{border-bottom:1px solid var(--brd);transition:background .15s}
+tbody tr:last-child{border-bottom:none}
+tbody tr:hover{background:var(--cinza3)}
+tbody td{padding:10px 14px;vertical-align:middle;color:var(--txt)}
+.mono{font-family:'DM Mono',monospace;font-size:12px}
+.pill{display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:20px;font-size:11px;font-weight:700}
+.pill-aguardando{background:rgba(245,158,11,.15);color:var(--amarelo)}.pill-em_processo{background:rgba(36,88,168,.25);color:var(--ciano)}.pill-concluido{background:rgba(16,185,129,.15);color:var(--verde)}.pill-faturado{background:rgba(16,185,129,.2);color:var(--verde)}.pill-pendente{background:rgba(245,158,11,.2);color:var(--amarelo)}
+.maq-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(280px,1fr));gap:16px}
+.maq-card{background:var(--cinza2);border:1px solid var(--brd);border-radius:14px;overflow:hidden;cursor:pointer;transition:all .25s}
+.maq-card:hover{border-color:var(--ciano);transform:translateY(-2px);box-shadow:0 10px 30px rgba(0,0,0,.4)}
+.maq-card.lavar .maq-header{background:linear-gradient(135deg,#1e3a7a,#2458a8)}.maq-card.centrifuga .maq-header{background:linear-gradient(135deg,#3b1e7a,#7c3aed)}.maq-card.secador .maq-header{background:linear-gradient(135deg,#7a2e1e,#ff6b2b)}
+.maq-header{padding:16px 18px;display:flex;align-items:center;justify-content:space-between}
+.maq-name{font-family:'Syne',sans-serif;font-size:14px;font-weight:700;color:#fff}
+.maq-icon{font-size:20px;opacity:.85}
+.maq-body{padding:16px 18px}
+.maq-stat-row{display:flex;justify-content:space-between;margin-bottom:8px}
+.maq-stat{text-align:center}
+.maq-stat-val{font-family:'DM Mono',monospace;font-size:17px;font-weight:500;color:var(--txt)}
+.maq-stat-lbl{font-size:10px;color:var(--txt2);letter-spacing:.8px}
+.maq-progress{height:4px;background:var(--cinza3);border-radius:2px;margin-top:12px;overflow:hidden}
+.maq-progress-bar{height:100%;border-radius:2px;background:linear-gradient(90deg,var(--ciano),var(--azul2));transition:width .5s}
+.panel-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.6);z-index:200;backdrop-filter:blur(4px)}
+.panel-overlay.open{display:flex;align-items:stretch;justify-content:flex-end}
+.panel{width:min(700px,95vw);background:var(--cinza2);border-left:1px solid var(--brd);display:flex;flex-direction:column;animation:slideIn .3s ease}
+@keyframes slideIn{from{transform:translateX(100%)}to{transform:translateX(0)}}
+.panel-head{padding:20px 24px;border-bottom:1px solid var(--brd);display:flex;align-items:center;justify-content:space-between}
+.panel-title{font-family:'Syne',sans-serif;font-size:16px;font-weight:700}
+.panel-body{flex:1;overflow-y:auto;padding:24px}
+.panel-foot{padding:16px 24px;border-top:1px solid var(--brd);display:flex;gap:10px;justify-content:flex-end}
+.carga-input{background:var(--cinza1);border:1px solid var(--brd);border-radius:6px;padding:5px 7px;color:var(--txt);font-size:12px;width:100%;font-family:'Nunito',sans-serif}
+.carga-input:focus{outline:none;border-color:var(--ciano)}
+.cal-grid{display:grid;grid-template-columns:repeat(7,1fr);gap:6px}
+.cal-day-head{text-align:center;font-size:10px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--txt2);padding:8px}
+.cal-day{background:var(--cinza3);border:1px solid var(--brd);border-radius:10px;min-height:90px;padding:8px;cursor:pointer;transition:all .2s}
+.cal-day:hover{border-color:var(--ciano);background:var(--cinza4)}.cal-day.today{border-color:var(--ciano);background:rgba(0,197,215,.07)}.cal-day.empty{background:transparent;border-color:transparent;cursor:default}.cal-day.has-data{border-color:rgba(36,88,168,.5)}
+.cal-day-num{font-family:'DM Mono',monospace;font-size:13px;font-weight:500;margin-bottom:5px;color:var(--txt)}
+.cal-day.today .cal-day-num{color:var(--ciano);font-weight:700}
+.cal-turn-dot{display:flex;gap:3px;flex-wrap:wrap}
+.dot{width:7px;height:7px;border-radius:50%}.dot-t1{background:var(--azul2)}.dot-t2{background:var(--ciano)}.dot-t3{background:var(--roxo)}.dot-he{background:var(--laranja)}
+.cal-nav{display:flex;align-items:center;gap:16px;margin-bottom:20px}
+.cal-nav-btn{background:var(--cinza3);border:1px solid var(--brd);color:var(--txt);width:34px;height:34px;border-radius:8px;cursor:pointer;display:flex;align-items:center;justify-content:center;font-size:14px;transition:all .2s}
+.cal-nav-btn:hover{background:var(--cinza4);border-color:var(--ciano)}
+.cal-month{font-family:'Syne',sans-serif;font-size:20px;font-weight:700}
+.turno-editor{display:grid;grid-template-columns:1fr 1fr 1fr;gap:12px;margin-bottom:16px}
+.turno-block{background:var(--cinza3);border-radius:12px;padding:14px;border:1px solid var(--brd)}
+.turno-block.t1{border-top:3px solid var(--azul2)}.turno-block.t2{border-top:3px solid var(--ciano)}.turno-block.t3{border-top:3px solid var(--roxo)}
+.turno-block-title{font-size:11px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--txt2);margin-bottom:10px}
+.turno-row{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:6px}
+.turno-label{font-size:10px;color:var(--txt2);margin-bottom:3px}
+.he-block{background:rgba(255,107,43,.1);border:1px solid rgba(255,107,43,.25);border-radius:12px;padding:14px;margin-top:0}
+.arr-result{background:var(--cinza3);border-radius:12px;padding:16px;margin-top:14px;border:1px solid var(--brd)}
+.arr-big{font-family:'Syne',sans-serif;font-size:36px;font-weight:800;color:var(--ciano)}
+.arr-sub{font-size:12px;color:var(--txt2);margin-top:2px}
+.toast-area{position:fixed;bottom:24px;right:24px;z-index:999;display:flex;flex-direction:column;gap:8px}
+.toast{background:var(--cinza2);border:1px solid var(--brd);border-radius:10px;padding:12px 18px;font-size:13px;display:flex;align-items:center;gap:10px;animation:toastIn .3s ease;box-shadow:var(--shadow)}
+.toast.success{border-left:3px solid var(--verde)}.toast.error{border-left:3px solid var(--verm)}.toast.info{border-left:3px solid var(--ciano)}
+@keyframes toastIn{from{opacity:0;transform:translateX(20px)}to{opacity:1;transform:translateX(0)}}
+.tabs{display:flex;gap:4px;background:var(--cinza3);padding:5px;border-radius:12px;margin-bottom:20px;width:fit-content}
+.tab{padding:8px 18px;border-radius:9px;border:none;background:transparent;color:var(--txt2);font-size:13px;font-family:'Nunito',sans-serif;font-weight:700;cursor:pointer;transition:all .2s}
+.tab.active{background:linear-gradient(135deg,var(--azul2),var(--ciano));color:#fff;box-shadow:0 3px 10px rgba(36,88,168,.35)}
+.tab:hover:not(.active){color:var(--txt)}
+.dre-box{background:linear-gradient(135deg,rgba(16,185,129,.15),rgba(16,185,129,.05));border:1px solid rgba(16,185,129,.3);border-radius:16px;padding:28px;text-align:center;margin-bottom:20px}
+.dre-mes{font-family:'Syne',sans-serif;font-size:14px;font-weight:700;color:var(--verde);letter-spacing:2px;text-transform:uppercase;margin-bottom:8px}
+.dre-total{font-family:'Syne',sans-serif;font-size:48px;font-weight:800;color:var(--verde);line-height:1}
+.dre-currency{font-size:20px;vertical-align:top;margin-top:8px;display:inline-block}
+.dre-stats{display:grid;grid-template-columns:repeat(3,1fr);gap:12px;margin-top:20px}
+.dre-stat{background:var(--cinza3);border-radius:12px;padding:16px;text-align:center}
+.dre-stat-val{font-family:'Syne',sans-serif;font-size:22px;font-weight:800;color:var(--txt)}
+.dre-stat-lbl{font-size:11px;color:var(--txt2);margin-top:3px}
+.sigla-badge{display:inline-flex;align-items:center;gap:4px;background:rgba(124,58,237,.2);border:1px solid rgba(124,58,237,.4);border-radius:6px;padding:3px 10px;font-size:11px;font-weight:700;color:#a78bfa;font-family:'DM Mono',monospace}
+@media(max-width:900px){.sidebar{transform:translateX(-230px)}.sidebar.open{transform:translateX(0)}.main{margin-left:0}.turno-editor{grid-template-columns:1fr}.dre-stats{grid-template-columns:1fr}}
+@media print{
+  *{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}
+  body>*:not(#print-area){display:none!important}
+  #print-area{display:block!important;font-family:Arial,sans-serif;font-size:11px;color:#000;background:#fff;padding:0}
+  @page{margin:10mm 8mm;size:A4 landscape}
+}
+</style>
+</head>
+<body>
+<aside class="sidebar" id="sidebar">
+  <div class="logo"><div class="logo-icon">🧺</div><div class="logo-text">LaundryPro<span>Sistema de Lavanderia</span></div></div>
+  <nav>
+    <div class="nav-section">Visão Geral</div>
+    <button class="nav-btn active" onclick="goPage('dashboard')"><i class="fas fa-chart-pie"></i>Dashboard</button>
+    <div class="nav-section">Cadastros</div>
+    <button class="nav-btn" onclick="goPage('ops')"><i class="fas fa-file-alt"></i>Ordens de Produção</button>
+    <div class="nav-section">Máquinas de Lavar</div>
+    <button class="nav-btn" onclick="goMaqPage('lavar')"><i class="fas fa-soap"></i>Máquinas de Lavar</button>
+    <div class="nav-section">Centrífugas</div>
+    <button class="nav-btn" onclick="goMaqPage('centrifuga')"><i class="fas fa-circle-notch"></i>Centrífugas</button>
+    <div class="nav-section">Secadores</div>
+    <button class="nav-btn" onclick="goMaqPage('secador')"><i class="fas fa-wind"></i>Secadores</button>
+    <div class="nav-section">Calendário</div>
+    <button class="nav-btn" onclick="goPage('calendario')"><i class="fas fa-calendar-alt"></i>Turnos e H.Extra</button>
+    <div class="nav-section">Financeiro</div>
+    <button class="nav-btn" onclick="goPage('faturamento')"><i class="fas fa-file-invoice-dollar"></i>Faturamento</button>
+    <button class="nav-btn" onclick="goPage('dre')"><i class="fas fa-chart-bar"></i>DRE Mensal</button>
+  </nav>
+  <div class="sidebar-footer"><i class="fas fa-circle" style="color:var(--verde);font-size:8px"></i> Sistema Online</div>
+</aside>
+<div class="main">
+  <div class="topbar">
+    <div class="topbar-title" id="topbar-title">Dashboard <span>/ Resumo</span></div>
+    <div class="topbar-right">
+      <div class="badge"><i class="fas fa-clock"></i><span id="clock">--:--</span></div>
+      <div class="badge"><i class="fas fa-calendar"></i><span id="today-date">--/--/----</span></div>
+    </div>
+  </div>
+  <div class="content">
+    <div class="page active" id="page-dashboard">
+      <div class="stats-grid" id="dash-stats"></div>
+      <div class="card"><div class="card-header"><div class="card-title"><i class="fas fa-soap"></i>Máquinas de Lavar</div></div><div class="maq-grid" id="dash-lavar"></div></div>
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:16px">
+        <div class="card"><div class="card-header"><div class="card-title"><i class="fas fa-circle-notch"></i>Centrífugas</div></div><div class="maq-grid" id="dash-centrifuga"></div></div>
+        <div class="card"><div class="card-header"><div class="card-title"><i class="fas fa-wind"></i>Secadores</div></div><div class="maq-grid" id="dash-secador"></div></div>
+      </div>
+    </div>
+    <div class="page" id="page-ops">
+      <div class="card">
+        <div class="card-header"><div class="card-title"><i class="fas fa-file-alt"></i>Ordens de Produção</div><button class="btn btn-primary" onclick="openOpForm()"><i class="fas fa-plus"></i>Nova OP</button></div>
+        <div class="tbl-wrap"><table><thead><tr><th>OP</th><th>Referência</th><th>Lavação</th><th>Total Peças</th><th>Peso Total (kg)</th><th>Cadastro</th><th>Ações</th></tr></thead><tbody id="ops-tbody"></tbody></table></div>
+      </div>
+    </div>
+    <div class="page" id="page-maquinas">
+      <div class="tabs" id="maq-tabs"></div>
+      <div class="maq-grid" id="maq-grid"></div>
+    </div>
+    <div class="page" id="page-calendario">
+      <div class="card">
+        <div class="card-header"><div class="card-title"><i class="fas fa-calendar-alt"></i>Calendário de Turnos</div></div>
+        <div class="cal-nav">
+          <button class="cal-nav-btn" onclick="calNav(-1)"><i class="fas fa-chevron-left"></i></button>
+          <div class="cal-month" id="cal-month-label">--</div>
+          <button class="cal-nav-btn" onclick="calNav(1)"><i class="fas fa-chevron-right"></i></button>
+        </div>
+        <div class="cal-grid" id="cal-grid"></div>
+      </div>
+    </div>
+    <div class="page" id="page-faturamento">
+      <div class="tabs">
+        <button class="tab active" onclick="switchFatTab('precos',this)">📋 Tabela de Preços</button>
+        <button class="tab" onclick="switchFatTab('prontas',this)">✅ OPs Prontas</button>
+        <button class="tab" onclick="switchFatTab('historico',this)">📂 Histórico</button>
+      </div>
+      <div id="fat-tab-precos">
+        <div class="card">
+          <div class="card-header"><div class="card-title"><i class="fas fa-tags"></i>Tabela de Preços por Referência</div><button class="btn btn-primary" onclick="openPrecoForm()"><i class="fas fa-plus"></i>Nova Referência</button></div>
+          <div class="tbl-wrap"><table><thead><tr><th>Referência</th><th>Preço/Peça (R$)</th><th>Sigla Finalização</th><th>Cadastro</th><th>Ações</th></tr></thead><tbody id="precos-tbody"></tbody></table></div>
+        </div>
+      </div>
+      <div id="fat-tab-prontas" style="display:none">
+        <div class="card">
+          <div class="card-header"><div class="card-title"><i class="fas fa-check-circle"></i>OPs Prontas para Faturar</div><button class="btn btn-ghost btn-sm" onclick="loadOpsProntas()"><i class="fas fa-sync"></i>Atualizar</button></div>
+          <div class="tbl-wrap"><table><thead><tr><th>OP</th><th>Referência</th><th>Lavação</th><th>Peças</th><th>Preço/Peça</th><th>Valor Total</th><th>Status</th><th>Ação</th></tr></thead><tbody id="prontas-tbody"></tbody></table></div>
+        </div>
+      </div>
+      <div id="fat-tab-historico" style="display:none">
+        <div class="card">
+          <div class="card-header">
+            <div class="card-title"><i class="fas fa-history"></i>Histórico de Faturamento</div>
+            <div style="display:flex;gap:8px;align-items:center"><input class="form-control" id="fat-hist-mes" type="month" style="width:160px"><button class="btn btn-ghost btn-sm" onclick="loadHistorico()"><i class="fas fa-search"></i>Filtrar</button></div>
+          </div>
+          <div class="tbl-wrap"><table><thead><tr><th>Data</th><th>OP</th><th>Referência</th><th>Peças</th><th>Preço/Peça</th><th>Valor Total</th><th>Ações</th></tr></thead><tbody id="historico-tbody"></tbody></table></div>
+          <div style="padding:16px 0 0;display:flex;gap:20px;align-items:center"><span style="font-size:13px;color:var(--txt2)">Total do período:</span><span id="hist-total" style="font-family:'Syne',sans-serif;font-size:22px;font-weight:800;color:var(--verde)">R$ 0,00</span></div>
+        </div>
+      </div>
+    </div>
+    <div class="page" id="page-dre">
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title"><i class="fas fa-chart-bar"></i>DRE — Demonstrativo de Resultado</div>
+          <div style="display:flex;gap:8px;align-items:center"><input class="form-control" id="dre-mes" type="month" style="width:160px"><button class="btn btn-primary btn-sm" onclick="loadDRE()"><i class="fas fa-search"></i>Gerar</button></div>
+        </div>
+        <div class="dre-box"><div class="dre-mes" id="dre-mes-label">-- / ----</div><div style="margin-bottom:4px;font-size:13px;color:var(--txt2)">Total Faturado</div><div class="dre-total"><span class="dre-currency">R$</span><span id="dre-total-val">0,00</span></div><div class="dre-stats"><div class="dre-stat"><div class="dre-stat-val" id="dre-ops">0</div><div class="dre-stat-lbl">OPs Faturadas</div></div><div class="dre-stat"><div class="dre-stat-val" id="dre-pecas">0</div><div class="dre-stat-lbl">Peças Processadas</div></div><div class="dre-stat"><div class="dre-stat-val" id="dre-ticket">R$ 0,00</div><div class="dre-stat-lbl">Ticket Médio/OP</div></div></div></div>
+        <div class="tbl-wrap"><table><thead><tr><th>Data</th><th>OP</th><th>Referência</th><th>Peças</th><th>Preço/Peça</th><th>Valor</th></tr></thead><tbody id="dre-tbody"></tbody></table></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- PANEL OP -->
+<div class="panel-overlay" id="op-panel">
+  <div class="panel">
+    <div class="panel-head"><div class="panel-title" id="op-panel-title"><i class="fas fa-file-alt" style="color:var(--ciano)"></i> Nova Ordem de Produção</div><button class="btn btn-ghost btn-sm" onclick="closePanel('op-panel')"><i class="fas fa-times"></i></button></div>
+    <div class="panel-body">
+      <input type="hidden" id="op-edit-id">
+      <div class="form-grid">
+        <div class="form-group"><label>Nº OP</label><input class="form-control" id="op-num" placeholder="Ex: 48000"></div>
+        <div class="form-group"><label>Referência</label><input class="form-control" id="op-ref" placeholder="Ex: CFHV41827-1"></div>
+        <div class="form-group" style="grid-column:1/-1"><label>Tipo de Lavação</label><input class="form-control" id="op-lav" placeholder="Ex: STONAGEM / SKY / LASER"></div>
+        <div class="form-group"><label>Cap. Peças/Carga</label><input class="form-control" id="op-cap" type="number" placeholder="134"></div>
+      </div>
+      <div class="sizes-section">
+        <p class="sizes-group-title" style="color:var(--laranja)">🅰️ ADULTO – LETRAS</p><div class="sizes-grid" id="sizes-letras"></div>
+        <p class="sizes-group-title" style="color:var(--roxo)">🔢 ADULTO – NUMÉRICO</p><div class="sizes-grid" id="sizes-num"></div>
+        <p class="sizes-group-title" style="color:var(--verde)">👶 INFANTIL</p><div class="sizes-grid" id="sizes-inf"></div>
+      </div>
+      <div style="margin-top:20px;padding-top:20px;border-top:1px solid var(--brd)">
+        <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+          <p class="sizes-group-title" style="margin:0">⚖️ PESO POR TAMANHO (kg/peça)</p>
+          <div style="display:flex;align-items:center;gap:10px"><input class="form-control" id="cap-arredondar" type="number" step="0.1" placeholder="Cap. kg/carga" style="width:140px"><button class="btn btn-warning btn-sm" onclick="calcArredondar()"><i class="fas fa-calculator"></i> Arredondar Cargas</button></div>
+        </div>
+        <div class="sizes-grid" id="pesos-grid"></div>
+        <div class="arr-result" id="arr-result" style="display:none">
+          <div style="display:flex;align-items:center;gap:20px;flex-wrap:wrap">
+            <div><div class="arr-big" id="arr-cargas">0</div><div class="arr-sub">Cargas necessárias</div></div>
+            <div><div style="font-family:'DM Mono',monospace;font-size:20px;color:var(--amarelo)" id="arr-peso">0.000</div><div class="arr-sub">Peso total (kg)</div></div>
+            <div><div style="font-family:'DM Mono',monospace;font-size:20px;color:var(--verde)" id="arr-ultimo">0.000</div><div class="arr-sub">Peso última carga</div></div>
+          </div>
+        </div>
+      </div>
+    </div>
+    <div class="panel-foot">
+      <div style="flex:1;font-size:13px;color:var(--txt2);display:flex;gap:18px;align-items:center"><span>Peças: <b id="live-pecas" style="color:var(--txt)">0</b></span><span>Peso Total: <b id="live-peso" style="color:var(--ciano)">0.000 kg</b></span></div>
+      <button class="btn btn-ghost" onclick="closePanel('op-panel')">Cancelar</button>
+      <button class="btn btn-primary" onclick="saveOp()"><i class="fas fa-save"></i>Salvar OP</button>
+    </div>
+  </div>
+</div>
+
+<!-- PANEL MÁQUINA -->
+<div class="panel-overlay" id="maq-panel">
+  <div class="panel" style="width:min(900px,97vw)">
+    <div class="panel-head"><div class="panel-title" id="maq-panel-title">Máquina</div><button class="btn btn-ghost btn-sm" onclick="closePanel('maq-panel')"><i class="fas fa-times"></i></button></div>
+    <div class="panel-body">
+      <div class="card" style="margin-bottom:12px;padding:16px">
+        <div class="form-grid" style="grid-template-columns:repeat(auto-fill,minmax(150px,1fr))">
+          <div class="form-group"><label>OP</label><input class="form-control" id="mc-op" placeholder="Nº OP"></div>
+          <div class="form-group"><label>Referência</label><input class="form-control" id="mc-ref" placeholder="Referência"></div>
+          <div class="form-group"><label>Tipo Lavação</label><input class="form-control" id="mc-lav" placeholder="Tipo"></div>
+          <div class="form-group"><label>Cap. Peso (kg)</label><input class="form-control" id="mc-cap" type="number" step="0.1"></div>
+          <div class="form-group"><label>Tempo/Carga (min)</label><input class="form-control" id="mc-tempo" type="number"></div>
+          <div class="form-group"><label>Data 1ª Carga</label><input class="form-control" id="mc-data" type="date"></div>
+          <div class="form-group"><label>Hora 1ª Carga</label><input class="form-control" id="mc-hora" type="time"></div>
+          <div class="form-group"><label>Qtde Cargas</label><input class="form-control" id="mc-qtd-cargas" type="number" value="10" min="1" max="60"></div>
+        </div>
+        <div style="display:flex;gap:10px;margin-top:14px;flex-wrap:wrap">
+          <button class="btn btn-primary" onclick="gerarCargas()"><i class="fas fa-magic"></i>Gerar Automático</button>
+          <button class="btn btn-success" onclick="saveMaqConfig()"><i class="fas fa-save"></i>Salvar Config.</button>
+          <button class="btn btn-ghost" onclick="addCargaManual()"><i class="fas fa-plus"></i>Add Carga</button>
+          <button class="btn btn-warning btn-sm" onclick="imprimirMaquinaEmProcesso()"><i class="fas fa-print"></i>Imprimir Em Processo</button>
+        </div>
+      </div>
+      <div class="card" style="margin-bottom:12px;padding:16px;border-color:rgba(124,58,237,.3);background:rgba(124,58,237,.07)">
+        <div style="font-family:'Syne',sans-serif;font-size:13px;font-weight:700;color:#a78bfa;margin-bottom:12px"><i class="fas fa-calculator"></i> Calculadora de Cargas por OP</div>
+        <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end">
+          <div class="form-group" style="min-width:160px"><label>Selecionar OP</label><select class="form-control" id="calc-op-select"><option value="">-- Selecione --</option></select></div>
+          <div class="form-group" style="width:110px"><label>Capacidade (kg)</label><input class="form-control" id="calc-cap" type="number" step="0.1" placeholder="80"></div>
+          <div class="form-group" style="width:130px"><label>Arred. Cargas</label><select class="form-control" id="calc-arred-cargas"><option value="baixo">↓ Para baixo</option><option value="cima">↑ Para cima</option></select></div>
+          <div class="form-group" style="width:130px"><label>Arred. Peças</label><select class="form-control" id="calc-arred-pecas"><option value="baixo">↓ Para baixo</option><option value="cima">↑ Para cima</option></select></div>
+          <button class="btn btn-purple btn-sm" onclick="calcularCargasOP()"><i class="fas fa-calculator"></i>Calcular</button>
+        </div>
+        <div id="calc-resultado" style="display:none;margin-top:12px;background:var(--cinza3);border-radius:10px;padding:14px">
+          <div style="display:flex;gap:20px;flex-wrap:wrap;align-items:center">
+            <div style="text-align:center"><div style="font-family:'Syne',sans-serif;font-size:28px;font-weight:800;color:#a78bfa" id="calc-num-cargas">0</div><div style="font-size:11px;color:var(--txt2)">Cargas</div></div>
+            <div style="text-align:center"><div style="font-family:'DM Mono',monospace;font-size:18px;color:var(--ciano)" id="calc-peso-carga">0</div><div style="font-size:11px;color:var(--txt2)">kg/carga</div></div>
+            <div style="text-align:center"><div style="font-family:'DM Mono',monospace;font-size:18px;color:var(--verde)" id="calc-pecas-carga">0</div><div style="font-size:11px;color:var(--txt2)">peças/carga</div></div>
+            <div style="text-align:center"><div style="font-family:'DM Mono',monospace;font-size:14px;color:var(--amarelo)" id="calc-peso-total-res">0</div><div style="font-size:11px;color:var(--txt2)">peso total kg</div></div>
+            <button class="btn btn-primary btn-sm" onclick="aplicarCalculoCargas()"><i class="fas fa-check"></i>Aplicar nas Cargas</button>
+          </div>
+        </div>
+      </div>
+      <div style="overflow-x:auto">
+        <div style="display:grid;grid-template-columns:52px 36px 82px 82px 90px 65px 68px 110px 110px 90px 75px 36px;gap:4px;align-items:center;padding:7px 8px;margin-bottom:4px;background:var(--cinza1);font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--txt2);border-radius:6px">
+          <div>Mover</div><div>Nº</div><div>OP</div><div>Referência</div><div>Lavação</div><div>Peças</div><div>Peso(kg)</div><div>Início</div><div>Saída</div><div>Status</div><div>Parada(min)</div><div></div>
+        </div>
+        <div id="cargas-list"></div>
+      </div>
+    </div>
+    <div class="panel-foot">
+      <div style="flex:1;font-size:13px;color:var(--txt2)">Total: <b id="maq-total-cargas" style="color:var(--txt)">0</b> cargas | <b id="maq-total-peso" style="color:var(--ciano)">0.000</b> kg</div>
+      <button class="btn btn-ghost" onclick="closePanel('maq-panel')">Fechar</button>
+    </div>
+  </div>
+</div>
+
+<!-- PANEL CALENDÁRIO -->
+<div class="panel-overlay" id="cal-panel">
+  <div class="panel" style="width:min(600px,97vw)">
+    <div class="panel-head"><div class="panel-title" id="cal-panel-title">Turnos do Dia</div><button class="btn btn-ghost btn-sm" onclick="closePanel('cal-panel')"><i class="fas fa-times"></i></button></div>
+    <div class="panel-body">
+      <input type="hidden" id="cal-selected-date">
+      <div class="turno-editor">
+        <div class="turno-block t1"><div class="turno-block-title">🌅 Turno 1</div><div class="turno-row"><div><div class="turno-label">Entrada</div><input class="form-control" id="t1-entrada" type="time" value="05:00"></div><div><div class="turno-label">Saída</div><input class="form-control" id="t1-saida" type="time" value="13:00"></div></div></div>
+        <div class="turno-block t2"><div class="turno-block-title">☀️ Turno 2</div><div class="turno-row"><div><div class="turno-label">Entrada</div><input class="form-control" id="t2-entrada" type="time" value="13:00"></div><div><div class="turno-label">Saída</div><input class="form-control" id="t2-saida" type="time" value="21:00"></div></div></div>
+        <div class="turno-block t3"><div class="turno-block-title">🌙 Turno 3</div><div class="turno-row"><div><div class="turno-label">Entrada</div><input class="form-control" id="t3-entrada" type="time" value="21:00"></div><div><div class="turno-label">Saída</div><input class="form-control" id="t3-saida" type="time" value="05:00"></div></div></div>
+      </div>
+      <div class="he-block">
+        <div class="turno-block-title" style="color:var(--laranja)">⏱️ Hora Extra</div>
+        <div class="turno-row"><div><div class="turno-label">Início</div><input class="form-control" id="he-inicio" type="time"></div><div><div class="turno-label">Fim</div><input class="form-control" id="he-fim" type="time"></div></div>
+        <div style="margin-top:8px;font-size:12px;color:var(--txt2)">Total H.Extra: <b id="he-total" style="color:var(--laranja)">--</b></div>
+      </div>
+      <div class="form-group" style="margin-top:14px"><label>Observações</label><input class="form-control" id="cal-obs" placeholder="Observações do dia"></div>
+    </div>
+    <div class="panel-foot"><button class="btn btn-ghost" onclick="closePanel('cal-panel')">Cancelar</button><button class="btn btn-primary" onclick="saveTurnos()"><i class="fas fa-save"></i>Salvar Turnos</button></div>
+  </div>
+</div>
+
+<!-- PANEL PREÇO -->
+<div class="panel-overlay" id="preco-panel">
+  <div class="panel" style="width:min(500px,97vw)">
+    <div class="panel-head"><div class="panel-title" id="preco-panel-title"><i class="fas fa-tags" style="color:var(--ciano)"></i> Nova Referência</div><button class="btn btn-ghost btn-sm" onclick="closePanel('preco-panel')"><i class="fas fa-times"></i></button></div>
+    <div class="panel-body">
+      <input type="hidden" id="preco-edit-id">
+      <div class="form-grid" style="grid-template-columns:1fr">
+        <div class="form-group"><label>Referência</label><input class="form-control" id="preco-ref" placeholder="Ex: CFHV41827-1" style="text-transform:uppercase"></div>
+        <div class="form-group"><label>Preço por Peça (R$)</label><input class="form-control" id="preco-val" type="number" step="0.01" min="0" placeholder="Ex: 2.50"></div>
+        <div class="form-group"><label>Sigla de Finalização</label><input class="form-control" id="preco-sigla" placeholder="Ex: SKY, LASER, STONE" style="text-transform:uppercase"></div>
+      </div>
+    </div>
+    <div class="panel-foot"><button class="btn btn-ghost" onclick="closePanel('preco-panel')">Cancelar</button><button class="btn btn-primary" onclick="savePreco()"><i class="fas fa-save"></i>Salvar</button></div>
+  </div>
+</div>
+
+<div class="toast-area" id="toast-area"></div>
+<div id="print-area" style="display:none"></div>
+
+<script>
+const TAMANHOS=['PP','P','M','G','GG','XG','32','34','36','38','40','42','44','46','48','50','01','02','03','04','06','08','10','12','14','16'];
+function toast(msg,type='info'){const a=document.getElementById('toast-area');const t=document.createElement('div');t.className=`toast ${type}`;const icons={info:'fa-info-circle',success:'fa-check-circle',error:'fa-exclamation-circle'};t.innerHTML=`<i class="fas ${icons[type]||'fa-info-circle'}"></i>${msg}`;a.appendChild(t);setTimeout(()=>t.remove(),3500)}
+async function api(url,method='GET',body=null){const opts={method,headers:{'Content-Type':'application/json'}};if(body)opts.body=JSON.stringify(body);try{const r=await fetch(url,opts);const data=await r.json();if(!r.ok)throw new Error(data.error||`Erro ${r.status}`);return data}catch(e){toast('❌ '+(e.message||'Erro de conexão'),'error');throw e}}
+function fmtDT(dt){if(!dt)return '--';const d=new Date(dt);return d.toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'})}
+function fmtBRL(v){return 'R$ '+Number(v||0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})}
+function updateClock(){const n=new Date();document.getElementById('clock').textContent=n.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});document.getElementById('today-date').textContent=n.toLocaleDateString('pt-BR')}
+setInterval(updateClock,1000);updateClock();
+let currentMaqTipo='lavar';
+function goPage(page){document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));document.getElementById('page-'+page)?.classList.add('active');event?.currentTarget?.classList.add('active');const titles={dashboard:'Dashboard / Resumo',ops:'Ordens de Produção',maquinas:'Máquinas',calendario:'Calendário de Turnos',faturamento:'Faturamento',dre:'DRE / Demonstrativo de Resultado'};const t=titles[page]||page;document.getElementById('topbar-title').innerHTML=t.includes('/')?t.replace(/\/(.*)/,'<span>/ $1</span>'):t;if(page==='dashboard')loadDashboard();if(page==='ops')loadOps();if(page==='calendario')renderCalendario();if(page==='faturamento')loadPrecos();if(page==='dre')initDRE()}
+function goMaqPage(tipo){currentMaqTipo=tipo;document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));document.getElementById('page-maquinas').classList.add('active');event?.currentTarget?.classList.add('active');const labels={lavar:'Máquinas de Lavar',centrifuga:'Centrífugas',secador:'Secadores'};document.getElementById('topbar-title').innerHTML=`${labels[tipo]} <span>/ Programação</span>`;renderMaqTabs(tipo);loadMaquinas(tipo)}
+async function loadDashboard(){const d=await api('/api/dashboard');const total_peso=[...d.lavar,...d.centrifuga,...d.secador].reduce((a,m)=>a+m.peso_total,0);document.getElementById('dash-stats').innerHTML=`<div class="stat-card blue"><div class="stat-icon"><i class="fas fa-soap"></i></div><div class="stat-value">${d.lavar.length}</div><div class="stat-label">Máquinas de Lavar</div></div><div class="stat-card purple"><div class="stat-icon"><i class="fas fa-circle-notch"></i></div><div class="stat-value">${d.centrifuga.length}</div><div class="stat-label">Centrífugas</div></div><div class="stat-card orange"><div class="stat-icon"><i class="fas fa-wind"></i></div><div class="stat-value">${d.secador.length}</div><div class="stat-label">Secadores</div></div><div class="stat-card green"><div class="stat-icon"><i class="fas fa-weight"></i></div><div class="stat-value">${total_peso.toLocaleString('pt-BR',{maximumFractionDigits:1})}</div><div class="stat-label">kg Programados Total</div></div>`;renderMaqCards('dash-lavar',d.lavar,'lavar');renderMaqCards('dash-centrifuga',d.centrifuga,'centrifuga');renderMaqCards('dash-secador',d.secador,'secador')}
+function renderMaqCards(containerId,maquinas,tipo){const icons={lavar:'🫧',centrifuga:'🌀',secador:'♨️'};const labels={lavar:'MAQ',centrifuga:'CF',secador:'SEC'};document.getElementById(containerId).innerHTML=maquinas.map(m=>{const pct=m.total_cargas>0?Math.round((m.concluidas||0)/m.total_cargas*100)||0:0;return`<div class="maq-card ${tipo}" onclick="openMaqPanel(${m.id||0},'${tipo}',${m.numero})"><div class="maq-header"><div class="maq-name">${labels[tipo]} ${String(m.numero).padStart(2,'0')}</div><div class="maq-icon">${icons[tipo]}</div></div><div class="maq-body"><div class="maq-stat-row"><div class="maq-stat"><div class="maq-stat-val">${m.capacidade}</div><div class="maq-stat-lbl">kg/carga</div></div><div class="maq-stat"><div class="maq-stat-val">${m.tempo_min}'</div><div class="maq-stat-lbl">min</div></div><div class="maq-stat"><div class="maq-stat-val">${m.total_cargas}</div><div class="maq-stat-lbl">cargas</div></div><div class="maq-stat"><div class="maq-stat-val">${m.peso_total.toLocaleString('pt-BR',{maximumFractionDigits:1})}</div><div class="maq-stat-lbl">kg</div></div></div><div class="maq-progress"><div class="maq-progress-bar" style="width:${pct}%"></div></div></div></div>`}).join('')}
+function renderMaqTabs(tipoAtivo){const tabs=[{k:'lavar',l:'🫧 Lavar'},{k:'centrifuga',l:'🌀 Centrífugas'},{k:'secador',l:'♨️ Secadores'}];document.getElementById('maq-tabs').innerHTML=tabs.map(t=>`<button class="tab ${t.k===tipoAtivo?'active':''}" onclick="switchMaqTab('${t.k}')">${t.l}</button>`).join('')}
+function switchMaqTab(tipo){currentMaqTipo=tipo;renderMaqTabs(tipo);loadMaquinas(tipo)}
+async function loadMaquinas(tipo){const maquinas=await api(`/api/maquinas?tipo=${tipo}`);renderMaqCards('maq-grid',maquinas,tipo)}
+let currentMaqId=null;
+async function openMaqPanel(id,tipo,numero){const maquinas=await api(`/api/maquinas?tipo=${tipo}`);const m=maquinas.find(x=>x.numero===numero);if(!m){toast('Máquina não encontrada','error');return}currentMaqId=m.id;const icons={lavar:'🫧',centrifuga:'🌀',secador:'♨️'};const labels={lavar:'Máquina de Lavar',centrifuga:'Centrífuga',secador:'Secador'};document.getElementById('maq-panel-title').innerHTML=`${icons[tipo]} ${labels[tipo]} ${String(numero).padStart(2,'0')}`;document.getElementById('mc-cap').value=m.capacidade;document.getElementById('mc-tempo').value=m.tempo_min;['mc-op','mc-ref','mc-lav','mc-data','mc-hora'].forEach(id=>document.getElementById(id).value='');document.getElementById('mc-qtd-cargas').value=10;await loadCargas();await loadOpsParaCalc();document.getElementById('calc-resultado').style.display='none';document.getElementById('calc-cap').value=m.capacidade;document.getElementById('maq-panel').classList.add('open')}
+let _calcResultado=null;
+async function loadCargas(){if(!currentMaqId)return;const data=await api(`/api/maquinas/${currentMaqId}/cargas`);const totalPeso=data.cargas.reduce((a,c)=>a+c.peso,0);document.getElementById('maq-total-cargas').textContent=data.cargas.length;document.getElementById('maq-total-peso').textContent=totalPeso.toLocaleString('pt-BR',{maximumFractionDigits:3,minimumFractionDigits:3});document.getElementById('cargas-list').innerHTML=data.cargas.map((c,idx)=>`<div class="carga-row" id="cr-${c.id}" style="display:grid;grid-template-columns:52px 36px 82px 82px 90px 65px 68px 110px 110px 90px 75px 36px;gap:4px;align-items:center;padding:7px 8px;border-radius:8px;margin-bottom:4px;background:var(--cinza3);border:1px solid var(--brd)"><div style="display:flex;flex-direction:column;gap:2px"><button class="btn btn-ghost btn-xs" ${idx===0?'disabled':''} onclick="moverCarga(${c.id},'cima')" style="padding:2px 6px"><i class="fas fa-chevron-up"></i></button><button class="btn btn-ghost btn-xs" ${idx===data.cargas.length-1?'disabled':''} onclick="moverCarga(${c.id},'baixo')" style="padding:2px 6px"><i class="fas fa-chevron-down"></i></button></div><div style="font-family:'DM Mono',monospace;font-size:13px;font-weight:500;text-align:center;background:var(--cinza4);border-radius:6px;padding:4px;color:var(--ciano)">${c.numero}</div><input class="carga-input" value="${c.op_manual||''}" onchange="patchCarga(${c.id},'op',this.value)" placeholder="OP"><input class="carga-input" value="${c.referencia||''}" onchange="patchCarga(${c.id},'referencia',this.value)" placeholder="Ref."><input class="carga-input" value="${c.lavacao||''}" onchange="patchCarga(${c.id},'lavacao',this.value)" placeholder="Lavação"><input class="carga-input" value="${c.qtde_pecas||0}" type="number" onchange="patchCarga(${c.id},'qtde_pecas',this.value)"><input class="carga-input" value="${c.peso||0}" type="number" step="0.001" onchange="patchCarga(${c.id},'peso',this.value)"><div style="font-family:'DM Mono',monospace;font-size:10px;color:var(--ciano);line-height:1.3">${c.data_inicio?fmtDT(c.data_inicio):'--'}</div><div style="font-family:'DM Mono',monospace;font-size:10px;color:var(--laranja);line-height:1.3">${c.data_saida?fmtDT(c.data_saida):'--'}</div><select class="carga-input" onchange="patchCarga(${c.id},'status',this.value)"><option value="aguardando" ${c.status==='aguardando'?'selected':''}>⏳ Aguard.</option><option value="em_processo" ${c.status==='em_processo'?'selected':''}>🔄 Em Proc.</option><option value="concluido" ${c.status==='concluido'?'selected':''}>✅ Concluído</option></select><div style="display:flex;flex-direction:column;gap:2px;align-items:center"><input class="carga-input" type="number" min="0" value="${c.parada_min||0}" onchange="patchCarga(${c.id},'parada_min',this.value)" style="width:60px;text-align:center"><span style="font-size:8px;color:var(--txt2)">min parada</span></div><button class="btn btn-danger btn-xs" onclick="deleteCarga(${c.id})"><i class="fas fa-trash"></i></button></div>`).join('')}
+async function moverCarga(id,direcao){const list=document.getElementById('cargas-list');const rows=[...list.querySelectorAll('[id^="cr-"]')];const ids=rows.map(r=>parseInt(r.id.replace('cr-','')));const idx=ids.indexOf(id);if(direcao==='cima'&&idx>0){ids.splice(idx,1);ids.splice(idx-1,0,id)}else if(direcao==='baixo'&&idx<ids.length-1){ids.splice(idx,1);ids.splice(idx+1,0,id)}else return;await api(`/api/maquinas/${currentMaqId}/reordenar`,'POST',{ordem:ids});toast('Ordem atualizada!','success');await loadCargas()}
+async function gerarCargas(){const data=document.getElementById('mc-data').value,hora=document.getElementById('mc-hora').value;if(!data||!hora){toast('Informe data e hora da 1ª carga','error');return}await api(`/api/maquinas/${currentMaqId}/gerar_cargas`,'POST',{op:document.getElementById('mc-op').value,referencia:document.getElementById('mc-ref').value,lavacao:document.getElementById('mc-lav').value,data_inicio:`${data}T${hora}`,quantidade:document.getElementById('mc-qtd-cargas').value,peso_carga:document.getElementById('mc-cap').value});toast('Cargas geradas!','success');await loadCargas()}
+async function saveMaqConfig(){await api(`/api/maquinas/${currentMaqId}`,'PUT',{capacidade:document.getElementById('mc-cap').value,tempo_min:document.getElementById('mc-tempo').value});toast('Configuração salva','success')}
+async function addCargaManual(){await api(`/api/maquinas/${currentMaqId}/cargas`,'POST',{op:'',referencia:'',lavacao:'',qtde_pecas:0,peso:0,parada_min:0});await loadCargas()}
+async function patchCarga(id,field,value){await api(`/api/cargas/${id}`,'PUT',{[field]:value});if(field==='peso'||field==='parada_min')await loadCargas()}
+async function deleteCarga(id){await api(`/api/cargas/${id}`,'DELETE');await loadCargas();toast('Carga removida','info')}
+async function loadOpsParaCalc(){const ops=await api('/api/ops');const sel=document.getElementById('calc-op-select');if(!sel)return;sel.innerHTML='<option value="">-- Selecione --</option>'+ops.map(o=>`<option value="${o.id}">${o.op} — ${o.referencia} (${o.peso_total} kg / ${o.total_pecas} pç)</option>`).join('')}
+async function calcularCargasOP(){const opId=document.getElementById('calc-op-select').value;const cap=parseFloat(document.getElementById('calc-cap').value||80);const arredC=document.getElementById('calc-arred-cargas').value;const arredP=document.getElementById('calc-arred-pecas').value;if(!opId){toast('Selecione uma OP','error');return}const r=await api(`/api/ops/${opId}/calcular_cargas`,'POST',{capacidade:cap,arred_cargas:arredC,arred_pecas:arredP});_calcResultado=r;document.getElementById('calc-num-cargas').textContent=r.num_cargas;document.getElementById('calc-peso-carga').textContent=r.peso_carga.toLocaleString('pt-BR',{minimumFractionDigits:3})+' kg';document.getElementById('calc-pecas-carga').textContent=r.pecas_carga.toLocaleString('pt-BR')+' pç';document.getElementById('calc-peso-total-res').textContent=r.peso_total.toLocaleString('pt-BR',{minimumFractionDigits:3})+' kg';document.getElementById('calc-resultado').style.display='block'}
+async function aplicarCalculoCargas(){if(!_calcResultado){toast('Calcule primeiro','error');return}const data=document.getElementById('mc-data').value,hora=document.getElementById('mc-hora').value;if(!data||!hora){toast('Informe data e hora da 1ª carga antes de aplicar','error');return}const sel=document.getElementById('calc-op-select');const opTxt=sel.options[sel.selectedIndex]?.text||'';const opNum=opTxt.split('—')[0]?.trim()||'';document.getElementById('mc-qtd-cargas').value=_calcResultado.num_cargas;await api(`/api/maquinas/${currentMaqId}/gerar_cargas`,'POST',{op:opNum,referencia:'',lavacao:'',data_inicio:`${data}T${hora}`,quantidade:_calcResultado.num_cargas,peso_carga:_calcResultado.peso_carga});const dadosM=await api(`/api/maquinas/${currentMaqId}/cargas`);for(const c of dadosM.cargas){await api(`/api/cargas/${c.id}`,'PUT',{qtde_pecas:_calcResultado.pecas_carga})}toast(`✅ ${_calcResultado.num_cargas} cargas geradas!`,'success');document.getElementById('calc-resultado').style.display='none';_calcResultado=null;await loadCargas()}
+function buildSizeInputs(){const groups=[{id:'sizes-letras',sizes:['PP','P','M','G','GG','XG']},{id:'sizes-num',sizes:['32','34','36','38','40','42','44','46','48','50']},{id:'sizes-inf',sizes:['01','02','03','04','06','08','10','12','14','16']}];groups.forEach(g=>{document.getElementById(g.id).innerHTML=g.sizes.map(s=>`<div class="size-input-group"><span class="size-label">${s}</span><input id="qtd-${s}" type="number" min="0" value="0" placeholder="Qtd" oninput="liveCalc()"><div class="size-sublabel">peças</div></div>`).join('')});document.getElementById('pesos-grid').innerHTML=TAMANHOS.map(s=>`<div class="size-input-group"><span class="size-label">${s}</span><input id="peso-${s}" type="number" min="0" step="0.001" value="0" placeholder="kg" oninput="liveCalc()"><div class="size-sublabel">kg/peça</div></div>`).join('')}
+function liveCalc(){let totalPecas=0,totalPeso=0;TAMANHOS.forEach(s=>{const q=parseFloat(document.getElementById('qtd-'+s)?.value||0)||0;const p=parseFloat(document.getElementById('peso-'+s)?.value||0)||0;totalPecas+=q;totalPeso+=q*p});document.getElementById('live-pecas').textContent=totalPecas.toLocaleString('pt-BR');document.getElementById('live-peso').textContent=totalPeso.toLocaleString('pt-BR',{minimumFractionDigits:3,maximumFractionDigits:3})+' kg'}
+function openOpForm(op=null){document.getElementById('op-edit-id').value=op?op.id:'';document.getElementById('op-panel-title').innerHTML=op?`<i class="fas fa-edit" style="color:var(--ciano)"></i> Editar OP ${op.op}`:`<i class="fas fa-file-alt" style="color:var(--ciano)"></i> Nova Ordem de Produção`;document.getElementById('op-num').value=op?.op||'';document.getElementById('op-ref').value=op?.referencia||'';document.getElementById('op-lav').value=op?.lavacao||'';document.getElementById('op-cap').value=op?.cap_pecas||'';buildSizeInputs();if(op){TAMANHOS.forEach(s=>{const qEl=document.getElementById('qtd-'+s),pEl=document.getElementById('peso-'+s);if(qEl)qEl.value=op.qtd[s]||0;if(pEl)pEl.value=op.peso_unit[s]||0})}document.getElementById('arr-result').style.display='none';liveCalc();document.getElementById('op-panel').classList.add('open')}
+function copiarOp(o){const clone=Object.assign({},o,{id:'',op:''});openOpForm(clone);setTimeout(()=>{const f=document.getElementById('op-num');if(!f)return;f.value='';f.focus();f.style.borderColor='#f59e0b';f.style.boxShadow='0 0 0 3px rgba(245,158,11,0.35)';f.placeholder='⚠ Digite o NOVO número de OP';document.getElementById('op-panel-title').innerHTML=`<i class="fas fa-copy" style="color:#f59e0b"></i> Cópia de OP ${o.op} · ${o.referencia||''} — Digite o novo nº`;setTimeout(()=>{f.style.borderColor='';f.style.boxShadow='';f.placeholder='Ex: 48000'},6000)},300);toast('📋 OP copiada — preencha o novo número!','info')}
+async function saveOp(){const id=document.getElementById('op-edit-id').value;const opVal=document.getElementById('op-num').value.trim();const refVal=document.getElementById('op-ref').value.trim();if(!opVal||!refVal){toast('Preencha o Nº da OP e a Referência','error');return}const qtd={},peso_unit={};TAMANHOS.forEach(s=>{qtd[s]=parseFloat(document.getElementById('qtd-'+s)?.value||0)||0;peso_unit[s]=parseFloat(document.getElementById('peso-'+s)?.value||0)||0});const body={op:opVal,referencia:refVal,lavacao:document.getElementById('op-lav').value.trim(),cap_pecas:parseInt(document.getElementById('op-cap').value||0)||0,qtd,peso_unit};const btn=document.querySelector('#op-panel .btn-primary');btn.disabled=true;btn.innerHTML='<i class="fas fa-spinner fa-spin"></i> Salvando…';try{if(id)await api(`/api/ops/${id}`,'PUT',body);else await api('/api/ops','POST',body);toast('OP salva!','success');closePanel('op-panel');loadOps()}finally{btn.disabled=false;btn.innerHTML='<i class="fas fa-save"></i>Salvar OP'}}
+async function calcArredondar(){const id=document.getElementById('op-edit-id').value;if(!id){toast('Salve a OP primeiro','error');return}const cap=document.getElementById('cap-arredondar').value||80;const r=await api(`/api/ops/${id}/arredondar?cap=${cap}`);document.getElementById('arr-result').style.display='block';document.getElementById('arr-cargas').textContent=r.cargas;document.getElementById('arr-peso').textContent=r.peso_total?.toLocaleString('pt-BR',{minimumFractionDigits:3})+'kg';document.getElementById('arr-ultimo').textContent=(r.ultimo_peso||0).toLocaleString('pt-BR',{minimumFractionDigits:3})+'kg'}
+async function loadOps(){const ops=await api('/api/ops');document.getElementById('ops-tbody').innerHTML=ops.map(o=>`<tr><td class="mono">${o.op}</td><td><b>${o.referencia}</b></td><td style="color:var(--txt2)">${o.lavacao||'--'}</td><td class="mono">${o.total_pecas.toLocaleString('pt-BR')}</td><td class="mono" style="color:var(--ciano)">${o.peso_total.toLocaleString('pt-BR',{minimumFractionDigits:3})} kg</td><td style="color:var(--txt2);font-size:11px">${o.created_at}</td><td style="display:flex;gap:5px;flex-wrap:wrap;align-items:center"><button class="btn btn-ghost btn-xs" onclick='openOpForm(${JSON.stringify(o).replace(/'/g,"&#39;")})'><i class="fas fa-edit"></i></button><button class="btn btn-purple btn-xs" onclick='copiarOp(${JSON.stringify(o).replace(/'/g,"&#39;")})'><i class="fas fa-copy"></i> Copiar</button><button class="btn btn-danger btn-xs" onclick="deleteOp(${o.id})"><i class="fas fa-trash"></i></button></td></tr>`).join('')}
+async function deleteOp(id){if(!confirm('Excluir esta OP?'))return;await api(`/api/ops/${id}`,'DELETE');toast('OP excluída','info');loadOps()}
+let calAno=new Date().getFullYear(),calMes=new Date().getMonth()+1,turnosData={};
+const meses=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+const diasSem=['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
+function calNav(d){calMes+=d;if(calMes>12){calMes=1;calAno++}if(calMes<1){calMes=12;calAno--}renderCalendario()}
+async function renderCalendario(){document.getElementById('cal-month-label').textContent=`${meses[calMes-1]} ${calAno}`;const turnos=await api(`/api/turnos?ano=${calAno}&mes=${calMes}`);turnosData={};turnos.forEach(t=>{if(!turnosData[t.data])turnosData[t.data]=[];turnosData[t.data].push(t)});const grid=document.getElementById('cal-grid');const primeiroDia=new Date(calAno,calMes-1,1).getDay();const diasNoMes=new Date(calAno,calMes,0).getDate();const hoje=new Date();const hj=`${calAno}-${String(calMes).padStart(2,'0')}-${String(hoje.getDate()).padStart(2,'0')}`;let html=diasSem.map(d=>`<div class="cal-day-head">${d}</div>`).join('');for(let i=0;i<primeiroDia;i++)html+=`<div class="cal-day empty"></div>`;for(let d=1;d<=diasNoMes;d++){const ds=`${calAno}-${String(calMes).padStart(2,'0')}-${String(d).padStart(2,'0')}`;const ts=turnosData[ds]||[];const hasHe=ts.some(t=>t.he_inicio);html+=`<div class="cal-day ${ds===hj?'today':''} ${ts.length?'has-data':''}" onclick="openCalDia('${ds}')"><div class="cal-day-num">${d}</div><div class="cal-turn-dot">${ts.find(t=>t.turno_num===1)?'<div class="dot dot-t1"></div>':''}${ts.find(t=>t.turno_num===2)?'<div class="dot dot-t2"></div>':''}${ts.find(t=>t.turno_num===3)?'<div class="dot dot-t3"></div>':''}${hasHe?'<div class="dot dot-he"></div>':''}</div></div>`}grid.innerHTML=html}
+function openCalDia(data){document.getElementById('cal-selected-date').value=data;const[y,m,d]=data.split('-');document.getElementById('cal-panel-title').innerHTML=`<i class="fas fa-calendar-day" style="color:var(--ciano)"></i> Turnos: ${d}/${m}/${y}`;const ts=turnosData[data]||[];[[1,'05:00','13:00'],[2,'13:00','21:00'],[3,'21:00','05:00']].forEach(([n,ei,si])=>{const t=ts.find(x=>x.turno_num===n);document.getElementById(`t${n}-entrada`).value=t?.entrada||ei;document.getElementById(`t${n}-saida`).value=t?.saida||si});const he=ts.find(t=>t.he_inicio);document.getElementById('he-inicio').value=he?.he_inicio||'';document.getElementById('he-fim').value=he?.he_fim||'';document.getElementById('cal-obs').value=ts[0]?.observacao||'';calcHe();document.getElementById('cal-panel').classList.add('open')}
+function calcHe(){const i=document.getElementById('he-inicio').value,f=document.getElementById('he-fim').value;if(!i||!f){document.getElementById('he-total').textContent='--';return}let[ih,im]=i.split(':').map(Number),[fh,fm]=f.split(':').map(Number);let mins=(fh*60+fm)-(ih*60+im);if(mins<0)mins+=1440;document.getElementById('he-total').textContent=`${Math.floor(mins/60)}h${String(mins%60).padStart(2,'0')}min`}
+document.getElementById('he-inicio').addEventListener('input',calcHe);
+document.getElementById('he-fim').addEventListener('input',calcHe);
+async function saveTurnos(){const data=document.getElementById('cal-selected-date').value;const obs=document.getElementById('cal-obs').value;const heI=document.getElementById('he-inicio').value,heF=document.getElementById('he-fim').value;for(const n of[1,2,3]){await api('/api/turnos','POST',{data,turno_num:n,entrada:document.getElementById(`t${n}-entrada`).value,saida:document.getElementById(`t${n}-saida`).value,he_inicio:n===1?heI:'',he_fim:n===1?heF:'',observacao:n===1?obs:''})}toast('Turnos salvos!','success');closePanel('cal-panel');renderCalendario()}
+async function loadPrecos(){const rows=await api('/api/precos');document.getElementById('precos-tbody').innerHTML=rows.length?rows.map(r=>`<tr><td><b style="font-family:'DM Mono',monospace">${r.referencia}</b></td><td class="mono" style="color:var(--verde)">${fmtBRL(r.preco_peca)}</td><td><span class="sigla-badge"><i class="fas fa-flag" style="font-size:9px"></i>${r.sigla_fim}</span></td><td style="font-size:11px;color:var(--txt2)">${r.created_at}</td><td style="display:flex;gap:5px"><button class="btn btn-ghost btn-xs" onclick='openPrecoForm(${JSON.stringify(r).replace(/'/g,"&#39;")})'><i class="fas fa-edit"></i></button><button class="btn btn-danger btn-xs" onclick="deletePreco(${r.id})"><i class="fas fa-trash"></i></button></td></tr>`).join(''):'<tr><td colspan="5" style="text-align:center;padding:24px;color:var(--txt2)">Nenhuma referência cadastrada ainda.</td></tr>'}
+function openPrecoForm(r=null){document.getElementById('preco-edit-id').value=r?r.id:'';document.getElementById('preco-panel-title').innerHTML=r?`<i class="fas fa-edit" style="color:var(--ciano)"></i> Editar: ${r.referencia}`:`<i class="fas fa-tags" style="color:var(--ciano)"></i> Nova Referência`;document.getElementById('preco-ref').value=r?.referencia||'';document.getElementById('preco-val').value=r?.preco_peca||'';document.getElementById('preco-sigla').value=r?.sigla_fim||'';document.getElementById('preco-panel').classList.add('open')}
+async function savePreco(){const id=document.getElementById('preco-edit-id').value;const body={referencia:document.getElementById('preco-ref').value.trim().toUpperCase(),preco_peca:parseFloat(document.getElementById('preco-val').value||0),sigla_fim:document.getElementById('preco-sigla').value.trim().toUpperCase()};if(!body.referencia||!body.sigla_fim){toast('Preencha Referência e Sigla','error');return}if(id)await api(`/api/precos/${id}`,'PUT',body);else await api('/api/precos','POST',body);toast('Preço salvo!','success');closePanel('preco-panel');loadPrecos()}
+async function deletePreco(id){if(!confirm('Excluir esta referência?'))return;await api(`/api/precos/${id}`,'DELETE');toast('Referência excluída','info');loadPrecos()}
+function switchFatTab(tab,el){['precos','prontas','historico'].forEach(t=>{document.getElementById(`fat-tab-${t}`).style.display=t===tab?'':'none'});document.querySelectorAll('#page-faturamento .tab').forEach(b=>b.classList.remove('active'));if(el)el.classList.add('active');if(tab==='prontas')loadOpsProntas();if(tab==='historico')loadHistorico()}
+async function loadOpsProntas(){const ops=await api('/api/ops_prontas');document.getElementById('prontas-tbody').innerHTML=ops.length?ops.map(o=>`<tr><td class="mono">${o.op}</td><td><b>${o.referencia}</b></td><td style="color:var(--txt2);font-size:12px">${o.lavacao||'--'}</td><td class="mono">${o.total_pecas.toLocaleString('pt-BR')}</td><td class="mono" style="color:var(--ciano)">${fmtBRL(o.preco_peca)}</td><td class="mono" style="color:var(--verde);font-weight:700">${fmtBRL(o.valor_total)}</td><td>${o.ja_faturada?'<span class="pill pill-faturado"><i class="fas fa-check"></i>Faturada</span>':'<span class="pill pill-pendente"><i class="fas fa-clock"></i>Pendente</span>'}</td><td>${!o.ja_faturada?`<button class="btn btn-success btn-xs" onclick="faturarOp(${JSON.stringify(o).replace(/'/g,"&#39;")})"><i class="fas fa-file-invoice-dollar"></i> Faturar</button>`:'<span style="font-size:11px;color:var(--txt2)">—</span>'}</td></tr>`).join(''):'<tr><td colspan="8" style="text-align:center;padding:24px;color:var(--txt2)">Nenhuma OP pronta para faturar.</td></tr>'}
+async function faturarOp(o){if(!confirm(`Faturar OP ${o.op} — ${o.referencia}?\nValor: ${fmtBRL(o.valor_total)}`))return;const hoje=new Date().toISOString().slice(0,10);await api('/api/faturamento','POST',{op_numero:o.op,referencia:o.referencia,lavacao:o.lavacao,qtd_pecas:o.total_pecas,preco_peca:o.preco_peca,valor_total:o.valor_total,data_faturamento:hoje});toast(`✅ OP ${o.op} faturada — ${fmtBRL(o.valor_total)}`,'success');loadOpsProntas()}
+function initHistMes(){const n=new Date();document.getElementById('fat-hist-mes').value=`${n.getFullYear()}-${String(n.getMonth()+1).padStart(2,'0')}`}
+async function loadHistorico(){const v=document.getElementById('fat-hist-mes').value;const[ano,mes]=v?v.split('-'):[new Date().getFullYear(),new Date().getMonth()+1];const rows=await api(`/api/faturamento?ano=${ano}&mes=${mes}`);let total=0;document.getElementById('historico-tbody').innerHTML=rows.length?rows.map(r=>{total+=r.valor_total;return`<tr><td style="font-size:12px;color:var(--txt2)">${r.data_faturamento}</td><td class="mono">${r.op_numero}</td><td><b>${r.referencia}</b></td><td class="mono">${r.qtd_pecas.toLocaleString('pt-BR')}</td><td class="mono" style="color:var(--ciano)">${fmtBRL(r.preco_peca)}</td><td class="mono" style="color:var(--verde);font-weight:700">${fmtBRL(r.valor_total)}</td><td><button class="btn btn-danger btn-xs" onclick="deleteFaturamento(${r.id})"><i class="fas fa-trash"></i></button></td></tr>`}).join(''):'<tr><td colspan="7" style="text-align:center;padding:24px;color:var(--txt2)">Nenhum registro neste período.</td></tr>';document.getElementById('hist-total').textContent=fmtBRL(total)}
+async function deleteFaturamento(id){if(!confirm('Excluir este registro?'))return;await api(`/api/faturamento/${id}`,'DELETE');toast('Registro excluído','info');loadHistorico()}
+function initDRE(){const n=new Date();const input=document.getElementById('dre-mes');if(!input.value)input.value=`${n.getFullYear()}-${String(n.getMonth()+1).padStart(2,'0')}`;loadDRE()}
+const mesesNomes=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
+async function loadDRE(){const v=document.getElementById('dre-mes').value;if(!v)return;const[ano,mes]=v.split('-');const d=await api(`/api/dre?ano=${ano}&mes=${mes}`);document.getElementById('dre-mes-label').textContent=`${mesesNomes[parseInt(mes)-1]} / ${ano}`;document.getElementById('dre-total-val').textContent=d.total_faturado.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2});document.getElementById('dre-ops').textContent=d.total_ops;document.getElementById('dre-pecas').textContent=d.total_pecas.toLocaleString('pt-BR');const ticket=d.total_ops>0?d.total_faturado/d.total_ops:0;document.getElementById('dre-ticket').textContent=fmtBRL(ticket);document.getElementById('dre-tbody').innerHTML=d.registros.length?d.registros.map(r=>`<tr><td style="font-size:12px;color:var(--txt2)">${r.data_faturamento}</td><td class="mono">${r.op_numero}</td><td><b>${r.referencia}</b></td><td class="mono">${r.qtd_pecas.toLocaleString('pt-BR')}</td><td class="mono" style="color:var(--ciano)">${fmtBRL(r.preco_peca)}</td><td class="mono" style="color:var(--verde);font-weight:700">${fmtBRL(r.valor_total)}</td></tr>`).join(''):'<tr><td colspan="6" style="text-align:center;padding:24px;color:var(--txt2)">Nenhum faturamento neste período.</td></tr>'}
+
+// ── IMPRESSÃO CORRIGIDA ────────────────────────────────────────
+async function imprimirMaquinaEmProcesso(){
+  if(!currentMaqId){toast('Nenhuma máquina selecionada','error');return}
+  const data=await api(`/api/maquinas/${currentMaqId}/cargas`);
+  const cargas=data.cargas||[];
+  const emProcesso=cargas.filter(c=>c.status==='em_processo');
+  const now=new Date().toLocaleString('pt-BR');
+  const titulo=document.getElementById('maq-panel-title').textContent.trim();
+  const totalPeso=cargas.reduce((a,c)=>a+(c.peso||0),0);
+  const conc=cargas.filter(c=>c.status==='concluido').length;
+  const proc=emProcesso.length;
+
+  const linhasTabela = emProcesso.length ? emProcesso.map(c=>`
+    <tr>
+      <td style="border:1px solid #ccc;padding:5px 7px;text-align:center;font-weight:700;color:#1a2e5a">${c.numero}</td>
+      <td style="border:1px solid #ccc;padding:5px 7px;font-weight:700">${c.op_manual||'—'}</td>
+      <td style="border:1px solid #ccc;padding:5px 7px">${c.referencia||'—'}</td>
+      <td style="border:1px solid #ccc;padding:5px 7px;font-size:9px">${c.lavacao||'—'}</td>
+      <td style="border:1px solid #ccc;padding:5px 7px;text-align:right">${(c.qtde_pecas||0).toLocaleString('pt-BR')}</td>
+      <td style="border:1px solid #ccc;padding:5px 7px;text-align:right">${(c.peso||0).toFixed(3)}</td>
+      <td style="border:1px solid #ccc;padding:5px 7px;font-size:9px">${c.data_inicio?fmtDT(c.data_inicio):'--'}</td>
+      <td style="border:1px solid #ccc;padding:5px 7px;font-size:9px">${c.data_saida?fmtDT(c.data_saida):'--'}</td>
+      <td style="border:1px solid #ccc;padding:5px 7px;font-weight:700;color:#d97706">Em Proc.</td>
+      <td style="border:1px solid #ccc;padding:5px 20px"> </td>
+      <td style="border:1px solid #ccc;padding:5px 20px"> </td>
+    </tr>`).join('') : `<tr><td colspan="11" style="border:1px solid #ccc;padding:16px;text-align:center;color:#666;font-style:italic">Nenhuma carga Em Processo.</td></tr>`;
+
+  document.getElementById('print-area').innerHTML=`
+    <div style="background:#fff;color:#000;font-family:Arial,sans-serif;font-size:11px">
+      <!-- CABEÇALHO -->
+      <div style="border-bottom:2px solid #1a2e5a;padding-bottom:8px;margin-bottom:10px;display:flex;justify-content:space-between;align-items:flex-start">
+        <div>
+          <div style="font-size:16px;font-weight:900;color:#1a2e5a">🧺 LaundryPro — Sistema de Lavanderia</div>
+          <div style="font-size:18px;font-weight:900;color:#000;margin-top:3px">${titulo}</div>
+        </div>
+        <div style="text-align:right;font-size:10px;color:#333;line-height:1.8">
+          <div>Emitido: <b>${now}</b></div>
+          <div>Total: <b>${cargas.length}</b> | Em Processo: <b>${proc}</b> | Concluídas: <b>${conc}</b></div>
+          <div>Peso total programado: <b>${totalPeso.toFixed(1)} kg</b></div>
+        </div>
+      </div>
+
+      <!-- AVISO + CONTROLE NA MESMA LINHA -->
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:8px;gap:16px">
+        <div style="border:1px solid #d97706;border-radius:4px;padding:4px 12px;font-size:9px;font-weight:700;color:#d97706;white-space:nowrap">
+          ★ Exibindo apenas cargas EM PROCESSO — ${proc} carga${proc!==1?'s':''}
+        </div>
+        <div style="border:1px solid #1a2e5a;border-radius:4px;padding:4px 16px;font-size:9px;font-weight:700;color:#1a2e5a;display:flex;gap:24px">
+          <span>CONTROLE ENTRADA / SAÍDA</span>
+          <span>Entrada: _______________</span>
+          <span>Saída: _______________</span>
+        </div>
+      </div>
+
+      <!-- TABELA PRINCIPAL -->
+      <table style="width:100%;border-collapse:collapse;font-size:10px">
+        <thead>
+          <tr style="background:#1a2e5a;color:#fff">
+            <th style="border:1px solid #1a2e5a;padding:6px 7px;text-align:center">#</th>
+            <th style="border:1px solid #1a2e5a;padding:6px 7px">OP</th>
+            <th style="border:1px solid #1a2e5a;padding:6px 7px">Referência</th>
+            <th style="border:1px solid #1a2e5a;padding:6px 7px">Lavação</th>
+            <th style="border:1px solid #1a2e5a;padding:6px 7px;text-align:right">Peças</th>
+            <th style="border:1px solid #1a2e5a;padding:6px 7px;text-align:right">kg</th>
+            <th style="border:1px solid #1a2e5a;padding:6px 7px">Início</th>
+            <th style="border:1px solid #1a2e5a;padding:6px 7px">Saída</th>
+            <th style="border:1px solid #1a2e5a;padding:6px 7px">Status</th>
+            <th style="border:1px solid #1a2e5a;padding:6px 30px">Entrada Real</th>
+            <th style="border:1px solid #1a2e5a;padding:6px 30px">Saída Real</th>
+          </tr>
+        </thead>
+        <tbody>${linhasTabela}</tbody>
+      </table>
+
+      <!-- RODAPÉ -->
+      <div style="margin-top:8px;display:flex;justify-content:space-between;font-size:8px;color:#666;border-top:1px solid #ccc;padding-top:4px">
+        <span>LaundryPro – Sistema de Lavanderia</span>
+        <span>${titulo} · ${proc} em processo · ${totalPeso.toFixed(1)} kg total</span>
+        <span>Impresso: ${now}</span>
+      </div>
+    </div>`;
+  window.print();
+}
+
+function closePanel(id){document.getElementById(id).classList.remove('open')}
+document.querySelectorAll('.panel-overlay').forEach(p=>{p.addEventListener('click',e=>{if(e.target===p)p.classList.remove('open')})});
+initHistMes();
+loadDashboard();
+</script>
+</body>
+</html>
