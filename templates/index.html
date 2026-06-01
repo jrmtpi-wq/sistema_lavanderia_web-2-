@@ -329,61 +329,97 @@ async function imprimirMaquinaEmProcesso(){
   const emProcesso=cargas.filter(c=>c.status==='em_processo');
   const now=new Date().toLocaleString('pt-BR');
   const titulo=document.getElementById('maq-panel-title').textContent.trim();
-  const totalPeso=cargas.reduce((a,c)=>a+(c.peso||0),0);
+  const totalPeso=emProcesso.reduce((a,c)=>a+(c.peso||0),0);
+  const totalPecas=emProcesso.reduce((a,c)=>a+(c.qtde_pecas||0),0);
   const conc=cargas.filter(c=>c.status==='concluido').length;
   const proc=emProcesso.length;
-  const linhas=emProcesso.length
-    ? emProcesso.map(c=>`<tr>
-        <td style="border:1px solid #999;padding:5px 7px;text-align:center;font-weight:700">${c.numero}</td>
-        <td style="border:1px solid #999;padding:5px 7px;font-weight:700">${c.op_manual||'-'}</td>
-        <td style="border:1px solid #999;padding:5px 7px">${c.referencia||'-'}</td>
-        <td style="border:1px solid #999;padding:5px 7px;font-size:9px">${c.lavacao||'-'}</td>
-        <td style="border:1px solid #999;padding:5px 7px;text-align:right">${(c.qtde_pecas||0).toLocaleString('pt-BR')}</td>
-        <td style="border:1px solid #999;padding:5px 7px;text-align:right">${(c.peso||0).toFixed(3)}</td>
-        <td style="border:1px solid #999;padding:5px 7px;font-size:9px">${c.data_inicio?fmtDT(c.data_inicio):'--'}</td>
-        <td style="border:1px solid #999;padding:5px 7px;font-size:9px">${c.data_saida?fmtDT(c.data_saida):'--'}</td>
-        <td style="border:1px solid #999;padding:5px 7px;font-weight:700">Em Proc.</td>
-        <td style="border:1px solid #999;padding:5px 30px"> </td>
-        <td style="border:1px solid #999;padding:5px 30px"> </td>
+  const linhasPrincipal=emProcesso.length
+    ? emProcesso.map((c,i)=>`<tr style="${i%2===1?'background:#f5f5f5':''}">
+        <td style="border:1px solid #bbb;padding:4px 5px;text-align:center;font-weight:700">${c.numero}</td>
+        <td style="border:1px solid #bbb;padding:4px 5px;font-weight:700">${c.op_manual||'-'}</td>
+        <td style="border:1px solid #bbb;padding:4px 5px">${c.referencia||'-'}</td>
+        <td style="border:1px solid #bbb;padding:4px 5px;font-size:9px">${c.lavacao||'-'}</td>
+        <td style="border:1px solid #bbb;padding:4px 5px;text-align:right">${(c.qtde_pecas||0).toLocaleString('pt-BR')}</td>
+        <td style="border:1px solid #bbb;padding:4px 5px;text-align:right">${(c.peso||0).toFixed(3)}</td>
+        <td style="border:1px solid #bbb;padding:4px 5px;font-size:9px">${c.data_inicio?fmtDT(c.data_inicio):'--'}</td>
+        <td style="border:1px solid #bbb;padding:4px 5px;font-size:9px">${c.data_saida?fmtDT(c.data_saida):'--'}</td>
       </tr>`).join('')
-    : '<tr><td colspan="11" style="border:1px solid #999;padding:16px;text-align:center;font-style:italic">Nenhuma carga Em Processo.</td></tr>';
+    : '<tr><td colspan="8" style="border:1px solid #bbb;padding:16px;text-align:center;font-style:italic;color:#666">Nenhuma carga Em Processo no momento.</td></tr>';
+  const linhasControle=emProcesso.length
+    ? emProcesso.map((c,i)=>`<tr style="${i%2===1?'background:#f5f5f5':''}">
+        <td style="border:1px solid #bbb;padding:4px 5px;text-align:center;font-weight:700">${c.numero}</td>
+        <td style="border:1px solid #bbb;padding:4px 5px;font-weight:700">${c.op_manual||'-'}</td>
+        <td style="border:1px solid #bbb;padding:4px 44px">&nbsp;</td>
+        <td style="border:1px solid #bbb;padding:4px 44px">&nbsp;</td>
+        <td style="border:1px solid #bbb;padding:4px 36px">&nbsp;</td>
+      </tr>`).join('')
+    : '<tr><td colspan="5" style="border:1px solid #bbb;padding:16px;text-align:center;color:#666">—</td></tr>';
   const htmlConteudo=`
-    <div style="border-bottom:2px solid #000;padding-bottom:6px;margin-bottom:8px;display:flex;justify-content:space-between;align-items:flex-start">
-      <div><div style="font-size:15px;font-weight:900">LaundryPro - Sistema de Lavanderia</div>
-      <div style="font-size:17px;font-weight:900;margin-top:2px">${titulo}</div></div>
-      <div style="text-align:right;font-size:10px;line-height:1.8">
+    <div style="border-bottom:2px solid #1a2e5a;padding-bottom:8px;margin-bottom:10px;display:flex;justify-content:space-between;align-items:flex-start">
+      <div>
+        <div style="font-size:12px;font-weight:900;color:#1a2e5a;letter-spacing:1px">LaundryPro — Sistema de Lavanderia</div>
+        <div style="font-size:15px;font-weight:900;margin-top:3px;color:#000">${titulo} — Programação de Máquina</div>
+      </div>
+      <div style="text-align:right;font-size:9.5px;line-height:2;color:#333">
         <div>Emitido: <b>${now}</b></div>
-        <div>Total: <b>${cargas.length}</b> | Em Processo: <b>${proc}</b> | Concluidas: <b>${conc}</b></div>
-        <div>Peso total: <b>${totalPeso.toFixed(1)} kg</b></div>
+        <div>Total cargas: <b>${cargas.length}</b> | Em Processo: <b>${proc}</b> | Concluídas: <b>${conc}</b></div>
+        <div>Peso em processo: <b>${totalPeso.toFixed(1)} kg</b> | Peças: <b>${totalPecas.toLocaleString('pt-BR')}</b></div>
       </div>
     </div>
-    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:6px">
-      <span style="font-size:9px;border:1px solid #999;padding:3px 8px;font-weight:700">Exibindo apenas EM PROCESSO - ${proc} carga${proc!==1?'s':''}</span>
-      <span style="font-size:9px;border:1px solid #000;padding:3px 12px;font-weight:700">CONTROLE ENTRADA/SAIDA &nbsp;&nbsp; Entrada: _______________ &nbsp;&nbsp; Saida: _______________</span>
+    <div style="margin-bottom:8px">
+      <span style="font-size:9px;background:#1a2e5a;color:#fff;padding:3px 10px;border-radius:4px;font-weight:700;-webkit-print-color-adjust:exact;print-color-adjust:exact">EM PROCESSO — ${proc} carga${proc!==1?'s':''}</span>
     </div>
-    <table style="width:100%;border-collapse:collapse;font-size:10px">
-      <thead><tr style="background:#1a2e5a">
-        <th style="border:1px solid #1a2e5a;padding:5px 7px;color:#fff;text-align:center">#</th>
-        <th style="border:1px solid #1a2e5a;padding:5px 7px;color:#fff">OP</th>
-        <th style="border:1px solid #1a2e5a;padding:5px 7px;color:#fff">Referencia</th>
-        <th style="border:1px solid #1a2e5a;padding:5px 7px;color:#fff">Lavacao</th>
-        <th style="border:1px solid #1a2e5a;padding:5px 7px;color:#fff;text-align:right">Pecas</th>
-        <th style="border:1px solid #1a2e5a;padding:5px 7px;color:#fff;text-align:right">kg</th>
-        <th style="border:1px solid #1a2e5a;padding:5px 7px;color:#fff">Inicio</th>
-        <th style="border:1px solid #1a2e5a;padding:5px 7px;color:#fff">Saida</th>
-        <th style="border:1px solid #1a2e5a;padding:5px 7px;color:#fff">Status</th>
-        <th style="border:1px solid #1a2e5a;padding:5px 30px;color:#fff">Entrada Real</th>
-        <th style="border:1px solid #1a2e5a;padding:5px 30px;color:#fff">Saida Real</th>
-      </tr></thead>
-      <tbody>${linhas}</tbody>
-    </table>
-    <div style="margin-top:6px;display:flex;justify-content:space-between;font-size:8px;color:#666;border-top:1px solid #ccc;padding-top:3px">
-      <span>LaundryPro - Sistema de Lavanderia</span>
-      <span>${titulo} - ${proc} em processo</span>
+    <div style="display:flex;gap:10px;align-items:flex-start">
+      <div style="flex:2.2;min-width:0">
+        <div style="font-size:9px;font-weight:700;color:#1a2e5a;margin-bottom:3px;text-transform:uppercase;letter-spacing:1px">▶ Cargas em Processo</div>
+        <table style="width:100%;border-collapse:collapse;font-size:9px">
+          <thead>
+            <tr style="background:#1a2e5a;-webkit-print-color-adjust:exact;print-color-adjust:exact">
+              <th style="border:1px solid #1a2e5a;padding:4px 5px;color:#fff;text-align:center">#</th>
+              <th style="border:1px solid #1a2e5a;padding:4px 5px;color:#fff">OP</th>
+              <th style="border:1px solid #1a2e5a;padding:4px 5px;color:#fff">Referência</th>
+              <th style="border:1px solid #1a2e5a;padding:4px 5px;color:#fff">Lavação</th>
+              <th style="border:1px solid #1a2e5a;padding:4px 5px;color:#fff;text-align:right">Peças</th>
+              <th style="border:1px solid #1a2e5a;padding:4px 5px;color:#fff;text-align:right">kg</th>
+              <th style="border:1px solid #1a2e5a;padding:4px 5px;color:#fff">Início</th>
+              <th style="border:1px solid #1a2e5a;padding:4px 5px;color:#fff">Saída Prev.</th>
+            </tr>
+          </thead>
+          <tbody>${linhasPrincipal}</tbody>
+          <tfoot>
+            <tr style="background:#e8eef7;font-weight:700;-webkit-print-color-adjust:exact;print-color-adjust:exact">
+              <td colspan="4" style="border:1px solid #bbb;padding:4px 5px;text-align:right;font-size:8px">TOTAL EM PROCESSO:</td>
+              <td style="border:1px solid #bbb;padding:4px 5px;text-align:right">${totalPecas.toLocaleString('pt-BR')}</td>
+              <td style="border:1px solid #bbb;padding:4px 5px;text-align:right">${totalPeso.toFixed(3)}</td>
+              <td colspan="2" style="border:1px solid #bbb;padding:4px 5px"></td>
+            </tr>
+          </tfoot>
+        </table>
+      </div>
+      <div style="flex:1.3;min-width:0">
+        <div style="font-size:9px;font-weight:700;color:#1a2e5a;margin-bottom:3px;text-transform:uppercase;letter-spacing:1px">▶ Controle Entrada / Saída</div>
+        <table style="width:100%;border-collapse:collapse;font-size:9px">
+          <thead>
+            <tr style="background:#1a2e5a;-webkit-print-color-adjust:exact;print-color-adjust:exact">
+              <th style="border:1px solid #1a2e5a;padding:4px 5px;color:#fff;text-align:center">#</th>
+              <th style="border:1px solid #1a2e5a;padding:4px 5px;color:#fff">OP</th>
+              <th style="border:1px solid #1a2e5a;padding:4px 5px;color:#fff;text-align:center">Entrada Real</th>
+              <th style="border:1px solid #1a2e5a;padding:4px 5px;color:#fff;text-align:center">Saída Real</th>
+              <th style="border:1px solid #1a2e5a;padding:4px 5px;color:#fff;text-align:center">Rubrica</th>
+            </tr>
+          </thead>
+          <tbody>${linhasControle}</tbody>
+        </table>
+      </div>
+    </div>
+    <div style="margin-top:8px;display:flex;justify-content:space-between;font-size:8px;color:#888;border-top:1px solid #ccc;padding-top:3px">
+      <span>LaundryPro — Sistema de Lavanderia</span>
+      <span>${titulo} | ${proc} em processo</span>
       <span>Impresso: ${now}</span>
     </div>`;
-  const janela=window.open('','_blank','width=1200,height=700');
-  janela.document.write('<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Impressao</title><style>body{font-family:Arial,sans-serif;font-size:11px;color:#000;background:#fff;margin:8px}table{width:100%;border-collapse:collapse}@page{size:A4 landscape;margin:10mm 8mm}@media print{body{margin:0}}</style></head><body>'+htmlConteudo+'<scr'+'ipt>window.onload=function(){window.print();setTimeout(()=>window.close(),1500)}<'+'/scr'+'ipt></body></html>');
+  const janela=window.open('','_blank','width=1400,height=800');
+  if(!janela){toast('Pop-up bloqueado! Permita pop-ups para este site.','error');return}
+  janela.document.write('<!DOCTYPE html><html><head><meta charset="UTF-8"><title>Impressao - '+titulo+'</title><style>*{box-sizing:border-box}body{font-family:Arial,sans-serif;font-size:10px;color:#000;background:#fff;margin:10px;-webkit-print-color-adjust:exact;print-color-adjust:exact}@page{size:A4 landscape;margin:8mm}@media print{body{margin:0;padding:4mm}}</style></head><body>'+htmlConteudo+'<scr'+'ipt>window.onload=function(){window.print();setTimeout(()=>window.close(),2000)}<'+'/scr'+'ipt></body></html>');
   janela.document.close();
 }
 
@@ -391,6 +427,7 @@ function closePanel(id){document.getElementById(id).classList.remove('open')}
 document.querySelectorAll('.panel-overlay').forEach(p=>{p.addEventListener('click',e=>{if(e.target===p)p.classList.remove('open')})});
 initHistMes();
 loadDashboard();
+
 </script>
 </body>
 </html>
