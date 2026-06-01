@@ -481,7 +481,8 @@ async function imprimirMaquinaEmProcesso(){
     </tr>`).join('') : `<tr><td colspan="11" style="border:1px solid #ccc;padding:16px;text-align:center;color:#666;font-style:italic">Nenhuma carga Em Processo.</td></tr>`;
 
   document.getElementById('print-area').innerHTML=`
-    <div style="background:#fff;color:#000;font-family:Arial,sans-serif;font-size:11px">
+    <style>@media print{html,body{background:#fff!important}*{background:#fff!important;color:#000!important;-webkit-print-color-adjust:exact!important}#print-area table thead th{background:#1a2e5a!important;color:#fff!important}}</style>
+    <div style="background:#fff!important;color:#000;font-family:Arial,sans-serif;font-size:11px">
       <!-- CABEÇALHO -->
       <div style="border-bottom:2px solid #1a2e5a;padding-bottom:8px;margin-bottom:10px;display:flex;justify-content:space-between;align-items:flex-start">
         <div>
