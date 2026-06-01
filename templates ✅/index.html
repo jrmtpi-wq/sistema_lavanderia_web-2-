@@ -145,9 +145,10 @@ tbody td{padding:10px 14px;vertical-align:middle;color:var(--txt)}
 .sigla-badge{display:inline-flex;align-items:center;gap:4px;background:rgba(124,58,237,.2);border:1px solid rgba(124,58,237,.4);border-radius:6px;padding:3px 10px;font-size:11px;font-weight:700;color:#a78bfa;font-family:'DM Mono',monospace}
 @media(max-width:900px){.sidebar{transform:translateX(-230px)}.sidebar.open{transform:translateX(0)}.main{margin-left:0}.turno-editor{grid-template-columns:1fr}.dre-stats{grid-template-columns:1fr}}
 @media print{
-  *{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important}
+  *{-webkit-print-color-adjust:exact!important;print-color-adjust:exact!important;background:#fff!important;color:#000!important}
   body>*:not(#print-area){display:none!important}
-  #print-area{display:block!important;font-family:Arial,sans-serif;font-size:11px;color:#000;background:#fff;padding:0}
+  #print-area{display:block!important;font-family:Arial,sans-serif;font-size:11px;color:#000!important;background:#fff!important;padding:0}
+  #print-area table thead tr th{background:#1a2e5a!important;color:#fff!important}
   @page{margin:10mm 8mm;size:A4 landscape}
 }
 </style>
