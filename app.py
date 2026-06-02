@@ -70,25 +70,24 @@ class Carga(db.Model):
     data_inicio = db.Column(db.DateTime, nullable=True)
     status      = db.Column(db.String(20), default='aguardando')
     observacao  = db.Column(db.String(200))
-    parada_min  = db.Column(db.Integer, default=0)  # tempo de parada APÓS esta carga
+    parada_min  = db.Column(db.Integer, default=0)
 
     @property
     def data_saida(self):
+        # ✅ CORRIGIDO: considera parada_min no cálculo da saída
         if self.data_inicio and self.maquina:
-            return self.data_inicio + timedelta(minutes=self.maquina.tempo_min)
+            return self.data_inicio + timedelta(minutes=self.maquina.tempo_min + (self.parada_min or 0))
         return None
 
 # ── FATURAMENTO MODELS ────────────────────────────────────────────
 class TabelaPreco(db.Model):
-    """Tabela de preços por referência + sigla de finalização."""
     id              = db.Column(db.Integer, primary_key=True)
     referencia      = db.Column(db.String(50), nullable=False, unique=True)
     preco_peca      = db.Column(db.Float, nullable=False, default=0.0)
-    sigla_fim       = db.Column(db.String(30), nullable=False)  # sigla que indica produto finalizado
+    sigla_fim       = db.Column(db.String(30), nullable=False)
     created_at      = db.Column(db.DateTime, default=datetime.utcnow)
 
 class Faturamento(db.Model):
-    """Registro de faturamento — criado quando OP com sigla_fim é faturada."""
     id              = db.Column(db.Integer, primary_key=True)
     op_id           = db.Column(db.Integer, db.ForeignKey('ordem_producao.id'), nullable=True)
     op_numero       = db.Column(db.String(20), nullable=False)
@@ -124,7 +123,6 @@ def init_db_route():
     except:
         db.session.rollback()
     return 'Banco criado!'
-    
 
 @app.route('/')
 def index():
@@ -141,6 +139,17 @@ def get_ops():
         'total_pecas': o.total_pecas, 'peso_total': round(o.peso_total,3),
         'created_at': o.created_at.strftime('%d/%m/%Y %H:%M')
     } for o in ops])
+
+@app.route('/api/ops/<int:oid>', methods=['GET'])
+def get_op(oid):
+    o = OrdemProducao.query.get_or_404(oid)
+    return jsonify({
+        'id': o.id, 'op': o.op, 'referencia': o.referencia,
+        'lavacao': o.lavacao, 'cap_pecas': o.cap_pecas,
+        'qtd': o.qtd_dict, 'peso_unit': o.peso_dict,
+        'total_pecas': o.total_pecas, 'peso_total': round(o.peso_total,3),
+        'created_at': o.created_at.strftime('%d/%m/%Y %H:%M')
+    })
 
 def safe_int(v, default=0):
     try: return int(float(v or default))
@@ -340,11 +349,30 @@ def gerar_cargas(mid):
     d   = request.json
     op  = d.get('op',''); ref = d.get('referencia',''); lav = d.get('lavacao','')
     n   = int(d.get('quantidade', 1))
-    peso_carga = float(d.get('peso_carga', m.capacidade))
-    dt  = datetime.strptime(d['data_inicio'], '%Y-%m-%dT%H:%M')
-    Carga.query.filter_by(maquina_id=mid).delete()
-    db.session.commit()
-    for i in range(1, n+1):
+    peso_carga  = float(d.get('peso_carga', m.capacidade))
+    append_mode = d.get('append', False)  # ✅ NOVO: modo append
+
+    cargas_existentes = sorted(m.cargas, key=lambda x: x.numero)
+
+    if append_mode and cargas_existentes:
+        # ✅ CORRIGIDO: adicionar na sequência, após a última carga existente
+        ultima = cargas_existentes[-1]
+        parada_ultima = ultima.parada_min or 0
+        if ultima.data_inicio:
+            dt = ultima.data_inicio + timedelta(minutes=m.tempo_min + parada_ultima)
+        else:
+            return jsonify({'ok': False, 'error': 'Última carga sem horário definido'}), 400
+        num_inicio = len(cargas_existentes) + 1
+    else:
+        # Modo normal: apagar tudo e começar do zero
+        if not d.get('data_inicio'):
+            return jsonify({'ok': False, 'error': 'data_inicio obrigatório'}), 400
+        Carga.query.filter_by(maquina_id=mid).delete()
+        db.session.commit()
+        dt = datetime.strptime(d['data_inicio'], '%Y-%m-%dT%H:%M')
+        num_inicio = 1
+
+    for i in range(num_inicio, num_inicio + n):
         c = Carga(maquina_id=mid, numero=i, op_manual=op,
                   referencia=ref, lavacao=lav, qtde_pecas=0,
                   peso=peso_carga, data_inicio=dt, status='aguardando')
@@ -421,12 +449,9 @@ def delete_preco(pid):
 # ─ OPs PRONTAS PARA FATURAR ─
 @app.route('/api/ops_prontas', methods=['GET'])
 def get_ops_prontas():
-    """Retorna OPs cuja lavação contém a sigla de finalização cadastrada para a referência."""
     ops = OrdemProducao.query.order_by(OrdemProducao.id.desc()).all()
     precos = TabelaPreco.query.all()
-    # mapa referencia -> tabela_preco
     mapa = {p.referencia.upper(): p for p in precos}
-
     prontas = []
     for o in ops:
         ref_key = o.referencia.strip().upper()
@@ -436,7 +461,6 @@ def get_ops_prontas():
         lav = (o.lavacao or '').upper()
         if tp.sigla_fim.upper() not in lav:
             continue
-        # verifica se já foi faturada
         ja_faturada = Faturamento.query.filter_by(op_numero=o.op, referencia=o.referencia).first()
         prontas.append({
             'id': o.id, 'op': o.op, 'referencia': o.referencia,
@@ -466,7 +490,7 @@ def get_faturamento():
         'preco_peca': f.preco_peca, 'valor_total': f.valor_total,
         'data_faturamento': f.data_faturamento.strftime('%d/%m/%Y'),
         'observacao': f.observacao
-    } for r in rows for f in [r]])
+    } for f in rows])
 
 @app.route('/api/faturamento', methods=['POST'])
 def create_faturamento():
@@ -507,7 +531,6 @@ def get_dre():
     total_faturado = round(sum(r.valor_total for r in rows), 2)
     total_pecas    = sum(r.qtd_pecas for r in rows)
     total_ops      = len(rows)
-    # por semana
     semanas = {}
     for r in rows:
         sem = r.data_faturamento.isocalendar()[1]
@@ -528,19 +551,15 @@ def get_dre():
 
 @app.route('/api/ops/<int:oid>/calcular_cargas', methods=['POST'])
 def calcular_cargas_op(oid):
-    """Calcula distribuição de cargas a partir do peso/peças da OP."""
     op = OrdemProducao.query.get_or_404(oid)
     d  = request.json
     capacidade   = safe_float(d.get('capacidade', 80))
-    arred_cargas = d.get('arred_cargas', 'baixo')   # 'cima' ou 'baixo'
+    arred_cargas = d.get('arred_cargas', 'baixo')
     arred_pecas  = d.get('arred_pecas', 'baixo')
-
     peso_total  = op.peso_total
     total_pecas = op.total_pecas
-
     if capacidade <= 0:
         return jsonify({'ok': False, 'error': 'Capacidade inválida'}), 400
-
     cargas_raw = peso_total / capacidade
     if arred_cargas == 'cima':
         num_cargas = math.ceil(cargas_raw)
@@ -548,14 +567,12 @@ def calcular_cargas_op(oid):
         num_cargas = math.floor(cargas_raw)
     if num_cargas < 1:
         num_cargas = 1
-
     peso_carga  = round(peso_total / num_cargas, 3)
     pecas_raw   = total_pecas / num_cargas
     if arred_pecas == 'cima':
         pecas_carga = math.ceil(pecas_raw)
     else:
         pecas_carga = math.floor(pecas_raw)
-
     return jsonify({
         'ok': True,
         'peso_total': round(peso_total, 3),
@@ -568,48 +585,22 @@ def calcular_cargas_op(oid):
 
 @app.route('/api/maquinas/<int:mid>/reordenar', methods=['POST'])
 def reordenar_cargas(mid):
-    """Reordena cargas e recalcula horários em cascata."""
     d = request.json
-    ordem = d.get('ordem', [])  # lista de IDs na nova ordem
+    ordem = d.get('ordem', [])
     m = Maquina.query.get_or_404(mid)
     cargas = {c.id: c for c in m.cargas}
-
-    # Reordenar numeração
     for i, cid in enumerate(ordem, 1):
         if cid in cargas:
             cargas[cid].numero = i
-
     db.session.flush()
-
-    # Recalcular horários em cascata
     cargas_ord = sorted([cargas[cid] for cid in ordem if cid in cargas], key=lambda x: x.numero)
     _recalcular_horarios(cargas_ord, m.tempo_min)
-
     db.session.commit()
     return jsonify({'ok': True})
 
 @app.route('/api/maquinas/<int:mid>/recalcular_horarios', methods=['POST'])
 def recalcular_horarios(mid):
-    """Recalcula horários em cascata mantendo a ordem atual."""
     m = Maquina.query.get_or_404(mid)
     cargas = sorted(m.cargas, key=lambda x: x.numero)
     _recalcular_horarios(cargas, m.tempo_min)
-    db.session.commit()
-    return jsonify({'ok': True})
-
-def _recalcular_horarios(cargas, tempo_min):
-    """Recalcula data_inicio de cada carga em cascata, respeitando parada_min."""
-    dt_atual = None
-    for c in cargas:
-        if c.numero == 1:
-            dt_atual = c.data_inicio  # mantém o horário da 1ª carga
-        else:
-            if dt_atual:
-                c.data_inicio = dt_atual
-        if dt_atual and c.data_inicio:
-            dt_atual = c.data_inicio + timedelta(minutes=tempo_min + (c.parada_min or 0))
-
-if __name__ == '__main__':
-    with app.app_context():
-        init_db()
-    app.run(debug=True, host='0.0.0.0', port=5000)
+    db.session.com
