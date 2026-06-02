@@ -603,4 +603,22 @@ def recalcular_horarios(mid):
     m = Maquina.query.get_or_404(mid)
     cargas = sorted(m.cargas, key=lambda x: x.numero)
     _recalcular_horarios(cargas, m.tempo_min)
-    db.session.com
+    db.session.commit()
+    return jsonify({'ok': True})
+
+def _recalcular_horarios(cargas, tempo_min):
+    dt_atual = None
+    for c in cargas:
+        if c.numero == 1:
+            dt_atual = c.data_inicio
+        else:
+            if dt_atual:
+                c.data_inicio = dt_atual
+        if dt_atual and c.data_inicio:
+            dt_atual = c.data_inicio + timedelta(minutes=tempo_min + (c.parada_min or 0))
+
+if __name__ == '__main__':
+    with app.app_context():
+        init_db()
+    app.run(debug=True, host='0.0.0.0', port=5000)
+
