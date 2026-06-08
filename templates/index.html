@@ -151,7 +151,29 @@ tbody td{padding:10px 14px;vertical-align:middle;color:var(--txt)}
 .dre-stat{background:var(--cinza3);border-radius:12px;padding:16px;text-align:center}
 .dre-stat-val{font-family:'Syne',sans-serif;font-size:22px;font-weight:800;color:var(--txt)}
 .dre-stat-lbl{font-size:11px;color:var(--txt2);margin-top:3px}
-/* modal faturar */
+/* ── LASER ── */
+.laser-card{background:var(--cinza2);border:1px solid var(--brd);border-radius:14px;overflow:hidden;cursor:pointer;transition:all .25s}
+.laser-card:hover{border-color:var(--ciano);transform:translateY(-2px);box-shadow:0 10px 30px rgba(0,0,0,.4)}
+.laser-card .maq-header{background:linear-gradient(135deg,#0d3b2e,#10b981)}
+.ef-bar{height:8px;border-radius:4px;background:var(--cinza3);overflow:hidden;margin-top:6px}
+.ef-bar-fill{height:100%;border-radius:4px;transition:width .5s}
+.ef-vermelho{background:var(--verm)}.ef-amarelo{background:var(--amarelo)}.ef-verde{background:var(--verde)}.ef-azul{background:var(--ciano)}
+.ef-badge{display:inline-flex;align-items:center;padding:3px 10px;border-radius:20px;font-size:12px;font-weight:800;font-family:'DM Mono',monospace}
+.ef-badge.vermelho{background:rgba(239,68,68,.2);color:var(--verm)}
+.ef-badge.amarelo{background:rgba(245,158,11,.2);color:var(--amarelo)}
+.ef-badge.verde{background:rgba(16,185,129,.2);color:var(--verde)}
+.ef-badge.azul{background:rgba(0,197,215,.2);color:var(--ciano)}
+.laser-fila-row{display:grid;grid-template-columns:36px 80px 80px 90px 60px 70px 110px 110px 100px 70px 36px;gap:4px;align-items:center;padding:7px 8px;border-radius:8px;margin-bottom:4px;background:var(--cinza3);border:1px solid var(--brd);font-size:12px}
+.apont-table{width:100%;border-collapse:collapse;font-size:13px}
+.apont-table thead th{background:var(--cinza3);padding:10px 12px;text-align:left;font-size:10px;font-weight:700;letter-spacing:1.5px;text-transform:uppercase;color:var(--txt2);border-bottom:1px solid var(--brd)}
+.apont-table tbody tr{border-bottom:1px solid var(--brd);transition:background .15s}
+.apont-table tbody tr:hover{background:var(--cinza3)}
+.apont-table tbody td{padding:9px 12px;vertical-align:middle}
+.apont-totais{background:linear-gradient(135deg,rgba(16,185,129,.12),rgba(16,185,129,.04));border:1px solid rgba(16,185,129,.25);border-radius:12px;padding:16px;display:flex;gap:24px;align-items:center;flex-wrap:wrap;margin-top:14px}
+.apont-tot-item{text-align:center}
+.apont-tot-val{font-family:'Syne',sans-serif;font-size:22px;font-weight:800}
+.apont-tot-lbl{font-size:10px;color:var(--txt2);letter-spacing:.8px;text-transform:uppercase;margin-top:2px}
+/* fim laser */
 .fat-modal-backdrop{display:none;position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:500;backdrop-filter:blur(4px);align-items:center;justify-content:center}
 .fat-modal-backdrop.open{display:flex}
 .fat-modal{background:var(--cinza2);border:1px solid var(--brd);border-radius:18px;padding:28px;width:min(480px,95vw);box-shadow:var(--shadow);animation:fadeIn .25s ease}
@@ -188,6 +210,8 @@ tbody td{padding:10px 14px;vertical-align:middle;color:var(--txt)}
     <button class="nav-btn" onclick="goMaqPage('centrifuga')"><i class="fas fa-circle-notch"></i>Centrífugas</button>
     <div class="nav-section">Secadores</div>
     <button class="nav-btn" onclick="goMaqPage('secador')"><i class="fas fa-wind"></i>Secadores</button>
+    <div class="nav-section">Laser</div>
+    <button class="nav-btn" onclick="goPage('laser')"><i class="fas fa-bolt"></i>Fila de Laser</button>
     <div class="nav-section">Calendário</div>
     <button class="nav-btn" onclick="goPage('calendario')"><i class="fas fa-calendar-alt"></i>Turnos e H.Extra</button>
     <div class="nav-section">Financeiro</div>
@@ -247,6 +271,11 @@ tbody td{padding:10px 14px;vertical-align:middle;color:var(--txt)}
       <div class="tabs" id="maq-tabs"></div>
       <div class="maq-grid" id="maq-grid"></div>
     </div>
+    <!-- ── PÁGINA LASER ── -->
+    <div class="page" id="page-laser">
+      <div class="maq-grid" id="laser-grid"></div>
+    </div>
+
     <div class="page" id="page-calendario">
       <div class="card">
         <div class="card-header"><div class="card-title"><i class="fas fa-calendar-alt"></i>Calendário de Turnos</div></div>
@@ -333,6 +362,116 @@ tbody td{padding:10px 14px;vertical-align:middle;color:var(--txt)}
   </div>
 </div>
 
+<!-- PAINEL LASER -->
+<div class="panel-overlay" id="laser-panel">
+  <div class="panel" style="width:min(980px,97vw)">
+    <div class="panel-head">
+      <div class="panel-title" id="laser-panel-title">⚡ Laser 01</div>
+      <button class="btn btn-ghost btn-sm" onclick="closePanel('laser-panel')"><i class="fas fa-times"></i></button>
+    </div>
+    <div class="panel-body">
+      <div class="tabs" id="laser-tabs">
+        <button class="tab active" onclick="switchLaserTab('fila',this)">📋 Fila</button>
+        <button class="tab" onclick="switchLaserTab('apontamento',this)">📊 Apontamento</button>
+        <button class="tab" onclick="switchLaserTab('config',this)">⚙️ Configuração</button>
+      </div>
+
+      <!-- ABA FILA -->
+      <div id="laser-tab-fila">
+        <div class="card" style="padding:14px;margin-bottom:12px">
+          <div style="font-family:'Syne',sans-serif;font-size:13px;font-weight:700;color:var(--ciano);margin-bottom:12px"><i class="fas fa-plus-circle"></i> Adicionar à Fila</div>
+          <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px;margin-bottom:10px">
+            <div class="form-group"><label>OP</label><input class="form-control" id="lf-op" placeholder="Nº OP"></div>
+            <div class="form-group"><label>Referência</label><input class="form-control" id="lf-ref" placeholder="Referência"></div>
+            <div class="form-group"><label>Lavação</label><input class="form-control" id="lf-lav" placeholder="Tipo"></div>
+            <div class="form-group"><label>Qtde Peças</label><input class="form-control" id="lf-pecas" type="number" min="0" placeholder="0"></div>
+            <div class="form-group"><label>Tempo/Peça (seg)</label><input class="form-control" id="lf-tempo" type="number" step="0.1" placeholder="85"></div>
+            <div class="form-group"><label>Data Início</label><input class="form-control" id="lf-data" type="date"></div>
+            <div class="form-group"><label>Hora Início</label><input class="form-control" id="lf-hora" type="time"></div>
+          </div>
+          <div style="display:flex;gap:8px">
+            <button class="btn btn-primary btn-sm" onclick="addLaserFila()"><i class="fas fa-plus"></i>Adicionar</button>
+            <button class="btn btn-ghost btn-sm" onclick="loadLaserFila()"><i class="fas fa-sync"></i>Atualizar</button>
+          </div>
+        </div>
+        <!-- cabeçalho colunas -->
+        <div style="display:grid;grid-template-columns:36px 80px 80px 90px 60px 70px 110px 110px 100px 70px 36px;gap:4px;padding:6px 8px;background:var(--cinza1);border-radius:6px;font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--txt2);margin-bottom:4px">
+          <div>#</div><div>OP</div><div>Ref.</div><div>Lavação</div><div>Peças</div><div>T/Peça(s)</div><div>Início</div><div>Fim Prev.</div><div>Status</div><div>Obs</div><div></div>
+        </div>
+        <div id="laser-fila-list"></div>
+        <div style="padding:10px 0;font-size:13px;color:var(--txt2)" id="laser-fila-total"></div>
+      </div>
+
+      <!-- ABA APONTAMENTO -->
+      <div id="laser-tab-apontamento" style="display:none">
+        <div class="card" style="padding:14px;margin-bottom:14px">
+          <div style="display:flex;gap:10px;align-items:flex-end;flex-wrap:wrap">
+            <div class="form-group" style="min-width:150px">
+              <label>Data</label>
+              <input class="form-control" id="ap-data" type="date">
+            </div>
+            <button class="btn btn-ghost btn-sm" onclick="loadApontamentos()"><i class="fas fa-search"></i>Carregar</button>
+            <button class="btn btn-primary btn-sm" onclick="abrirNovoApontamento()"><i class="fas fa-plus"></i>Novo Apontamento</button>
+          </div>
+        </div>
+        <!-- Totais -->
+        <div class="apont-totais" id="apont-totais" style="display:none">
+          <div class="apont-tot-item"><div class="apont-tot-val" id="ap-tot-proj" style="color:var(--ciano)">0</div><div class="apont-tot-lbl">Projetado</div></div>
+          <div class="apont-tot-item"><div class="apont-tot-val" id="ap-tot-real" style="color:var(--txt)">0</div><div class="apont-tot-lbl">Realizado</div></div>
+          <div class="apont-tot-item"><div class="apont-tot-val" id="ap-tot-ef">0%</div><div class="apont-tot-lbl">Eficiência Geral</div></div>
+        </div>
+        <div style="margin-top:14px">
+          <table class="apont-table">
+            <thead><tr><th>Hora</th><th>OP</th><th>Referência</th><th>Projetado</th><th>Realizado</th><th>Eficiência</th><th>Ações</th></tr></thead>
+            <tbody id="apont-tbody"></tbody>
+          </table>
+        </div>
+        <!-- Modal novo apontamento -->
+        <div id="novo-apont-form" style="display:none;background:var(--cinza3);border-radius:12px;padding:16px;margin-top:14px;border:1px solid var(--brd)">
+          <div style="font-family:'Syne',sans-serif;font-size:13px;font-weight:700;color:var(--ciano);margin-bottom:12px">Novo Apontamento</div>
+          <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px;margin-bottom:12px">
+            <div class="form-group"><label>Hora Ref.</label><input class="form-control" id="nav-hora" type="time"></div>
+            <div class="form-group"><label>OP</label><input class="form-control" id="nav-op" placeholder="OP"></div>
+            <div class="form-group"><label>Referência</label><input class="form-control" id="nav-ref" placeholder="Ref."></div>
+            <div class="form-group"><label>Projetado</label><input class="form-control" id="nav-proj" type="number" min="0" placeholder="Auto"></div>
+            <div class="form-group"><label>Realizado</label><input class="form-control" id="nav-real" type="number" min="0" placeholder="0"></div>
+          </div>
+          <div style="display:flex;gap:8px">
+            <button class="btn btn-success btn-sm" onclick="salvarApontamento()"><i class="fas fa-save"></i>Salvar</button>
+            <button class="btn btn-ghost btn-sm" onclick="document.getElementById('novo-apont-form').style.display='none'">Cancelar</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- ABA CONFIG -->
+      <div id="laser-tab-config" style="display:none">
+        <div class="card" style="padding:18px;margin-bottom:14px">
+          <div style="font-family:'Syne',sans-serif;font-size:13px;font-weight:700;color:var(--ciano);margin-bottom:14px"><i class="fas fa-sliders-h"></i> Tempo Padrão por Peça</div>
+          <div style="display:flex;align-items:flex-end;gap:12px;flex-wrap:wrap">
+            <div class="form-group" style="width:200px">
+              <label>Tempo por peça (segundos)</label>
+              <input class="form-control" id="cfg-tempo" type="number" step="0.1" placeholder="85">
+            </div>
+            <button class="btn btn-primary btn-sm" onclick="saveLaserConfig()"><i class="fas fa-save"></i>Salvar</button>
+          </div>
+          <div style="margin-top:8px;font-size:12px;color:var(--txt2)">Ex: 1 min 25 seg = <b style="color:var(--ciano)">85 segundos</b> — Produção projetada/hora: <b id="cfg-proj-hora" style="color:var(--verde)">--</b> peças</div>
+        </div>
+        <div class="card" style="padding:18px">
+          <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
+            <div style="font-family:'Syne',sans-serif;font-size:13px;font-weight:700;color:var(--ciano)"><i class="fas fa-coffee"></i> Intervalos de Refeição</div>
+            <button class="btn btn-primary btn-sm" onclick="addIntervalo()"><i class="fas fa-plus"></i>Novo Intervalo</button>
+          </div>
+          <div id="intervalos-list"></div>
+        </div>
+      </div>
+    </div>
+    <div class="panel-foot">
+      <div style="flex:1;font-size:13px;color:var(--txt2)" id="laser-panel-info"></div>
+      <button class="btn btn-ghost" onclick="closePanel('laser-panel')">Fechar</button>
+    </div>
+  </div>
+</div>
+
 <div class="toast-area" id="toast-area"></div>
 <div id="print-area" style="display:none;position:fixed;top:0;left:0;width:100%;background:#fff;z-index:9999"></div>
 
@@ -345,7 +484,6 @@ function fmtBRL(v){return 'R$ '+Number(v||0).toLocaleString('pt-BR',{minimumFrac
 function updateClock(){const n=new Date();document.getElementById('clock').textContent=n.toLocaleTimeString('pt-BR',{hour:'2-digit',minute:'2-digit'});document.getElementById('today-date').textContent=n.toLocaleDateString('pt-BR')}
 setInterval(updateClock,1000);updateClock();
 let currentMaqTipo='lavar';
-function goPage(page){document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));document.getElementById('page-'+page)?.classList.add('active');event?.currentTarget?.classList.add('active');const titles={dashboard:'Dashboard / Resumo',ops:'Ordens de Produção',maquinas:'Máquinas',calendario:'Calendário de Turnos',faturamento:'Faturamento',dre:'DRE / Demonstrativo de Resultado'};const t=titles[page]||page;document.getElementById('topbar-title').innerHTML=t.includes('/')?t.replace(/\/(.*)/,'<span>/ $1</span>'):t;if(page==='dashboard')loadDashboard();if(page==='ops')loadOps();if(page==='calendario')renderCalendario();if(page==='faturamento')loadPrecos();if(page==='dre')initDRE()}
 function goMaqPage(tipo){currentMaqTipo=tipo;document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));document.getElementById('page-maquinas').classList.add('active');event?.currentTarget?.classList.add('active');const labels={lavar:'Máquinas de Lavar',centrifuga:'Centrífugas',secador:'Secadores'};document.getElementById('topbar-title').innerHTML=`${labels[tipo]} <span>/ Programação</span>`;renderMaqTabs(tipo);loadMaquinas(tipo)}
 async function loadDashboard(){const d=await api('/api/dashboard');const total_peso=[...d.lavar,...d.centrifuga,...d.secador].reduce((a,m)=>a+m.peso_total,0);document.getElementById('dash-stats').innerHTML=`<div class="stat-card blue"><div class="stat-icon"><i class="fas fa-soap"></i></div><div class="stat-value">${d.lavar.length}</div><div class="stat-label">Máquinas de Lavar</div></div><div class="stat-card purple"><div class="stat-icon"><i class="fas fa-circle-notch"></i></div><div class="stat-value">${d.centrifuga.length}</div><div class="stat-label">Centrífugas</div></div><div class="stat-card orange"><div class="stat-icon"><i class="fas fa-wind"></i></div><div class="stat-value">${d.secador.length}</div><div class="stat-label">Secadores</div></div><div class="stat-card green"><div class="stat-icon"><i class="fas fa-weight"></i></div><div class="stat-value">${total_peso.toLocaleString('pt-BR',{maximumFractionDigits:1})}</div><div class="stat-label">kg Programados Total</div></div>`;renderMaqCards('dash-lavar',d.lavar,'lavar');renderMaqCards('dash-centrifuga',d.centrifuga,'centrifuga');renderMaqCards('dash-secador',d.secador,'secador')}
 function renderMaqCards(containerId,maquinas,tipo){const icons={lavar:'🫧',centrifuga:'🌀',secador:'♨️'};const labels={lavar:'MAQ',centrifuga:'CF',secador:'SEC'};document.getElementById(containerId).innerHTML=maquinas.map(m=>{const pct=m.total_cargas>0?Math.round((m.concluidas||0)/m.total_cargas*100)||0:0;return`<div class="maq-card ${tipo}" onclick="openMaqPanel(${m.id||0},'${tipo}',${m.numero})"><div class="maq-header"><div class="maq-name">${labels[tipo]} ${String(m.numero).padStart(2,'0')}</div><div class="maq-icon">${icons[tipo]}</div></div><div class="maq-body"><div class="maq-stat-row"><div class="maq-stat"><div class="maq-stat-val">${m.capacidade}</div><div class="maq-stat-lbl">kg/carga</div></div><div class="maq-stat"><div class="maq-stat-val">${m.tempo_min}'</div><div class="maq-stat-lbl">min</div></div><div class="maq-stat"><div class="maq-stat-val">${m.total_cargas}</div><div class="maq-stat-lbl">cargas</div></div><div class="maq-stat"><div class="maq-stat-val">${m.peso_total.toLocaleString('pt-BR',{maximumFractionDigits:1})}</div><div class="maq-stat-lbl">kg</div></div></div><div class="maq-progress"><div class="maq-progress-bar" style="width:${pct}%"></div></div></div></div>`}).join('')}
@@ -649,7 +787,308 @@ async function imprimirMaquinaEmProcesso(){
   janela.document.close();
 }
 
-function closePanel(id){document.getElementById(id).classList.remove('open')}
+// ══════════════════════════════════════════════
+// ── LASER ──
+// ══════════════════════════════════════════════
+let currentLaserId = null;
+let _laserEquipData = null;
+
+function goPage(page){
+  document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+  document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));
+  document.getElementById('page-'+page)?.classList.add('active');
+  event?.currentTarget?.classList.add('active');
+  const titles={dashboard:'Dashboard / Resumo',ops:'Ordens de Produção',maquinas:'Máquinas',calendario:'Calendário de Turnos',faturamento:'Faturamento',dre:'DRE / Demonstrativo de Resultado',laser:'Fila de Laser / Equipamentos'};
+  const t=titles[page]||page;
+  document.getElementById('topbar-title').innerHTML=t.includes('/')?t.replace(/\/(.*)/,'<span>/ $1</span>'):t;
+  if(page==='dashboard')loadDashboard();
+  if(page==='ops')loadOps();
+  if(page==='calendario')renderCalendario();
+  if(page==='faturamento')loadPrecos();
+  if(page==='dre')initDRE();
+  if(page==='laser')loadLaserGrid();
+}
+
+async function loadLaserGrid(){
+  const equips = await api('/api/laser/equipamentos');
+  document.getElementById('laser-grid').innerHTML = equips.map(e=>{
+    const pct = e.total_filas > 0 ? Math.round((e.concluido/e.total_filas)*100)||0 : 0;
+    return `<div class="laser-card maq-card" onclick="openLaserPanel(${e.id},${e.numero})">
+      <div class="maq-header" style="background:linear-gradient(135deg,#0d3b2e,#10b981)">
+        <div class="maq-name">⚡ LASER ${String(e.numero).padStart(2,'0')}</div>
+        <div class="maq-icon">🔆</div>
+      </div>
+      <div class="maq-body">
+        <div class="maq-stat-row">
+          <div class="maq-stat"><div class="maq-stat-val">${e.total_filas}</div><div class="maq-stat-lbl">na fila</div></div>
+          <div class="maq-stat"><div class="maq-stat-val" style="color:var(--amarelo)">${e.em_processo}</div><div class="maq-stat-lbl">em processo</div></div>
+          <div class="maq-stat"><div class="maq-stat-val" style="color:var(--verde)">${e.concluido}</div><div class="maq-stat-lbl">concluídos</div></div>
+          <div class="maq-stat"><div class="maq-stat-val">${e.total_pecas.toLocaleString('pt-BR')}</div><div class="maq-stat-lbl">peças</div></div>
+        </div>
+        <div class="maq-progress"><div class="maq-progress-bar" style="width:${pct}%;background:linear-gradient(90deg,#10b981,#059669)"></div></div>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+async function openLaserPanel(id, numero){
+  currentLaserId = id;
+  document.getElementById('laser-panel-title').innerHTML = `⚡ Laser ${String(numero).padStart(2,'0')}`;
+  switchLaserTab('fila', document.querySelector('#laser-tabs .tab'));
+  await loadLaserFila();
+  // preencher data de hoje no apontamento
+  document.getElementById('ap-data').value = new Date().toISOString().slice(0,10);
+  document.getElementById('laser-panel').classList.add('open');
+}
+
+function switchLaserTab(tab, el){
+  ['fila','apontamento','config'].forEach(t=>{
+    document.getElementById(`laser-tab-${t}`).style.display = t===tab ? '' : 'none';
+  });
+  document.querySelectorAll('#laser-tabs .tab').forEach(b=>b.classList.remove('active'));
+  if(el) el.classList.add('active');
+  if(tab==='config') loadLaserConfig();
+  if(tab==='apontamento') loadApontamentos();
+}
+
+// ─ Fila ─
+function fmtSegParaMin(seg){
+  const m = Math.floor(seg/60), s = Math.round(seg%60);
+  return `${m}:${String(s).padStart(2,'0')}`;
+}
+
+async function loadLaserFila(){
+  if(!currentLaserId) return;
+  const data = await api(`/api/laser/equipamentos/${currentLaserId}/fila`);
+  const fila = data.fila || [];
+  document.getElementById('laser-fila-total').textContent =
+    `Total: ${fila.length} itens | ${fila.reduce((a,f)=>a+(f.qtde_pecas||0),0).toLocaleString('pt-BR')} peças`;
+  // preenche tempo padrão
+  document.getElementById('lf-tempo').placeholder = data.equipamento.tempo_seg;
+  _laserEquipData = data.equipamento;
+
+  document.getElementById('laser-fila-list').innerHTML = fila.length
+    ? fila.map(f=>`
+      <div class="laser-fila-row" id="lf-${f.id}">
+        <div style="font-family:'DM Mono',monospace;font-size:12px;font-weight:700;color:var(--ciano);text-align:center">${f.numero}</div>
+        <input class="carga-input" value="${f.op||''}" onchange="patchLaserFila(${f.id},'op',this.value)" placeholder="OP">
+        <input class="carga-input" value="${f.referencia||''}" onchange="patchLaserFila(${f.id},'referencia',this.value)" placeholder="Ref.">
+        <input class="carga-input" value="${f.lavacao||''}" onchange="patchLaserFila(${f.id},'lavacao',this.value)" placeholder="Lavação">
+        <input class="carga-input" value="${f.qtde_pecas||0}" type="number" onchange="patchLaserFila(${f.id},'qtde_pecas',this.value)" style="width:58px">
+        <div style="font-family:'DM Mono',monospace;font-size:11px;color:var(--roxo);text-align:center">${fmtSegParaMin(f.tempo_seg)}</div>
+        <div style="font-family:'DM Mono',monospace;font-size:10px;color:var(--ciano);line-height:1.4">${f.data_inicio ? fmtDT(f.data_inicio) : '--'}</div>
+        <div style="font-family:'DM Mono',monospace;font-size:10px;color:var(--laranja);line-height:1.4">${f.data_fim ? fmtDT(f.data_fim) : '--'}</div>
+        <select class="carga-input" onchange="patchLaserFila(${f.id},'status',this.value)">
+          <option value="aguardando" ${f.status==='aguardando'?'selected':''}>⏳ Aguard.</option>
+          <option value="em_processo" ${f.status==='em_processo'?'selected':''}>🔄 Em Proc.</option>
+          <option value="concluido" ${f.status==='concluido'?'selected':''}>✅ Concluído</option>
+        </select>
+        <input class="carga-input" value="${f.observacao||''}" onchange="patchLaserFila(${f.id},'observacao',this.value)" placeholder="Obs.">
+        <button class="btn btn-danger btn-xs" onclick="deleteLaserFila(${f.id})"><i class="fas fa-trash"></i></button>
+      </div>`).join('')
+    : '<div style="padding:24px;text-align:center;color:var(--txt2)">Fila vazia. Adicione itens acima.</div>';
+}
+
+async function addLaserFila(){
+  const data = document.getElementById('lf-data').value;
+  const hora = document.getElementById('lf-hora').value;
+  const body = {
+    op: document.getElementById('lf-op').value,
+    referencia: document.getElementById('lf-ref').value,
+    lavacao: document.getElementById('lf-lav').value,
+    qtde_pecas: parseInt(document.getElementById('lf-pecas').value||0),
+    tempo_seg: parseFloat(document.getElementById('lf-tempo').value || _laserEquipData?.tempo_seg || 85),
+    data_inicio: data && hora ? `${data}T${hora}` : null
+  };
+  await api(`/api/laser/equipamentos/${currentLaserId}/fila`,'POST',body);
+  toast('Adicionado à fila!','success');
+  ['lf-op','lf-ref','lf-lav','lf-pecas'].forEach(id=>document.getElementById(id).value='');
+  await loadLaserFila();
+}
+
+async function patchLaserFila(id, field, value){
+  await api(`/api/laser/fila/${id}`,'PUT',{[field]:value});
+  if(field==='qtde_pecas'||field==='tempo_seg') await loadLaserFila();
+}
+
+async function deleteLaserFila(id){
+  if(!confirm('Remover este item da fila?')) return;
+  await api(`/api/laser/fila/${id}`,'DELETE');
+  await loadLaserFila();
+  toast('Item removido','info');
+}
+
+// ─ Apontamento ─
+function efClasse(ef){
+  if(ef < 85) return 'vermelho';
+  if(ef < 90) return 'amarelo';
+  if(ef <= 100) return 'verde';
+  return 'azul';
+}
+
+function efIcon(ef){
+  if(ef < 85) return '🔴';
+  if(ef < 90) return '🟡';
+  if(ef <= 100) return '🟢';
+  return '🔵';
+}
+
+async function loadApontamentos(){
+  if(!currentLaserId) return;
+  const data_val = document.getElementById('ap-data').value || new Date().toISOString().slice(0,10);
+  const d = await api(`/api/laser/equipamentos/${currentLaserId}/apontamentos?data=${data_val}`);
+  const rows = d.apontamentos || [];
+  const tot = d.totais || {};
+
+  // totais
+  if(rows.length > 0){
+    document.getElementById('apont-totais').style.display='flex';
+    document.getElementById('ap-tot-proj').textContent = (tot.projetado||0).toLocaleString('pt-BR');
+    document.getElementById('ap-tot-real').textContent = (tot.realizado||0).toLocaleString('pt-BR');
+    const efG = tot.eficiencia||0;
+    const cls = efClasse(efG);
+    document.getElementById('ap-tot-ef').textContent = efG.toFixed(1)+'%';
+    document.getElementById('ap-tot-ef').className = `apont-tot-val ef-badge ${cls}`;
+  } else {
+    document.getElementById('apont-totais').style.display='none';
+  }
+
+  document.getElementById('apont-tbody').innerHTML = rows.length
+    ? rows.map(r=>{
+        const ef = r.eficiencia||0;
+        const cls = efClasse(ef);
+        const pct = Math.min(ef, 120);
+        return `<tr>
+          <td style="font-family:'DM Mono',monospace;font-weight:700;color:var(--ciano)">${r.hora_ref}</td>
+          <td class="mono">${r.op||'--'}</td>
+          <td><b>${r.referencia||'--'}</b></td>
+          <td class="mono" style="color:var(--ciano)">${(r.projetado||0).toLocaleString('pt-BR')}</td>
+          <td>
+            <input type="number" class="carga-input" value="${r.realizado||0}" style="width:80px"
+              onchange="updateApontamento(${r.id},this.value)">
+          </td>
+          <td>
+            <div style="min-width:120px">
+              <div style="display:flex;align-items:center;gap:8px">
+                <span class="ef-badge ${cls}">${efIcon(ef)} ${ef.toFixed(1)}%</span>
+              </div>
+              <div class="ef-bar"><div class="ef-bar-fill ef-${cls}" style="width:${Math.min(pct/120*100,100)}%"></div></div>
+            </div>
+          </td>
+          <td><button class="btn btn-danger btn-xs" onclick="deleteApontamento(${r.id})"><i class="fas fa-trash"></i></button></td>
+        </tr>`;
+      }).join('')
+    : '<tr><td colspan="7" style="text-align:center;padding:20px;color:var(--txt2)">Nenhum apontamento nesta data.</td></tr>';
+}
+
+function abrirNovoApontamento(){
+  const form = document.getElementById('novo-apont-form');
+  form.style.display = form.style.display==='none' ? '' : 'none';
+  // preenche OP ativa
+  const data_val = document.getElementById('ap-data').value || new Date().toISOString().slice(0,10);
+  const now = new Date();
+  document.getElementById('nav-hora').value = `${String(now.getHours()).padStart(2,'0')}:00`;
+  // tenta preencher com fila em processo
+  api(`/api/laser/equipamentos/${currentLaserId}/fila`).then(d=>{
+    const ativa = (d.fila||[]).find(f=>f.status==='em_processo');
+    if(ativa){
+      document.getElementById('nav-op').value = ativa.op||'';
+      document.getElementById('nav-ref').value = ativa.referencia||'';
+      // projetado: 3600/tempo_seg
+      const proj = Math.round(3600/(ativa.tempo_seg||85));
+      document.getElementById('nav-proj').value = proj;
+    }
+  }).catch(()=>{});
+}
+
+async function salvarApontamento(){
+  const data_val = document.getElementById('ap-data').value || new Date().toISOString().slice(0,10);
+  const hora = document.getElementById('nav-hora').value;
+  if(!hora){ toast('Informe a hora','error'); return; }
+  await api(`/api/laser/equipamentos/${currentLaserId}/apontamentos`,'POST',{
+    hora_ref: `${data_val}T${hora}`,
+    op: document.getElementById('nav-op').value,
+    referencia: document.getElementById('nav-ref').value,
+    projetado: parseInt(document.getElementById('nav-proj').value||0),
+    realizado: parseInt(document.getElementById('nav-real').value||0)
+  });
+  toast('Apontamento salvo!','success');
+  document.getElementById('novo-apont-form').style.display='none';
+  ['nav-op','nav-ref','nav-proj','nav-real'].forEach(id=>document.getElementById(id).value='');
+  await loadApontamentos();
+}
+
+async function updateApontamento(id, val){
+  await api(`/api/laser/apontamentos/${id}`,'PUT',{realizado: parseInt(val||0)});
+  await loadApontamentos();
+}
+
+async function deleteApontamento(id){
+  if(!confirm('Excluir apontamento?')) return;
+  await api(`/api/laser/apontamentos/${id}`,'DELETE');
+  toast('Apontamento excluído','info');
+  await loadApontamentos();
+}
+
+// ─ Config ─
+async function loadLaserConfig(){
+  if(!currentLaserId) return;
+  const equips = await api('/api/laser/equipamentos');
+  const e = equips.find(x=>x.id===currentLaserId);
+  if(e){
+    document.getElementById('cfg-tempo').value = e.tempo_seg;
+    atualizarProjHora();
+  }
+  const ivs = await api(`/api/laser/equipamentos/${currentLaserId}/intervalos`);
+  renderIntervalos(ivs);
+}
+
+function atualizarProjHora(){
+  const seg = parseFloat(document.getElementById('cfg-tempo').value||85);
+  const proj = seg > 0 ? Math.round(3600/seg) : 0;
+  document.getElementById('cfg-proj-hora').textContent = proj.toLocaleString('pt-BR');
+}
+document.getElementById('cfg-tempo')?.addEventListener('input', atualizarProjHora);
+
+async function saveLaserConfig(){
+  const tempo = parseFloat(document.getElementById('cfg-tempo').value||85);
+  await api(`/api/laser/equipamentos/${currentLaserId}`,'PUT',{tempo_seg: tempo});
+  toast('Configuração salva!','success');
+  atualizarProjHora();
+}
+
+function renderIntervalos(ivs){
+  const el = document.getElementById('intervalos-list');
+  el.innerHTML = ivs.length
+    ? ivs.map(iv=>`
+      <div style="display:grid;grid-template-columns:1fr 100px 100px 36px;gap:8px;align-items:center;padding:8px 10px;background:var(--cinza3);border-radius:8px;margin-bottom:6px;border:1px solid var(--brd)">
+        <input class="carga-input" value="${iv.nome||''}" onchange="updateIntervalo(${iv.id},'nome',this.value)" placeholder="Nome (ex: Almoço T1)">
+        <input class="carga-input" type="time" value="${iv.hora_inicio||''}" onchange="updateIntervalo(${iv.id},'hora_inicio',this.value)">
+        <input class="carga-input" type="time" value="${iv.hora_fim||''}" onchange="updateIntervalo(${iv.id},'hora_fim',this.value)">
+        <button class="btn btn-danger btn-xs" onclick="deleteIntervalo(${iv.id})"><i class="fas fa-trash"></i></button>
+      </div>`).join('')
+    : '<div style="color:var(--txt2);font-size:13px;padding:12px">Nenhum intervalo cadastrado.</div>';
+}
+
+async function addIntervalo(){
+  await api(`/api/laser/equipamentos/${currentLaserId}/intervalos`,'POST',{nome:'',hora_inicio:'12:00',hora_fim:'13:00'});
+  const ivs = await api(`/api/laser/equipamentos/${currentLaserId}/intervalos`);
+  renderIntervalos(ivs);
+}
+
+async function updateIntervalo(id, field, value){
+  await api(`/api/laser/intervalos/${id}`,'PUT',{[field]:value});
+}
+
+async function deleteIntervalo(id){
+  if(!confirm('Excluir intervalo?')) return;
+  await api(`/api/laser/intervalos/${id}`,'DELETE');
+  const ivs = await api(`/api/laser/equipamentos/${currentLaserId}/intervalos`);
+  renderIntervalos(ivs);
+  toast('Intervalo excluído','info');
+}
+
+// ══════════════════════════════════════════════
 document.querySelectorAll('.panel-overlay').forEach(p=>{p.addEventListener('click',e=>{if(e.target===p)p.classList.remove('open')})});
 initHistMes();
 loadDashboard();
