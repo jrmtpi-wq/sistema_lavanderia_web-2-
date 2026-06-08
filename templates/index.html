@@ -384,12 +384,23 @@ tbody td{padding:10px 14px;vertical-align:middle;color:var(--txt)}
             <div class="form-group"><label>OP</label><input class="form-control" id="lf-op" placeholder="Nº OP"></div>
             <div class="form-group"><label>Referência</label><input class="form-control" id="lf-ref" placeholder="Referência"></div>
             <div class="form-group"><label>Lavação</label><input class="form-control" id="lf-lav" placeholder="Tipo"></div>
-            <div class="form-group"><label>Qtde Peças</label><input class="form-control" id="lf-pecas" type="number" min="0" placeholder="0"></div>
-            <div class="form-group"><label>Tempo/Peça (seg)</label><input class="form-control" id="lf-tempo" type="number" step="0.1" placeholder="85"></div>
-            <div class="form-group"><label>Data Início</label><input class="form-control" id="lf-data" type="date"></div>
-            <div class="form-group"><label>Hora Início</label><input class="form-control" id="lf-hora" type="time"></div>
+            <div class="form-group"><label>Qtde Peças</label><input class="form-control" id="lf-pecas" type="number" min="0" placeholder="0" oninput="limparSimulacao()"></div>
+            <div class="form-group"><label>Tempo/Peça (min)</label><input class="form-control" id="lf-tempo" type="number" step="0.1" placeholder="1.62" oninput="limparSimulacao()"></div>
+            <div class="form-group"><label>Data Início</label><input class="form-control" id="lf-data" type="date" onchange="limparSimulacao()"></div>
+            <div class="form-group"><label>Hora Início</label><input class="form-control" id="lf-hora" type="time" onchange="limparSimulacao()"></div>
+          </div>
+          <!-- Preview simulação -->
+          <div id="lf-simulacao" style="display:none;background:var(--cinza1);border:1px solid rgba(16,185,129,.3);border-radius:10px;padding:12px;margin-bottom:10px">
+            <div style="font-size:11px;font-weight:700;color:var(--verde);letter-spacing:1px;text-transform:uppercase;margin-bottom:8px">⚡ Preview do Cálculo</div>
+            <div style="display:flex;gap:20px;flex-wrap:wrap">
+              <div><div style="font-size:10px;color:var(--txt2)">Início</div><div style="font-family:'DM Mono',monospace;font-size:13px;color:var(--ciano)" id="sim-inicio">--</div></div>
+              <div><div style="font-size:10px;color:var(--txt2)">Fim Previsto</div><div style="font-family:'DM Mono',monospace;font-size:13px;color:var(--laranja)" id="sim-fim">--</div></div>
+              <div><div style="font-size:10px;color:var(--txt2)">Duração Real</div><div style="font-family:'DM Mono',monospace;font-size:13px;color:var(--txt)" id="sim-dur">--</div></div>
+              <div><div style="font-size:10px;color:var(--txt2)">Peças/Hora</div><div style="font-family:'DM Mono',monospace;font-size:13px;color:var(--verde)" id="sim-ph">--</div></div>
+            </div>
           </div>
           <div style="display:flex;gap:8px">
+            <button class="btn btn-ghost btn-sm" onclick="simularLaser()"><i class="fas fa-calculator"></i>Simular</button>
             <button class="btn btn-primary btn-sm" onclick="addLaserFila()"><i class="fas fa-plus"></i>Adicionar</button>
             <button class="btn btn-ghost btn-sm" onclick="loadLaserFila()"><i class="fas fa-sync"></i>Atualizar</button>
           </div>
@@ -450,11 +461,11 @@ tbody td{padding:10px 14px;vertical-align:middle;color:var(--txt)}
           <div style="display:flex;align-items:flex-end;gap:12px;flex-wrap:wrap">
             <div class="form-group" style="width:200px">
               <label>Tempo por peça (segundos)</label>
-              <input class="form-control" id="cfg-tempo" type="number" step="0.1" placeholder="85">
+              <input class="form-control" id="cfg-tempo" type="number" step="0.1" placeholder="1.62">
             </div>
             <button class="btn btn-primary btn-sm" onclick="saveLaserConfig()"><i class="fas fa-save"></i>Salvar</button>
           </div>
-          <div style="margin-top:8px;font-size:12px;color:var(--txt2)">Ex: 1 min 25 seg = <b style="color:var(--ciano)">85 segundos</b> — Produção projetada/hora: <b id="cfg-proj-hora" style="color:var(--verde)">--</b> peças</div>
+          <div style="margin-top:8px;font-size:12px;color:var(--txt2)">Ex: 1 min 37 seg = <b style="color:var(--ciano)">1.62 minutos</b> — Produção projetada/hora: <b id="cfg-proj-hora" style="color:var(--verde)">--</b> peças</div>
         </div>
         <div class="card" style="padding:18px">
           <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
@@ -851,9 +862,36 @@ function switchLaserTab(tab, el){
   if(tab==='apontamento') loadApontamentos();
 }
 
+// ─ Simulação ─
+function limparSimulacao(){
+  document.getElementById('lf-simulacao').style.display='none';
+}
+
+async function simularLaser(){
+  const data = document.getElementById('lf-data').value;
+  const hora = document.getElementById('lf-hora').value;
+  const pecas = parseInt(document.getElementById('lf-pecas').value||0);
+  const tempo = parseFloat(document.getElementById('lf-tempo').value || _laserEquipData?.tempo_min || 1.42);
+  if(!data||!hora){toast('Informe data e hora de início','error');return}
+  if(!pecas){toast('Informe a quantidade de peças','error');return}
+  try {
+    const r = await api(`/api/laser/equipamentos/${currentLaserId}/simular`,'POST',{
+      data_inicio:`${data}T${hora}`, qtde_pecas:pecas, tempo_min:tempo
+    });
+    document.getElementById('sim-inicio').textContent = r.data_inicio;
+    document.getElementById('sim-fim').textContent = r.data_fim || '--';
+    document.getElementById('sim-dur').textContent = r.duracao_fmt;
+    document.getElementById('sim-ph').textContent = r.pecas_hora.toLocaleString('pt-BR') + ' pç/h';
+    document.getElementById('lf-simulacao').style.display='';
+    toast('Simulação calculada com os turnos do calendário!','success');
+  } catch(e) {}
+}
+
 // ─ Fila ─
-function fmtSegParaMin(seg){
-  const m = Math.floor(seg/60), s = Math.round(seg%60);
+// Formata minutos decimais para exibição mm:ss (ex: 1.62 min -> "1:37")
+function fmtMinParaDisplay(min){
+  const m = Math.floor(min);
+  const s = Math.round((min - m) * 60);
   return `${m}:${String(s).padStart(2,'0')}`;
 }
 
@@ -864,7 +902,7 @@ async function loadLaserFila(){
   document.getElementById('laser-fila-total').textContent =
     `Total: ${fila.length} itens | ${fila.reduce((a,f)=>a+(f.qtde_pecas||0),0).toLocaleString('pt-BR')} peças`;
   // preenche tempo padrão
-  document.getElementById('lf-tempo').placeholder = data.equipamento.tempo_seg;
+  document.getElementById('lf-tempo').placeholder = data.equipamento.tempo_min;
   _laserEquipData = data.equipamento;
 
   document.getElementById('laser-fila-list').innerHTML = fila.length
@@ -875,7 +913,7 @@ async function loadLaserFila(){
         <input class="carga-input" value="${f.referencia||''}" onchange="patchLaserFila(${f.id},'referencia',this.value)" placeholder="Ref.">
         <input class="carga-input" value="${f.lavacao||''}" onchange="patchLaserFila(${f.id},'lavacao',this.value)" placeholder="Lavação">
         <input class="carga-input" value="${f.qtde_pecas||0}" type="number" onchange="patchLaserFila(${f.id},'qtde_pecas',this.value)" style="width:58px">
-        <div style="font-family:'DM Mono',monospace;font-size:11px;color:var(--roxo);text-align:center">${fmtSegParaMin(f.tempo_seg)}</div>
+        <div style="font-family:'DM Mono',monospace;font-size:11px;color:var(--roxo);text-align:center">${fmtMinParaDisplay(f.tempo_min)}</div>
         <div style="font-family:'DM Mono',monospace;font-size:10px;color:var(--ciano);line-height:1.4">${f.data_inicio ? fmtDT(f.data_inicio) : '--'}</div>
         <div style="font-family:'DM Mono',monospace;font-size:10px;color:var(--laranja);line-height:1.4">${f.data_fim ? fmtDT(f.data_fim) : '--'}</div>
         <select class="carga-input" onchange="patchLaserFila(${f.id},'status',this.value)">
@@ -897,7 +935,7 @@ async function addLaserFila(){
     referencia: document.getElementById('lf-ref').value,
     lavacao: document.getElementById('lf-lav').value,
     qtde_pecas: parseInt(document.getElementById('lf-pecas').value||0),
-    tempo_seg: parseFloat(document.getElementById('lf-tempo').value || _laserEquipData?.tempo_seg || 85),
+    tempo_min: parseFloat(document.getElementById('lf-tempo').value || _laserEquipData?.tempo_min || 1.42),
     data_inicio: data && hora ? `${data}T${hora}` : null
   };
   await api(`/api/laser/equipamentos/${currentLaserId}/fila`,'POST',body);
@@ -908,7 +946,7 @@ async function addLaserFila(){
 
 async function patchLaserFila(id, field, value){
   await api(`/api/laser/fila/${id}`,'PUT',{[field]:value});
-  if(field==='qtde_pecas'||field==='tempo_seg') await loadLaserFila();
+  if(field==='qtde_pecas'||field==='tempo_min') await loadLaserFila();
 }
 
 async function deleteLaserFila(id){
@@ -995,7 +1033,7 @@ function abrirNovoApontamento(){
       document.getElementById('nav-op').value = ativa.op||'';
       document.getElementById('nav-ref').value = ativa.referencia||'';
       // projetado: 3600/tempo_seg
-      const proj = Math.round(3600/(ativa.tempo_seg||85));
+      const proj = Math.round(60/(ativa.tempo_min||1.42));
       document.getElementById('nav-proj').value = proj;
     }
   }).catch(()=>{});
@@ -1036,7 +1074,7 @@ async function loadLaserConfig(){
   const equips = await api('/api/laser/equipamentos');
   const e = equips.find(x=>x.id===currentLaserId);
   if(e){
-    document.getElementById('cfg-tempo').value = e.tempo_seg;
+    document.getElementById('cfg-tempo').value = e.tempo_min;
     atualizarProjHora();
   }
   const ivs = await api(`/api/laser/equipamentos/${currentLaserId}/intervalos`);
@@ -1045,14 +1083,14 @@ async function loadLaserConfig(){
 
 function atualizarProjHora(){
   const seg = parseFloat(document.getElementById('cfg-tempo').value||85);
-  const proj = seg > 0 ? Math.round(3600/seg) : 0;
+  const proj = seg > 0 ? Math.round(60/seg) : 0;
   document.getElementById('cfg-proj-hora').textContent = proj.toLocaleString('pt-BR');
 }
 document.getElementById('cfg-tempo')?.addEventListener('input', atualizarProjHora);
 
 async function saveLaserConfig(){
   const tempo = parseFloat(document.getElementById('cfg-tempo').value||85);
-  await api(`/api/laser/equipamentos/${currentLaserId}`,'PUT',{tempo_seg: tempo});
+  await api(`/api/laser/equipamentos/${currentLaserId}`,'PUT',{tempo_min: tempo});
   toast('Configuração salva!','success');
   atualizarProjHora();
 }
