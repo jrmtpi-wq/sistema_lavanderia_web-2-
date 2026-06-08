@@ -74,7 +74,6 @@ class Carga(db.Model):
 
     @property
     def data_saida(self):
-        # ✅ CORRIGIDO: considera parada_min no cálculo da saída
         if self.data_inicio and self.maquina:
             return self.data_inicio + timedelta(minutes=self.maquina.tempo_min + (self.parada_min or 0))
         return None
@@ -82,10 +81,11 @@ class Carga(db.Model):
 # ── FATURAMENTO MODELS ────────────────────────────────────────────
 class TabelaPreco(db.Model):
     id              = db.Column(db.Integer, primary_key=True)
-    referencia      = db.Column(db.String(50), nullable=False, unique=True)
+    op              = db.Column(db.String(20), nullable=False)          # ← NOVO: OP vinculada
+    referencia      = db.Column(db.String(50), nullable=False)
     preco_peca      = db.Column(db.Float, nullable=False, default=0.0)
-    sigla_fim       = db.Column(db.String(30), nullable=False)
     created_at      = db.Column(db.DateTime, default=datetime.utcnow)
+    # sigla_fim REMOVIDA
 
 class Faturamento(db.Model):
     id              = db.Column(db.Integer, primary_key=True)
@@ -119,10 +119,20 @@ def init_db_route():
     try:
         db.session.execute(db.text('ALTER TABLE carga ADD COLUMN IF NOT EXISTS parada_min INTEGER DEFAULT 0'))
         db.session.execute(db.text('ALTER TABLE carga ADD COLUMN IF NOT EXISTS observacao VARCHAR(200)'))
+        # Migração tabela_preco: adiciona coluna op, remove sigla_fim se existir
+        db.session.execute(db.text("ALTER TABLE tabela_preco ADD COLUMN IF NOT EXISTS op VARCHAR(20) NOT NULL DEFAULT ''"))
+        db.session.execute(db.text("ALTER TABLE tabela_preco DROP COLUMN IF EXISTS sigla_fim"))
+        # Remove unique constraint antiga em referencia (agora unicidade é op+referencia)
+        try:
+            db.session.execute(db.text("ALTER TABLE tabela_preco DROP CONSTRAINT IF EXISTS tabela_preco_referencia_key"))
+            db.session.execute(db.text("CREATE UNIQUE INDEX IF NOT EXISTS uq_tabela_preco_op_ref ON tabela_preco(op, referencia)"))
+        except:
+            pass
         db.session.commit()
-    except:
+    except Exception as e:
         db.session.rollback()
-    return 'Banco criado!'
+        return f'Banco criado com aviso: {e}'
+    return 'Banco criado e migrado!'
 
 @app.route('/')
 def index():
@@ -350,12 +360,11 @@ def gerar_cargas(mid):
     op  = d.get('op',''); ref = d.get('referencia',''); lav = d.get('lavacao','')
     n   = int(d.get('quantidade', 1))
     peso_carga  = float(d.get('peso_carga', m.capacidade))
-    append_mode = d.get('append', False)  # ✅ NOVO: modo append
+    append_mode = d.get('append', False)
 
     cargas_existentes = sorted(m.cargas, key=lambda x: x.numero)
 
     if append_mode and cargas_existentes:
-        # ✅ CORRIGIDO: adicionar na sequência, após a última carga existente
         ultima = cargas_existentes[-1]
         parada_ultima = ultima.parada_min or 0
         if ultima.data_inicio:
@@ -364,7 +373,6 @@ def gerar_cargas(mid):
             return jsonify({'ok': False, 'error': 'Última carga sem horário definido'}), 400
         num_inicio = len(cargas_existentes) + 1
     else:
-        # Modo normal: apagar tudo e começar do zero
         if not d.get('data_inicio'):
             return jsonify({'ok': False, 'error': 'data_inicio obrigatório'}), 400
         Carga.query.filter_by(maquina_id=mid).delete()
@@ -399,10 +407,10 @@ def dashboard():
 # ─ TABELA DE PREÇOS ─
 @app.route('/api/precos', methods=['GET'])
 def get_precos():
-    rows = TabelaPreco.query.order_by(TabelaPreco.referencia).all()
+    rows = TabelaPreco.query.order_by(TabelaPreco.op, TabelaPreco.referencia).all()
     return jsonify([{
-        'id': r.id, 'referencia': r.referencia,
-        'preco_peca': r.preco_peca, 'sigla_fim': r.sigla_fim,
+        'id': r.id, 'op': r.op, 'referencia': r.referencia,
+        'preco_peca': r.preco_peca,
         'created_at': r.created_at.strftime('%d/%m/%Y %H:%M')
     } for r in rows])
 
@@ -410,15 +418,17 @@ def get_precos():
 def create_preco():
     try:
         d = request.json
-        if not d.get('referencia') or not d.get('sigla_fim'):
-            return jsonify({'ok': False, 'error': 'Referência e Sigla são obrigatórias'}), 400
-        existing = TabelaPreco.query.filter_by(referencia=d['referencia'].strip().upper()).first()
+        if not d.get('op') or not d.get('referencia'):
+            return jsonify({'ok': False, 'error': 'OP e Referência são obrigatórios'}), 400
+        op_val  = d['op'].strip().upper()
+        ref_val = d['referencia'].strip().upper()
+        existing = TabelaPreco.query.filter_by(op=op_val, referencia=ref_val).first()
         if existing:
-            return jsonify({'ok': False, 'error': 'Referência já cadastrada. Use editar.'}), 400
+            return jsonify({'ok': False, 'error': 'OP + Referência já cadastrada. Use editar.'}), 400
         r = TabelaPreco(
-            referencia=d['referencia'].strip().upper(),
-            preco_peca=safe_float(d.get('preco_peca', 0)),
-            sigla_fim=d['sigla_fim'].strip().upper()
+            op=op_val,
+            referencia=ref_val,
+            preco_peca=safe_float(d.get('preco_peca', 0))
         )
         db.session.add(r); db.session.commit()
         return jsonify({'ok': True, 'id': r.id})
@@ -431,9 +441,9 @@ def update_preco(pid):
     try:
         r = TabelaPreco.query.get_or_404(pid)
         d = request.json
+        r.op        = d.get('op', r.op).strip().upper()
         r.referencia = d.get('referencia', r.referencia).strip().upper()
         r.preco_peca = safe_float(d.get('preco_peca', r.preco_peca))
-        r.sigla_fim  = d.get('sigla_fim', r.sigla_fim).strip().upper()
         db.session.commit()
         return jsonify({'ok': True})
     except Exception as e:
@@ -446,20 +456,30 @@ def delete_preco(pid):
     db.session.delete(r); db.session.commit()
     return jsonify({'ok': True})
 
+# ─ BUSCAR PREÇO POR OP + REFERÊNCIA (usado pelo botão Faturar na tela de OPs) ─
+@app.route('/api/precos/buscar', methods=['GET'])
+def buscar_preco():
+    op  = request.args.get('op', '').strip().upper()
+    ref = request.args.get('referencia', '').strip().upper()
+    if not op or not ref:
+        return jsonify({'ok': False, 'error': 'OP e Referência obrigatórios'}), 400
+    r = TabelaPreco.query.filter_by(op=op, referencia=ref).first()
+    if not r:
+        return jsonify({'ok': False, 'error': f'Preço não cadastrado para OP {op} / Ref {ref}'}), 404
+    return jsonify({'ok': True, 'id': r.id, 'op': r.op,
+                    'referencia': r.referencia, 'preco_peca': r.preco_peca})
+
 # ─ OPs PRONTAS PARA FATURAR ─
+# Agora valida por OP + Referência (sem sigla_fim)
 @app.route('/api/ops_prontas', methods=['GET'])
 def get_ops_prontas():
     ops = OrdemProducao.query.order_by(OrdemProducao.id.desc()).all()
-    precos = TabelaPreco.query.all()
-    mapa = {p.referencia.upper(): p for p in precos}
     prontas = []
     for o in ops:
+        op_key  = o.op.strip().upper()
         ref_key = o.referencia.strip().upper()
-        tp = mapa.get(ref_key)
+        tp = TabelaPreco.query.filter_by(op=op_key, referencia=ref_key).first()
         if not tp:
-            continue
-        lav = (o.lavacao or '').upper()
-        if tp.sigla_fim.upper() not in lav:
             continue
         ja_faturada = Faturamento.query.filter_by(op_numero=o.op, referencia=o.referencia).first()
         prontas.append({
@@ -467,7 +487,6 @@ def get_ops_prontas():
             'lavacao': o.lavacao, 'total_pecas': o.total_pecas,
             'peso_total': round(o.peso_total, 3),
             'preco_peca': tp.preco_peca,
-            'sigla_fim': tp.sigla_fim,
             'valor_total': round(o.total_pecas * tp.preco_peca, 2),
             'ja_faturada': bool(ja_faturada),
             'created_at': o.created_at.strftime('%d/%m/%Y %H:%M')
