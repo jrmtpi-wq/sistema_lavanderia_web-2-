@@ -82,7 +82,7 @@ class Carga(db.Model):
 class LaserEquipamento(db.Model):
     id          = db.Column(db.Integer, primary_key=True)
     numero      = db.Column(db.Integer, nullable=False)
-    tempo_seg   = db.Column(db.Float, default=85.0)   # tempo padrão por peça em segundos
+    tempo_min   = db.Column(db.Float, default=1.42)   # tempo padrão por peça em MINUTOS (ex: 1.42 = 1min25seg)
     filas       = db.relationship('LaserFila', backref='equipamento', lazy=True,
                                   cascade='all, delete-orphan', order_by='LaserFila.numero')
     intervalos  = db.relationship('LaserIntervalo', backref='equipamento', lazy=True,
@@ -103,54 +103,29 @@ class LaserFila(db.Model):
     referencia      = db.Column(db.String(50))
     lavacao         = db.Column(db.String(80))
     qtde_pecas      = db.Column(db.Integer, default=0)
-    tempo_seg       = db.Column(db.Float, default=85.0)  # tempo por peça em segundos
+    tempo_min       = db.Column(db.Float, default=1.42)  # tempo por peça em MINUTOS (ex: 1.62 = 1min37seg)
     data_inicio     = db.Column(db.DateTime, nullable=True)
-    data_fim        = db.Column(db.DateTime, nullable=True)  # calculado
+    data_fim        = db.Column(db.DateTime, nullable=True)
     status          = db.Column(db.String(20), default='aguardando')
     observacao      = db.Column(db.String(200))
     created_at      = db.Column(db.DateTime, default=datetime.utcnow)
 
     @property
     def duracao_seg(self):
-        return (self.qtde_pecas or 0) * (self.tempo_seg or 85.0)
+        # converte minutos para segundos
+        return (self.qtde_pecas or 0) * (self.tempo_min or 1.42) * 60.0
 
     def calcular_fim(self, intervalos):
-        """Calcula data_fim considerando intervalos de refeição."""
+        """
+        Calcula data_fim usando os turnos do calendário como janelas de trabalho.
+        - Busca os turnos cadastrados para cada dia
+        - Dentro de cada janela de turno, subtrai os intervalos de refeição (LaserIntervalo)
+        - Pula sábado/domingo sem turno cadastrado
+        - Avança dentro das janelas disponíveis consumindo os segundos de produção
+        """
         if not self.data_inicio or not self.qtde_pecas:
             return None
-        total_seg = self.duracao_seg
-        dt = self.data_inicio
-        while total_seg > 0:
-            # verifica se o momento atual está dentro de algum intervalo
-            em_intervalo = False
-            for iv in intervalos:
-                h_ini = _parse_hm(iv.hora_inicio)
-                h_fim = _parse_hm(iv.hora_fim)
-                agora_min = dt.hour * 60 + dt.minute + dt.second / 60
-                if h_ini < h_fim:
-                    if h_ini <= agora_min < h_fim:
-                        em_intervalo = True
-                        # pula para fim do intervalo
-                        dt = dt.replace(hour=h_fim//60, minute=h_fim%60, second=0, microsecond=0)
-                        break
-                else:  # passa meia-noite
-                    if agora_min >= h_ini or agora_min < h_fim:
-                        em_intervalo = True
-                        if agora_min >= h_ini:
-                            dt = (dt + timedelta(days=1)).replace(hour=h_fim//60, minute=h_fim%60, second=0, microsecond=0)
-                        else:
-                            dt = dt.replace(hour=h_fim//60, minute=h_fim%60, second=0, microsecond=0)
-                        break
-            if not em_intervalo:
-                # avança 1 segundo de produção
-                seg_ate_proximo = _seg_ate_proximo_intervalo(dt, intervalos)
-                if seg_ate_proximo is None or seg_ate_proximo >= total_seg:
-                    dt = dt + timedelta(seconds=total_seg)
-                    total_seg = 0
-                else:
-                    total_seg -= seg_ate_proximo
-                    dt = dt + timedelta(seconds=seg_ate_proximo)
-        return dt
+        return _calcular_fim_laser(self.data_inicio, self.duracao_seg, intervalos)
 
 class LaserApontamento(db.Model):
     id              = db.Column(db.Integer, primary_key=True)
@@ -177,19 +152,124 @@ def _parse_hm(s):
     except:
         return 0
 
-def _seg_ate_proximo_intervalo(dt, intervalos):
-    """Retorna segundos até o próximo intervalo, ou None se não houver."""
-    agora_min = dt.hour * 60 + dt.minute + dt.second / 60
-    menor = None
-    for iv in intervalos:
-        h_ini = _parse_hm(iv.hora_inicio)
-        diff = h_ini - agora_min
-        if diff < 0:
-            diff += 1440
-        diff_seg = diff * 60
-        if menor is None or diff_seg < menor:
-            menor = diff_seg
-    return menor
+def _hm_to_dt(base_date, hm_min):
+    """Converte minutos desde meia-noite em datetime para um dia base."""
+    return datetime.combine(base_date, datetime.min.time()) + timedelta(minutes=hm_min)
+
+def _get_janelas_dia(dia, intervalos_laser):
+    """
+    Retorna lista de (dt_inicio, dt_fim) com janelas de trabalho disponíveis
+    para um dado dia, baseado nos turnos do calendário e subtraindo os
+    intervalos de refeição do laser.
+
+    Turnos que 'passam da meia-noite' (ex: T3: 02:20 → 07:00 do dia seguinte
+    ou T2: 17:00 → 02:40) são tratados corretamente.
+    """
+    # Busca turnos cadastrados para este dia
+    turnos = Turno.query.filter_by(data=dia).all()
+
+    # Se não há turnos cadastrados, dia não trabalha
+    if not turnos:
+        return []
+
+    # Monta janelas brutas de cada turno (podem atravessar meia-noite)
+    janelas_brutas = []
+    for t in turnos:
+        if not t.entrada or not t.saida:
+            continue
+        ini_min = _parse_hm(t.entrada)
+        fim_min = _parse_hm(t.saida)
+        dt_ini = _hm_to_dt(dia, ini_min)
+        if fim_min > ini_min:
+            dt_fim = _hm_to_dt(dia, fim_min)
+        else:
+            # turno passa meia-noite
+            dt_fim = _hm_to_dt(dia + timedelta(days=1), fim_min)
+        janelas_brutas.append((dt_ini, dt_fim))
+
+    # Subtrai os intervalos de refeição de cada janela
+    # Intervalos são definidos como HH:MM e podem também passar meia-noite
+    janelas_final = []
+    for (j_ini, j_fim) in janelas_brutas:
+        segmentos = [(j_ini, j_fim)]
+        for iv in intervalos_laser:
+            if not iv.hora_inicio or not iv.hora_fim:
+                continue
+            iv_ini_min = _parse_hm(iv.hora_inicio)
+            iv_fim_min = _parse_hm(iv.hora_fim)
+            # tenta encaixar o intervalo dentro da janela do turno
+            novos = []
+            for (s_ini, s_fim) in segmentos:
+                # gera candidatos de intervalo tanto no dia base quanto no seguinte
+                for offset in [0, 1]:
+                    base = dia + timedelta(days=offset)
+                    iv_dt_ini = _hm_to_dt(base, iv_ini_min)
+                    if iv_fim_min > iv_ini_min:
+                        iv_dt_fim = _hm_to_dt(base, iv_fim_min)
+                    else:
+                        iv_dt_fim = _hm_to_dt(base + timedelta(days=1), iv_fim_min)
+                    # corta segmento pelo intervalo
+                    if iv_dt_ini >= s_fim or iv_dt_fim <= s_ini:
+                        # sem sobreposição
+                        novos.append((s_ini, s_fim))
+                    else:
+                        if s_ini < iv_dt_ini:
+                            novos.append((s_ini, iv_dt_ini))
+                        if iv_dt_fim < s_fim:
+                            novos.append((iv_dt_fim, s_fim))
+                    break  # usa só o primeiro offset que faz sentido
+            segmentos = novos if novos else segmentos
+        janelas_final.extend(segmentos)
+
+    # Ordena e remove janelas vazias
+    janelas_final = [(a, b) for (a, b) in janelas_final if b > a]
+    janelas_final.sort(key=lambda x: x[0])
+    return janelas_final
+
+def _calcular_fim_laser(dt_inicio, total_seg, intervalos_laser, max_dias=365):
+    """
+    Avança 'total_seg' segundos de produção a partir de dt_inicio,
+    respeitando as janelas de trabalho (turnos do calendário) e
+    subtraindo os intervalos de refeição do laser.
+    """
+    if total_seg <= 0:
+        return dt_inicio
+
+    dt = dt_inicio
+    dias_verificados = 0
+
+    # Começa pelo dia do início; pode precisar avançar vários dias
+    dia_atual = dt.date()
+
+    while total_seg > 0 and dias_verificados < max_dias:
+        janelas = _get_janelas_dia(dia_atual, intervalos_laser)
+
+        for (j_ini, j_fim) in janelas:
+            # se já passamos desta janela, pula
+            if j_fim <= dt:
+                continue
+            # ajusta início da janela se dt já está dentro dela
+            inicio_efetivo = max(dt, j_ini)
+            seg_disponiveis = (j_fim - inicio_efetivo).total_seconds()
+
+            if seg_disponiveis <= 0:
+                continue
+
+            if total_seg <= seg_disponiveis:
+                # termina dentro desta janela
+                return inicio_efetivo + timedelta(seconds=total_seg)
+            else:
+                # consome toda a janela e continua
+                total_seg -= seg_disponiveis
+                dt = j_fim  # avança para o fim da janela
+
+        # Avança para o próximo dia
+        dia_atual = dia_atual + timedelta(days=1)
+        # dt deve ser o início do próximo dia (será ajustado pela primeira janela)
+        dt = datetime.combine(dia_atual, datetime.min.time())
+        dias_verificados += 1
+
+    return dt  # fallback: retorna último dt calculado
 
 # ── FATURAMENTO MODELS ────────────────────────────────────────────
 class TabelaPreco(db.Model):
@@ -225,7 +305,7 @@ def init_db():
     # Criar 3 equipamentos de laser
     for n in range(1, 4):
         if not LaserEquipamento.query.filter_by(numero=n).first():
-            db.session.add(LaserEquipamento(numero=n, tempo_seg=85.0))
+            db.session.add(LaserEquipamento(numero=n, tempo_min=1.42))
     db.session.commit()
 
 # ── ROUTES ───────────────────────────────────────────────────────
@@ -242,7 +322,7 @@ def init_db_route():
         # Migração tabelas laser
         db.session.execute(db.text("""
             CREATE TABLE IF NOT EXISTS laser_equipamento (
-                id SERIAL PRIMARY KEY, numero INTEGER NOT NULL, tempo_seg FLOAT DEFAULT 85.0)"""))
+                id SERIAL PRIMARY KEY, numero INTEGER NOT NULL, tempo_min FLOAT DEFAULT 1.42)"""))
         db.session.execute(db.text("""
             CREATE TABLE IF NOT EXISTS laser_intervalo (
                 id SERIAL PRIMARY KEY, equipamento_id INTEGER REFERENCES laser_equipamento(id),
@@ -251,7 +331,7 @@ def init_db_route():
             CREATE TABLE IF NOT EXISTS laser_fila (
                 id SERIAL PRIMARY KEY, equipamento_id INTEGER REFERENCES laser_equipamento(id),
                 numero INTEGER, op VARCHAR(20), referencia VARCHAR(50), lavacao VARCHAR(80),
-                qtde_pecas INTEGER DEFAULT 0, tempo_seg FLOAT DEFAULT 85.0,
+                qtde_pecas INTEGER DEFAULT 0, tempo_min FLOAT DEFAULT 1.42,
                 data_inicio TIMESTAMP, data_fim TIMESTAMP, status VARCHAR(20) DEFAULT 'aguardando',
                 observacao VARCHAR(200), created_at TIMESTAMP DEFAULT NOW())"""))
         db.session.execute(db.text("""
@@ -784,7 +864,7 @@ def get_laser_equipamentos():
     for e in equips:
         filas = sorted(e.filas, key=lambda x: x.numero)
         result.append({
-            'id': e.id, 'numero': e.numero, 'tempo_seg': e.tempo_seg,
+            'id': e.id, 'numero': e.numero, 'tempo_min': e.tempo_min,
             'total_filas': len(filas),
             'aguardando': sum(1 for f in filas if f.status == 'aguardando'),
             'em_processo': sum(1 for f in filas if f.status == 'em_processo'),
@@ -797,7 +877,7 @@ def get_laser_equipamentos():
 def update_laser_equipamento(eid):
     e = LaserEquipamento.query.get_or_404(eid)
     d = request.json
-    e.tempo_seg = safe_float(d.get('tempo_seg', e.tempo_seg))
+    e.tempo_min = safe_float(d.get('tempo_min', e.tempo_min))
     db.session.commit()
     return jsonify({'ok': True})
 
@@ -831,6 +911,32 @@ def delete_laser_intervalo(iid):
     return jsonify({'ok': True})
 
 # ─ Fila ─
+@app.route('/api/laser/equipamentos/<int:eid>/simular', methods=['POST'])
+def simular_laser(eid):
+    """Simula o cálculo de fim sem salvar — usado pelo frontend para preview."""
+    e = LaserEquipamento.query.get_or_404(eid)
+    d = request.json
+    try:
+        dt_inicio = datetime.strptime(d['data_inicio'], '%Y-%m-%dT%H:%M')
+    except:
+        return jsonify({'ok': False, 'error': 'data_inicio inválido'}), 400
+    qtde = safe_int(d.get('qtde_pecas', 0))
+    tempo = safe_float(d.get('tempo_min', e.tempo_min))
+    if qtde <= 0 or tempo <= 0:
+        return jsonify({'ok': False, 'error': 'Qtde e tempo devem ser > 0'}), 400
+    total_seg = qtde * tempo
+    fim = _calcular_fim_laser(dt_inicio, total_seg, e.intervalos)
+    duracao_h = total_seg / 3600
+    return jsonify({
+        'ok': True,
+        'data_inicio': dt_inicio.strftime('%d/%m/%Y %H:%M'),
+        'data_fim': fim.strftime('%d/%m/%Y %H:%M') if fim else None,
+        'duracao_horas': round(duracao_h, 2),
+        'duracao_fmt': f"{int(duracao_h)}h{int((duracao_h%1)*60):02d}min",
+        'total_seg': round(total_seg, 1),
+        'pecas_hora': round(60/tempo, 1) if tempo > 0 else 0,
+    })
+
 @app.route('/api/laser/equipamentos/<int:eid>/fila', methods=['GET'])
 def get_laser_fila(eid):
     e = LaserEquipamento.query.get_or_404(eid)
@@ -842,14 +948,14 @@ def get_laser_fila(eid):
         result.append({
             'id': f.id, 'numero': f.numero, 'op': f.op,
             'referencia': f.referencia, 'lavacao': f.lavacao,
-            'qtde_pecas': f.qtde_pecas, 'tempo_seg': f.tempo_seg,
+            'qtde_pecas': f.qtde_pecas, 'tempo_min': f.tempo_min,
             'status': f.status, 'observacao': f.observacao,
             'data_inicio': f.data_inicio.strftime('%Y-%m-%dT%H:%M') if f.data_inicio else None,
             'data_fim': fim.strftime('%Y-%m-%dT%H:%M') if fim else None,
             'duracao_min': round(f.duracao_seg / 60, 1),
         })
     return jsonify({
-        'equipamento': {'id': e.id, 'numero': e.numero, 'tempo_seg': e.tempo_seg},
+        'equipamento': {'id': e.id, 'numero': e.numero, 'tempo_min': e.tempo_min},
         'fila': result
     })
 
@@ -866,12 +972,12 @@ def add_laser_fila(eid):
         last = sorted(e.filas, key=lambda x: x.numero)[-1]
         fim = last.data_fim or last.calcular_fim(e.intervalos)
         if fim: dt_inicio = fim
-    tempo = safe_float(d.get('tempo_seg', e.tempo_seg))
+    tempo = safe_float(d.get('tempo_min', e.tempo_min))
     f = LaserFila(
         equipamento_id=eid, numero=num,
         op=d.get('op',''), referencia=d.get('referencia',''),
         lavacao=d.get('lavacao',''), qtde_pecas=safe_int(d.get('qtde_pecas',0)),
-        tempo_seg=tempo, data_inicio=dt_inicio, status='aguardando',
+        tempo_min=tempo, data_inicio=dt_inicio, status='aguardando',
         observacao=d.get('observacao','')
     )
     db.session.add(f)
@@ -892,7 +998,7 @@ def update_laser_fila(fid):
     if 'referencia' in d: f.referencia = d['referencia']
     if 'lavacao' in d: f.lavacao = d['lavacao']
     if 'qtde_pecas' in d: f.qtde_pecas = safe_int(d['qtde_pecas'])
-    if 'tempo_seg' in d: f.tempo_seg = safe_float(d['tempo_seg'])
+    if 'tempo_min' in d: f.tempo_min = safe_float(d['tempo_min'])
     if 'status' in d: f.status = d['status']
     if 'observacao' in d: f.observacao = d['observacao']
     if 'data_inicio' in d:
@@ -949,8 +1055,8 @@ def add_laser_apontamento(eid):
     hora_ref = datetime.strptime(d['hora_ref'], '%Y-%m-%dT%H:%M')
     # Calcula projetado: (3600 / tempo_seg) peças/hora para a fila ativa
     fila_ativa = LaserFila.query.filter_by(equipamento_id=eid, status='em_processo').first()
-    tempo_seg = fila_ativa.tempo_seg if fila_ativa else safe_float(d.get('tempo_seg', 85))
-    projetado = safe_int(d.get('projetado')) or (int(3600 / tempo_seg) if tempo_seg > 0 else 0)
+    tempo_peca_min = fila_ativa.tempo_min if fila_ativa else safe_float(d.get('tempo_min', 1.42))
+    projetado = safe_int(d.get('projetado')) or (int(60 / tempo_peca_min) if tempo_peca_min > 0 else 0)
     a = LaserApontamento(
         equipamento_id=eid,
         fila_id=fila_ativa.id if fila_ativa else None,
