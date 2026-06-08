@@ -78,6 +78,119 @@ class Carga(db.Model):
             return self.data_inicio + timedelta(minutes=self.maquina.tempo_min + (self.parada_min or 0))
         return None
 
+# ── LASER MODELS ─────────────────────────────────────────────────
+class LaserEquipamento(db.Model):
+    id          = db.Column(db.Integer, primary_key=True)
+    numero      = db.Column(db.Integer, nullable=False)
+    tempo_seg   = db.Column(db.Float, default=85.0)   # tempo padrão por peça em segundos
+    filas       = db.relationship('LaserFila', backref='equipamento', lazy=True,
+                                  cascade='all, delete-orphan', order_by='LaserFila.numero')
+    intervalos  = db.relationship('LaserIntervalo', backref='equipamento', lazy=True,
+                                  cascade='all, delete-orphan', order_by='LaserIntervalo.hora_inicio')
+
+class LaserIntervalo(db.Model):
+    id              = db.Column(db.Integer, primary_key=True)
+    equipamento_id  = db.Column(db.Integer, db.ForeignKey('laser_equipamento.id'))
+    nome            = db.Column(db.String(50))        # ex: "Almoço Turno 1"
+    hora_inicio     = db.Column(db.String(5))         # "12:00"
+    hora_fim        = db.Column(db.String(5))         # "13:00"
+
+class LaserFila(db.Model):
+    id              = db.Column(db.Integer, primary_key=True)
+    equipamento_id  = db.Column(db.Integer, db.ForeignKey('laser_equipamento.id'))
+    numero          = db.Column(db.Integer)
+    op              = db.Column(db.String(20))
+    referencia      = db.Column(db.String(50))
+    lavacao         = db.Column(db.String(80))
+    qtde_pecas      = db.Column(db.Integer, default=0)
+    tempo_seg       = db.Column(db.Float, default=85.0)  # tempo por peça em segundos
+    data_inicio     = db.Column(db.DateTime, nullable=True)
+    data_fim        = db.Column(db.DateTime, nullable=True)  # calculado
+    status          = db.Column(db.String(20), default='aguardando')
+    observacao      = db.Column(db.String(200))
+    created_at      = db.Column(db.DateTime, default=datetime.utcnow)
+
+    @property
+    def duracao_seg(self):
+        return (self.qtde_pecas or 0) * (self.tempo_seg or 85.0)
+
+    def calcular_fim(self, intervalos):
+        """Calcula data_fim considerando intervalos de refeição."""
+        if not self.data_inicio or not self.qtde_pecas:
+            return None
+        total_seg = self.duracao_seg
+        dt = self.data_inicio
+        while total_seg > 0:
+            # verifica se o momento atual está dentro de algum intervalo
+            em_intervalo = False
+            for iv in intervalos:
+                h_ini = _parse_hm(iv.hora_inicio)
+                h_fim = _parse_hm(iv.hora_fim)
+                agora_min = dt.hour * 60 + dt.minute + dt.second / 60
+                if h_ini < h_fim:
+                    if h_ini <= agora_min < h_fim:
+                        em_intervalo = True
+                        # pula para fim do intervalo
+                        dt = dt.replace(hour=h_fim//60, minute=h_fim%60, second=0, microsecond=0)
+                        break
+                else:  # passa meia-noite
+                    if agora_min >= h_ini or agora_min < h_fim:
+                        em_intervalo = True
+                        if agora_min >= h_ini:
+                            dt = (dt + timedelta(days=1)).replace(hour=h_fim//60, minute=h_fim%60, second=0, microsecond=0)
+                        else:
+                            dt = dt.replace(hour=h_fim//60, minute=h_fim%60, second=0, microsecond=0)
+                        break
+            if not em_intervalo:
+                # avança 1 segundo de produção
+                seg_ate_proximo = _seg_ate_proximo_intervalo(dt, intervalos)
+                if seg_ate_proximo is None or seg_ate_proximo >= total_seg:
+                    dt = dt + timedelta(seconds=total_seg)
+                    total_seg = 0
+                else:
+                    total_seg -= seg_ate_proximo
+                    dt = dt + timedelta(seconds=seg_ate_proximo)
+        return dt
+
+class LaserApontamento(db.Model):
+    id              = db.Column(db.Integer, primary_key=True)
+    equipamento_id  = db.Column(db.Integer, db.ForeignKey('laser_equipamento.id'))
+    fila_id         = db.Column(db.Integer, db.ForeignKey('laser_fila.id'), nullable=True)
+    hora_ref        = db.Column(db.DateTime, nullable=False)  # hora do apontamento
+    op              = db.Column(db.String(20))
+    referencia      = db.Column(db.String(50))
+    projetado       = db.Column(db.Integer, default=0)
+    realizado       = db.Column(db.Integer, default=0)
+    created_at      = db.Column(db.DateTime, default=datetime.utcnow)
+
+    @property
+    def eficiencia(self):
+        if not self.projetado:
+            return 0.0
+        return round((self.realizado / self.projetado) * 100, 1)
+
+def _parse_hm(s):
+    """Converte 'HH:MM' em minutos desde meia-noite."""
+    try:
+        h, m = s.split(':')
+        return int(h) * 60 + int(m)
+    except:
+        return 0
+
+def _seg_ate_proximo_intervalo(dt, intervalos):
+    """Retorna segundos até o próximo intervalo, ou None se não houver."""
+    agora_min = dt.hour * 60 + dt.minute + dt.second / 60
+    menor = None
+    for iv in intervalos:
+        h_ini = _parse_hm(iv.hora_inicio)
+        diff = h_ini - agora_min
+        if diff < 0:
+            diff += 1440
+        diff_seg = diff * 60
+        if menor is None or diff_seg < menor:
+            menor = diff_seg
+    return menor
+
 # ── FATURAMENTO MODELS ────────────────────────────────────────────
 class TabelaPreco(db.Model):
     id              = db.Column(db.Integer, primary_key=True)
@@ -109,6 +222,10 @@ def init_db():
             if not Maquina.query.filter_by(tipo=tipo, numero=n).first():
                 db.session.add(Maquina(tipo=tipo, numero=n,
                                        capacidade=cap, tempo_min=tempo))
+    # Criar 3 equipamentos de laser
+    for n in range(1, 4):
+        if not LaserEquipamento.query.filter_by(numero=n).first():
+            db.session.add(LaserEquipamento(numero=n, tempo_seg=85.0))
     db.session.commit()
 
 # ── ROUTES ───────────────────────────────────────────────────────
@@ -122,6 +239,28 @@ def init_db_route():
         # Migração tabela_preco: adiciona coluna op, remove sigla_fim se existir
         db.session.execute(db.text("ALTER TABLE tabela_preco ADD COLUMN IF NOT EXISTS op VARCHAR(20) NOT NULL DEFAULT ''"))
         db.session.execute(db.text("ALTER TABLE tabela_preco DROP COLUMN IF EXISTS sigla_fim"))
+        # Migração tabelas laser
+        db.session.execute(db.text("""
+            CREATE TABLE IF NOT EXISTS laser_equipamento (
+                id SERIAL PRIMARY KEY, numero INTEGER NOT NULL, tempo_seg FLOAT DEFAULT 85.0)"""))
+        db.session.execute(db.text("""
+            CREATE TABLE IF NOT EXISTS laser_intervalo (
+                id SERIAL PRIMARY KEY, equipamento_id INTEGER REFERENCES laser_equipamento(id),
+                nome VARCHAR(50), hora_inicio VARCHAR(5), hora_fim VARCHAR(5))"""))
+        db.session.execute(db.text("""
+            CREATE TABLE IF NOT EXISTS laser_fila (
+                id SERIAL PRIMARY KEY, equipamento_id INTEGER REFERENCES laser_equipamento(id),
+                numero INTEGER, op VARCHAR(20), referencia VARCHAR(50), lavacao VARCHAR(80),
+                qtde_pecas INTEGER DEFAULT 0, tempo_seg FLOAT DEFAULT 85.0,
+                data_inicio TIMESTAMP, data_fim TIMESTAMP, status VARCHAR(20) DEFAULT 'aguardando',
+                observacao VARCHAR(200), created_at TIMESTAMP DEFAULT NOW())"""))
+        db.session.execute(db.text("""
+            CREATE TABLE IF NOT EXISTS laser_apontamento (
+                id SERIAL PRIMARY KEY, equipamento_id INTEGER REFERENCES laser_equipamento(id),
+                fila_id INTEGER REFERENCES laser_fila(id),
+                hora_ref TIMESTAMP NOT NULL, op VARCHAR(20), referencia VARCHAR(50),
+                projetado INTEGER DEFAULT 0, realizado INTEGER DEFAULT 0,
+                created_at TIMESTAMP DEFAULT NOW())"""))
         # Remove unique constraint antiga em referencia (agora unicidade é op+referencia)
         try:
             db.session.execute(db.text("ALTER TABLE tabela_preco DROP CONSTRAINT IF EXISTS tabela_preco_referencia_key"))
@@ -635,6 +774,209 @@ def _recalcular_horarios(cargas, tempo_min):
                 c.data_inicio = dt_atual
         if dt_atual and c.data_inicio:
             dt_atual = c.data_inicio + timedelta(minutes=tempo_min + (c.parada_min or 0))
+
+# ── LASER ─────────────────────────────────────────────────────────
+
+@app.route('/api/laser/equipamentos', methods=['GET'])
+def get_laser_equipamentos():
+    equips = LaserEquipamento.query.order_by(LaserEquipamento.numero).all()
+    result = []
+    for e in equips:
+        filas = sorted(e.filas, key=lambda x: x.numero)
+        result.append({
+            'id': e.id, 'numero': e.numero, 'tempo_seg': e.tempo_seg,
+            'total_filas': len(filas),
+            'aguardando': sum(1 for f in filas if f.status == 'aguardando'),
+            'em_processo': sum(1 for f in filas if f.status == 'em_processo'),
+            'concluido': sum(1 for f in filas if f.status == 'concluido'),
+            'total_pecas': sum(f.qtde_pecas or 0 for f in filas),
+        })
+    return jsonify(result)
+
+@app.route('/api/laser/equipamentos/<int:eid>', methods=['PUT'])
+def update_laser_equipamento(eid):
+    e = LaserEquipamento.query.get_or_404(eid)
+    d = request.json
+    e.tempo_seg = safe_float(d.get('tempo_seg', e.tempo_seg))
+    db.session.commit()
+    return jsonify({'ok': True})
+
+# ─ Intervalos ─
+@app.route('/api/laser/equipamentos/<int:eid>/intervalos', methods=['GET'])
+def get_laser_intervalos(eid):
+    ivs = LaserIntervalo.query.filter_by(equipamento_id=eid).order_by(LaserIntervalo.hora_inicio).all()
+    return jsonify([{'id': i.id, 'nome': i.nome, 'hora_inicio': i.hora_inicio, 'hora_fim': i.hora_fim} for i in ivs])
+
+@app.route('/api/laser/equipamentos/<int:eid>/intervalos', methods=['POST'])
+def add_laser_intervalo(eid):
+    d = request.json
+    iv = LaserIntervalo(equipamento_id=eid, nome=d.get('nome',''), hora_inicio=d.get('hora_inicio',''), hora_fim=d.get('hora_fim',''))
+    db.session.add(iv); db.session.commit()
+    return jsonify({'ok': True, 'id': iv.id})
+
+@app.route('/api/laser/intervalos/<int:iid>', methods=['PUT'])
+def update_laser_intervalo(iid):
+    iv = LaserIntervalo.query.get_or_404(iid)
+    d = request.json
+    iv.nome = d.get('nome', iv.nome)
+    iv.hora_inicio = d.get('hora_inicio', iv.hora_inicio)
+    iv.hora_fim = d.get('hora_fim', iv.hora_fim)
+    db.session.commit()
+    return jsonify({'ok': True})
+
+@app.route('/api/laser/intervalos/<int:iid>', methods=['DELETE'])
+def delete_laser_intervalo(iid):
+    iv = LaserIntervalo.query.get_or_404(iid)
+    db.session.delete(iv); db.session.commit()
+    return jsonify({'ok': True})
+
+# ─ Fila ─
+@app.route('/api/laser/equipamentos/<int:eid>/fila', methods=['GET'])
+def get_laser_fila(eid):
+    e = LaserEquipamento.query.get_or_404(eid)
+    filas = sorted(e.filas, key=lambda x: x.numero)
+    intervalos = e.intervalos
+    result = []
+    for f in filas:
+        fim = f.data_fim or f.calcular_fim(intervalos)
+        result.append({
+            'id': f.id, 'numero': f.numero, 'op': f.op,
+            'referencia': f.referencia, 'lavacao': f.lavacao,
+            'qtde_pecas': f.qtde_pecas, 'tempo_seg': f.tempo_seg,
+            'status': f.status, 'observacao': f.observacao,
+            'data_inicio': f.data_inicio.strftime('%Y-%m-%dT%H:%M') if f.data_inicio else None,
+            'data_fim': fim.strftime('%Y-%m-%dT%H:%M') if fim else None,
+            'duracao_min': round(f.duracao_seg / 60, 1),
+        })
+    return jsonify({
+        'equipamento': {'id': e.id, 'numero': e.numero, 'tempo_seg': e.tempo_seg},
+        'fila': result
+    })
+
+@app.route('/api/laser/equipamentos/<int:eid>/fila', methods=['POST'])
+def add_laser_fila(eid):
+    e = LaserEquipamento.query.get_or_404(eid)
+    d = request.json
+    num = len(e.filas) + 1
+    dt_inicio = None
+    if d.get('data_inicio'):
+        try: dt_inicio = datetime.strptime(d['data_inicio'], '%Y-%m-%dT%H:%M')
+        except: pass
+    elif e.filas:
+        last = sorted(e.filas, key=lambda x: x.numero)[-1]
+        fim = last.data_fim or last.calcular_fim(e.intervalos)
+        if fim: dt_inicio = fim
+    tempo = safe_float(d.get('tempo_seg', e.tempo_seg))
+    f = LaserFila(
+        equipamento_id=eid, numero=num,
+        op=d.get('op',''), referencia=d.get('referencia',''),
+        lavacao=d.get('lavacao',''), qtde_pecas=safe_int(d.get('qtde_pecas',0)),
+        tempo_seg=tempo, data_inicio=dt_inicio, status='aguardando',
+        observacao=d.get('observacao','')
+    )
+    db.session.add(f)
+    db.session.flush()
+    fim = f.calcular_fim(e.intervalos)
+    f.data_fim = fim
+    db.session.commit()
+    return jsonify({'ok': True, 'id': f.id,
+                    'data_inicio': f.data_inicio.strftime('%Y-%m-%dT%H:%M') if f.data_inicio else None,
+                    'data_fim': f.data_fim.strftime('%Y-%m-%dT%H:%M') if f.data_fim else None})
+
+@app.route('/api/laser/fila/<int:fid>', methods=['PUT'])
+def update_laser_fila(fid):
+    f = LaserFila.query.get_or_404(fid)
+    e = f.equipamento
+    d = request.json
+    if 'op' in d: f.op = d['op']
+    if 'referencia' in d: f.referencia = d['referencia']
+    if 'lavacao' in d: f.lavacao = d['lavacao']
+    if 'qtde_pecas' in d: f.qtde_pecas = safe_int(d['qtde_pecas'])
+    if 'tempo_seg' in d: f.tempo_seg = safe_float(d['tempo_seg'])
+    if 'status' in d: f.status = d['status']
+    if 'observacao' in d: f.observacao = d['observacao']
+    if 'data_inicio' in d:
+        try: f.data_inicio = datetime.strptime(d['data_inicio'], '%Y-%m-%dT%H:%M')
+        except: f.data_inicio = None
+    # Recalcular fim
+    fim = f.calcular_fim(e.intervalos)
+    f.data_fim = fim
+    db.session.commit()
+    return jsonify({'ok': True,
+                    'data_fim': f.data_fim.strftime('%Y-%m-%dT%H:%M') if f.data_fim else None})
+
+@app.route('/api/laser/fila/<int:fid>', methods=['DELETE'])
+def delete_laser_fila(fid):
+    f = LaserFila.query.get_or_404(fid)
+    e = f.equipamento
+    db.session.delete(f)
+    for i, ff in enumerate(sorted(e.filas, key=lambda x: x.numero), 1):
+        ff.numero = i
+    db.session.commit()
+    return jsonify({'ok': True})
+
+# ─ Apontamento ─
+@app.route('/api/laser/equipamentos/<int:eid>/apontamentos', methods=['GET'])
+def get_laser_apontamentos(eid):
+    data_str = request.args.get('data', date.today().strftime('%Y-%m-%d'))
+    try:
+        d = datetime.strptime(data_str, '%Y-%m-%d')
+        d1 = d.replace(hour=0, minute=0, second=0)
+        d2 = d.replace(hour=23, minute=59, second=59)
+    except:
+        d1 = datetime.now().replace(hour=0, minute=0, second=0)
+        d2 = datetime.now().replace(hour=23, minute=59, second=59)
+    rows = LaserApontamento.query.filter(
+        LaserApontamento.equipamento_id == eid,
+        LaserApontamento.hora_ref.between(d1, d2)
+    ).order_by(LaserApontamento.hora_ref).all()
+    total_proj = sum(r.projetado for r in rows)
+    total_real = sum(r.realizado for r in rows)
+    ef_geral = round((total_real / total_proj * 100), 1) if total_proj else 0
+    return jsonify({
+        'apontamentos': [{
+            'id': r.id, 'hora_ref': r.hora_ref.strftime('%H:%M'),
+            'op': r.op, 'referencia': r.referencia,
+            'projetado': r.projetado, 'realizado': r.realizado,
+            'eficiencia': r.eficiencia
+        } for r in rows],
+        'totais': {'projetado': total_proj, 'realizado': total_real, 'eficiencia': ef_geral}
+    })
+
+@app.route('/api/laser/equipamentos/<int:eid>/apontamentos', methods=['POST'])
+def add_laser_apontamento(eid):
+    d = request.json
+    hora_ref = datetime.strptime(d['hora_ref'], '%Y-%m-%dT%H:%M')
+    # Calcula projetado: (3600 / tempo_seg) peças/hora para a fila ativa
+    fila_ativa = LaserFila.query.filter_by(equipamento_id=eid, status='em_processo').first()
+    tempo_seg = fila_ativa.tempo_seg if fila_ativa else safe_float(d.get('tempo_seg', 85))
+    projetado = safe_int(d.get('projetado')) or (int(3600 / tempo_seg) if tempo_seg > 0 else 0)
+    a = LaserApontamento(
+        equipamento_id=eid,
+        fila_id=fila_ativa.id if fila_ativa else None,
+        hora_ref=hora_ref,
+        op=d.get('op', fila_ativa.op if fila_ativa else ''),
+        referencia=d.get('referencia', fila_ativa.referencia if fila_ativa else ''),
+        projetado=projetado,
+        realizado=safe_int(d.get('realizado', 0))
+    )
+    db.session.add(a); db.session.commit()
+    return jsonify({'ok': True, 'id': a.id, 'eficiencia': a.eficiencia})
+
+@app.route('/api/laser/apontamentos/<int:aid>', methods=['PUT'])
+def update_laser_apontamento(aid):
+    a = LaserApontamento.query.get_or_404(aid)
+    d = request.json
+    if 'realizado' in d: a.realizado = safe_int(d['realizado'])
+    if 'projetado' in d: a.projetado = safe_int(d['projetado'])
+    db.session.commit()
+    return jsonify({'ok': True, 'eficiencia': a.eficiencia})
+
+@app.route('/api/laser/apontamentos/<int:aid>', methods=['DELETE'])
+def delete_laser_apontamento(aid):
+    a = LaserApontamento.query.get_or_404(aid)
+    db.session.delete(a); db.session.commit()
+    return jsonify({'ok': True})
 
 if __name__ == '__main__':
     with app.app_context():
