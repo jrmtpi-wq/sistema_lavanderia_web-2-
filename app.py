@@ -311,47 +311,90 @@ def init_db():
 # ── ROUTES ───────────────────────────────────────────────────────
 @app.route('/init_db_agora')
 def init_db_route():
-    db.create_all()
-    init_db()
-    try:
-        db.session.execute(db.text('ALTER TABLE carga ADD COLUMN IF NOT EXISTS parada_min INTEGER DEFAULT 0'))
-        db.session.execute(db.text('ALTER TABLE carga ADD COLUMN IF NOT EXISTS observacao VARCHAR(200)'))
-        # Migração tabela_preco: adiciona coluna op, remove sigla_fim se existir
-        db.session.execute(db.text("ALTER TABLE tabela_preco ADD COLUMN IF NOT EXISTS op VARCHAR(20) NOT NULL DEFAULT ''"))
-        db.session.execute(db.text("ALTER TABLE tabela_preco DROP COLUMN IF EXISTS sigla_fim"))
-        # Migração tabelas laser
-        db.session.execute(db.text("""
-            CREATE TABLE IF NOT EXISTS laser_equipamento (
-                id SERIAL PRIMARY KEY, numero INTEGER NOT NULL, tempo_min FLOAT DEFAULT 1.42)"""))
-        db.session.execute(db.text("""
-            CREATE TABLE IF NOT EXISTS laser_intervalo (
-                id SERIAL PRIMARY KEY, equipamento_id INTEGER REFERENCES laser_equipamento(id),
-                nome VARCHAR(50), hora_inicio VARCHAR(5), hora_fim VARCHAR(5))"""))
-        db.session.execute(db.text("""
-            CREATE TABLE IF NOT EXISTS laser_fila (
-                id SERIAL PRIMARY KEY, equipamento_id INTEGER REFERENCES laser_equipamento(id),
-                numero INTEGER, op VARCHAR(20), referencia VARCHAR(50), lavacao VARCHAR(80),
-                qtde_pecas INTEGER DEFAULT 0, tempo_min FLOAT DEFAULT 1.42,
-                data_inicio TIMESTAMP, data_fim TIMESTAMP, status VARCHAR(20) DEFAULT 'aguardando',
-                observacao VARCHAR(200), created_at TIMESTAMP DEFAULT NOW())"""))
-        db.session.execute(db.text("""
-            CREATE TABLE IF NOT EXISTS laser_apontamento (
-                id SERIAL PRIMARY KEY, equipamento_id INTEGER REFERENCES laser_equipamento(id),
-                fila_id INTEGER REFERENCES laser_fila(id),
-                hora_ref TIMESTAMP NOT NULL, op VARCHAR(20), referencia VARCHAR(50),
-                projetado INTEGER DEFAULT 0, realizado INTEGER DEFAULT 0,
-                created_at TIMESTAMP DEFAULT NOW())"""))
-        # Remove unique constraint antiga em referencia (agora unicidade é op+referencia)
+    # 1. Renomeia colunas tempo_seg->tempo_min ANTES de init_db() para evitar erro de coluna
+    for sql in [
+        'ALTER TABLE laser_equipamento RENAME COLUMN tempo_seg TO tempo_min',
+        'ALTER TABLE laser_fila RENAME COLUMN tempo_seg TO tempo_min',
+    ]:
         try:
-            db.session.execute(db.text("ALTER TABLE tabela_preco DROP CONSTRAINT IF EXISTS tabela_preco_referencia_key"))
-            db.session.execute(db.text("CREATE UNIQUE INDEX IF NOT EXISTS uq_tabela_preco_op_ref ON tabela_preco(op, referencia)"))
-        except:
-            pass
-        db.session.commit()
+            db.session.execute(db.text(sql))
+            db.session.commit()
+        except Exception:
+            db.session.rollback()
+
+    # 2. Cria tabelas e dados iniciais
+    try:
+        db.create_all()
+        init_db()
     except Exception as e:
         db.session.rollback()
-        return f'Banco criado com aviso: {e}'
-    return 'Banco criado e migrado!'
+        return f'Erro ao criar tabelas base: {e}'
+
+    # 3. Demais migrações individuais
+    erros = []
+    sqls = [
+        'ALTER TABLE carga ADD COLUMN IF NOT EXISTS parada_min INTEGER DEFAULT 0',
+        'ALTER TABLE carga ADD COLUMN IF NOT EXISTS observacao VARCHAR(200)',
+        "ALTER TABLE tabela_preco ADD COLUMN IF NOT EXISTS op VARCHAR(20) NOT NULL DEFAULT ''",
+        'ALTER TABLE tabela_preco DROP COLUMN IF EXISTS sigla_fim',
+        """CREATE TABLE IF NOT EXISTS laser_equipamento (
+            id SERIAL PRIMARY KEY, numero INTEGER NOT NULL, tempo_min FLOAT DEFAULT 1.42)""",
+        """CREATE TABLE IF NOT EXISTS laser_intervalo (
+            id SERIAL PRIMARY KEY, equipamento_id INTEGER REFERENCES laser_equipamento(id),
+            nome VARCHAR(50), hora_inicio VARCHAR(5), hora_fim VARCHAR(5))""",
+        """CREATE TABLE IF NOT EXISTS laser_fila (
+            id SERIAL PRIMARY KEY, equipamento_id INTEGER REFERENCES laser_equipamento(id),
+            numero INTEGER, op VARCHAR(20), referencia VARCHAR(50), lavacao VARCHAR(80),
+            qtde_pecas INTEGER DEFAULT 0, tempo_min FLOAT DEFAULT 1.42,
+            data_inicio TIMESTAMP, data_fim TIMESTAMP, status VARCHAR(20) DEFAULT 'aguardando',
+            observacao VARCHAR(200), created_at TIMESTAMP DEFAULT NOW())""",
+        """CREATE TABLE IF NOT EXISTS laser_apontamento (
+            id SERIAL PRIMARY KEY, equipamento_id INTEGER REFERENCES laser_equipamento(id),
+            fila_id INTEGER REFERENCES laser_fila(id),
+            hora_ref TIMESTAMP NOT NULL, op VARCHAR(20), referencia VARCHAR(50),
+            projetado INTEGER DEFAULT 0, realizado INTEGER DEFAULT 0,
+            created_at TIMESTAMP DEFAULT NOW())""",
+        'ALTER TABLE laser_equipamento ADD COLUMN IF NOT EXISTS tempo_min FLOAT DEFAULT 1.42',
+        'ALTER TABLE laser_fila ADD COLUMN IF NOT EXISTS tempo_min FLOAT DEFAULT 1.42',
+        "INSERT INTO laser_equipamento (numero, tempo_min) SELECT 1, 1.42 WHERE NOT EXISTS (SELECT 1 FROM laser_equipamento WHERE numero=1)",
+        "INSERT INTO laser_equipamento (numero, tempo_min) SELECT 2, 1.42 WHERE NOT EXISTS (SELECT 1 FROM laser_equipamento WHERE numero=2)",
+        "INSERT INTO laser_equipamento (numero, tempo_min) SELECT 3, 1.42 WHERE NOT EXISTS (SELECT 1 FROM laser_equipamento WHERE numero=3)",
+        'ALTER TABLE tabela_preco DROP CONSTRAINT IF EXISTS tabela_preco_referencia_key',
+        'CREATE UNIQUE INDEX IF NOT EXISTS uq_tabela_preco_op_ref ON tabela_preco(op, referencia)',
+    ]
+    for sql in sqls:
+        try:
+            db.session.execute(db.text(sql))
+            db.session.commit()
+        except Exception as e:
+            db.session.rollback()
+            erros.append(f'AVISO [{sql[:50]}]: {e}')
+
+    if erros:
+        return 'Banco migrado com avisos:<br>' + '<br>'.join(erros)
+    return 'Banco criado e migrado com sucesso!'
+
+@app.route('/diagnostico')
+def diagnostico():
+    import traceback
+    resultado = []
+    try:
+        resultado.append('✅ Flask OK')
+        resultado.append(f'✅ Models carregados')
+        # testa conexão
+        db.session.execute(db.text('SELECT 1'))
+        resultado.append('✅ Banco conectado')
+        # testa cada tabela
+        for tabela in ['ordem_producao','maquina','carga','turno','tabela_preco','faturamento','laser_equipamento','laser_fila','laser_intervalo','laser_apontamento']:
+            try:
+                db.session.execute(db.text(f'SELECT COUNT(*) FROM {tabela}'))
+                resultado.append(f'✅ Tabela {tabela} OK')
+            except Exception as e:
+                resultado.append(f'❌ Tabela {tabela}: {e}')
+                db.session.rollback()
+    except Exception as e:
+        resultado.append(f'❌ ERRO: {traceback.format_exc()}')
+    return '<br>'.join(resultado)
 
 @app.route('/')
 def index():
