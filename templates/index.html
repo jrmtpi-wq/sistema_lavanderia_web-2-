@@ -36,7 +36,7 @@ nav{padding:16px 12px;flex:1;overflow-y:auto}
 .page{display:none;animation:fadeIn .3s ease}.page.active{display:block}
 @keyframes fadeIn{from{opacity:0;transform:translateY(8px)}to{opacity:1;transform:translateY(0)}}
 .card{background:var(--cinza2);border:1px solid var(--brd);border-radius:16px;padding:24px;margin-bottom:20px}
-.card-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px}
+.card-header{display:flex;align-items:center;justify-content:space-between;margin-bottom:20px;flex-wrap:wrap;gap:10px}
 .card-title{font-family:'Syne',sans-serif;font-size:15px;font-weight:700;display:flex;align-items:center;gap:8px}
 .card-title i{color:var(--ciano)}
 .stats-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(200px,1fr));gap:16px;margin-bottom:24px}
@@ -62,6 +62,15 @@ nav{padding:16px 12px;flex:1;overflow-y:auto}
 .form-control{background:var(--cinza3);border:1px solid var(--brd);border-radius:9px;padding:9px 13px;color:var(--txt);font-size:13px;font-family:'Nunito',sans-serif;transition:border-color .2s;width:100%}
 .form-control:focus{outline:none;border-color:var(--ciano);box-shadow:0 0 0 3px rgba(0,197,215,.12)}
 .form-control::placeholder{color:var(--txt2)}
+/* ── BUSCA OPs ── */
+.ops-search-bar{display:flex;gap:10px;align-items:center;margin-bottom:16px;flex-wrap:wrap}
+.ops-search-bar .search-wrap{position:relative;flex:1;min-width:180px}
+.ops-search-bar .search-wrap i{position:absolute;left:11px;top:50%;transform:translateY(-50%);color:var(--txt2);font-size:13px;pointer-events:none}
+.ops-search-bar input{background:var(--cinza3);border:1px solid var(--brd);border-radius:9px;padding:8px 12px 8px 34px;color:var(--txt);font-size:13px;font-family:'Nunito',sans-serif;width:100%;transition:border-color .2s}
+.ops-search-bar input:focus{outline:none;border-color:var(--ciano);box-shadow:0 0 0 3px rgba(0,197,215,.12)}
+.ops-search-bar input::placeholder{color:var(--txt2)}
+.ops-count{font-size:12px;color:var(--txt2);white-space:nowrap}
+/* ── FIM BUSCA ── */
 .sizes-section{margin-top:20px}
 .sizes-group-title{font-size:10px;font-weight:700;letter-spacing:2px;text-transform:uppercase;color:var(--txt2);margin-bottom:10px;padding:6px 10px;background:var(--cinza3);border-radius:6px;display:inline-block}
 .sizes-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(90px,1fr));gap:8px;margin-bottom:16px}
@@ -142,7 +151,18 @@ tbody td{padding:10px 14px;vertical-align:middle;color:var(--txt)}
 .dre-stat{background:var(--cinza3);border-radius:12px;padding:16px;text-align:center}
 .dre-stat-val{font-family:'Syne',sans-serif;font-size:22px;font-weight:800;color:var(--txt)}
 .dre-stat-lbl{font-size:11px;color:var(--txt2);margin-top:3px}
-.sigla-badge{display:inline-flex;align-items:center;gap:4px;background:rgba(124,58,237,.2);border:1px solid rgba(124,58,237,.4);border-radius:6px;padding:3px 10px;font-size:11px;font-weight:700;color:#a78bfa;font-family:'DM Mono',monospace}
+/* modal faturar */
+.fat-modal-backdrop{display:none;position:fixed;inset:0;background:rgba(0,0,0,.65);z-index:500;backdrop-filter:blur(4px);align-items:center;justify-content:center}
+.fat-modal-backdrop.open{display:flex}
+.fat-modal{background:var(--cinza2);border:1px solid var(--brd);border-radius:18px;padding:28px;width:min(480px,95vw);box-shadow:var(--shadow);animation:fadeIn .25s ease}
+.fat-modal-title{font-family:'Syne',sans-serif;font-size:16px;font-weight:700;margin-bottom:20px;display:flex;align-items:center;gap:8px}
+.fat-modal-title i{color:var(--verde)}
+.fat-preview{background:var(--cinza3);border-radius:12px;padding:16px;margin-bottom:20px;border:1px solid var(--brd)}
+.fat-preview-row{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px;font-size:13px}
+.fat-preview-row:last-child{margin-bottom:0;padding-top:8px;border-top:1px solid var(--brd)}
+.fat-preview-label{color:var(--txt2)}
+.fat-preview-val{font-weight:700;font-family:'DM Mono',monospace}
+.fat-preview-total{font-size:18px;color:var(--verde)}
 @media(max-width:900px){.sidebar{transform:translateX(-230px)}.sidebar.open{transform:translateX(0)}.main{margin-left:0}.turno-editor{grid-template-columns:1fr}.dre-stats{grid-template-columns:1fr}}
 @media print{
   html,body{background:#fff!important;background-color:#fff!important;min-height:0!important;height:auto!important;overflow:hidden!important}
@@ -193,12 +213,36 @@ tbody td{padding:10px 14px;vertical-align:middle;color:var(--txt)}
         <div class="card"><div class="card-header"><div class="card-title"><i class="fas fa-wind"></i>Secadores</div></div><div class="maq-grid" id="dash-secador"></div></div>
       </div>
     </div>
+
+    <!-- ── PÁGINA OPs ── -->
     <div class="page" id="page-ops">
       <div class="card">
-        <div class="card-header"><div class="card-title"><i class="fas fa-file-alt"></i>Ordens de Produção</div><button class="btn btn-primary" onclick="openOpForm()"><i class="fas fa-plus"></i>Nova OP</button></div>
-        <div class="tbl-wrap"><table><thead><tr><th>OP</th><th>Referência</th><th>Lavação</th><th>Total Peças</th><th>Peso Total (kg)</th><th>Cadastro</th><th>Ações</th></tr></thead><tbody id="ops-tbody"></tbody></table></div>
+        <div class="card-header">
+          <div class="card-title"><i class="fas fa-file-alt"></i>Ordens de Produção</div>
+          <button class="btn btn-primary" onclick="openOpForm()"><i class="fas fa-plus"></i>Nova OP</button>
+        </div>
+        <!-- BARRA DE BUSCA -->
+        <div class="ops-search-bar">
+          <div class="search-wrap">
+            <i class="fas fa-search"></i>
+            <input type="text" id="busca-op" placeholder="Buscar por Nº OP…" oninput="filtrarOps()">
+          </div>
+          <div class="search-wrap">
+            <i class="fas fa-tag"></i>
+            <input type="text" id="busca-ref" placeholder="Buscar por Referência…" oninput="filtrarOps()">
+          </div>
+          <button class="btn btn-ghost btn-sm" onclick="limparBusca()"><i class="fas fa-times"></i>Limpar</button>
+          <span class="ops-count" id="ops-count"></span>
+        </div>
+        <div class="tbl-wrap">
+          <table>
+            <thead><tr><th>OP</th><th>Referência</th><th>Lavação</th><th>Total Peças</th><th>Peso Total (kg)</th><th>Cadastro</th><th>Ações</th></tr></thead>
+            <tbody id="ops-tbody"></tbody>
+          </table>
+        </div>
       </div>
     </div>
+
     <div class="page" id="page-maquinas">
       <div class="tabs" id="maq-tabs"></div>
       <div class="maq-grid" id="maq-grid"></div>
@@ -220,10 +264,19 @@ tbody td{padding:10px 14px;vertical-align:middle;color:var(--txt)}
         <button class="tab" onclick="switchFatTab('prontas',this)">✅ OPs Prontas</button>
         <button class="tab" onclick="switchFatTab('historico',this)">📂 Histórico</button>
       </div>
+      <!-- TABELA DE PREÇOS — agora OP + Referência, sem sigla_fim -->
       <div id="fat-tab-precos">
         <div class="card">
-          <div class="card-header"><div class="card-title"><i class="fas fa-tags"></i>Tabela de Preços por Referência</div><button class="btn btn-primary" onclick="openPrecoForm()"><i class="fas fa-plus"></i>Nova Referência</button></div>
-          <div class="tbl-wrap"><table><thead><tr><th>Referência</th><th>Preço/Peça (R$)</th><th>Sigla Finalização</th><th>Cadastro</th><th>Ações</th></tr></thead><tbody id="precos-tbody"></tbody></table></div>
+          <div class="card-header">
+            <div class="card-title"><i class="fas fa-tags"></i>Tabela de Preços</div>
+            <button class="btn btn-primary" onclick="openPrecoForm()"><i class="fas fa-plus"></i>Nova Entrada</button>
+          </div>
+          <div class="tbl-wrap">
+            <table>
+              <thead><tr><th>OP</th><th>Referência</th><th>Preço/Peça (R$)</th><th>Cadastro</th><th>Ações</th></tr></thead>
+              <tbody id="precos-tbody"></tbody>
+            </table>
+          </div>
         </div>
       </div>
       <div id="fat-tab-prontas" style="display:none">
@@ -255,12 +308,34 @@ tbody td{padding:10px 14px;vertical-align:middle;color:var(--txt)}
     </div>
   </div>
 </div>
+
+<!-- ── PAINÉIS ── -->
 <div class="panel-overlay" id="op-panel"><div class="panel"><div class="panel-head"><div class="panel-title" id="op-panel-title"><i class="fas fa-file-alt" style="color:var(--ciano)"></i> Nova Ordem de Produção</div><button class="btn btn-ghost btn-sm" onclick="closePanel('op-panel')"><i class="fas fa-times"></i></button></div><div class="panel-body"><input type="hidden" id="op-edit-id"><div class="form-grid"><div class="form-group"><label>Nº OP</label><input class="form-control" id="op-num" placeholder="Ex: 48000"></div><div class="form-group"><label>Referência</label><input class="form-control" id="op-ref" placeholder="Ex: CFHV41827-1"></div><div class="form-group" style="grid-column:1/-1"><label>Tipo de Lavação</label><input class="form-control" id="op-lav" placeholder="Ex: STONAGEM / SKY / LASER"></div><div class="form-group"><label>Cap. Peças/Carga</label><input class="form-control" id="op-cap" type="number" placeholder="134"></div></div><div class="sizes-section"><p class="sizes-group-title" style="color:var(--laranja)">🅰️ ADULTO – LETRAS</p><div class="sizes-grid" id="sizes-letras"></div><p class="sizes-group-title" style="color:var(--roxo)">🔢 ADULTO – NUMÉRICO</p><div class="sizes-grid" id="sizes-num"></div><p class="sizes-group-title" style="color:var(--verde)">👶 INFANTIL</p><div class="sizes-grid" id="sizes-inf"></div></div><div style="margin-top:20px;padding-top:20px;border-top:1px solid var(--brd)"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px"><p class="sizes-group-title" style="margin:0">⚖️ PESO POR TAMANHO (kg/peça)</p><div style="display:flex;align-items:center;gap:10px"><input class="form-control" id="cap-arredondar" type="number" step="0.1" placeholder="Cap. kg/carga" style="width:140px"><button class="btn btn-warning btn-sm" onclick="calcArredondar()"><i class="fas fa-calculator"></i> Arredondar Cargas</button></div></div><div class="sizes-grid" id="pesos-grid"></div><div class="arr-result" id="arr-result" style="display:none"><div style="display:flex;align-items:center;gap:20px;flex-wrap:wrap"><div><div class="arr-big" id="arr-cargas">0</div><div class="arr-sub">Cargas necessárias</div></div><div><div style="font-family:'DM Mono',monospace;font-size:20px;color:var(--amarelo)" id="arr-peso">0.000</div><div class="arr-sub">Peso total (kg)</div></div><div><div style="font-family:'DM Mono',monospace;font-size:20px;color:var(--verde)" id="arr-ultimo">0.000</div><div class="arr-sub">Peso última carga</div></div></div></div></div></div><div class="panel-foot"><div style="flex:1;font-size:13px;color:var(--txt2);display:flex;gap:18px;align-items:center"><span>Peças: <b id="live-pecas" style="color:var(--txt)">0</b></span><span>Peso Total: <b id="live-peso" style="color:var(--ciano)">0.000 kg</b></span></div><button class="btn btn-ghost" onclick="closePanel('op-panel')">Cancelar</button><button class="btn btn-primary" onclick="saveOp()"><i class="fas fa-save"></i>Salvar OP</button></div></div></div>
 <div class="panel-overlay" id="maq-panel"><div class="panel" style="width:min(900px,97vw)"><div class="panel-head"><div class="panel-title" id="maq-panel-title">Máquina</div><button class="btn btn-ghost btn-sm" onclick="closePanel('maq-panel')"><i class="fas fa-times"></i></button></div><div class="panel-body"><div class="card" style="margin-bottom:12px;padding:16px"><div class="form-grid" style="grid-template-columns:repeat(auto-fill,minmax(150px,1fr))"><div class="form-group"><label>OP</label><input class="form-control" id="mc-op" placeholder="Nº OP"></div><div class="form-group"><label>Referência</label><input class="form-control" id="mc-ref" placeholder="Referência"></div><div class="form-group"><label>Tipo Lavação</label><input class="form-control" id="mc-lav" placeholder="Tipo"></div><div class="form-group"><label>Cap. Peso (kg)</label><input class="form-control" id="mc-cap" type="number" step="0.1"></div><div class="form-group"><label>Tempo/Carga (min)</label><input class="form-control" id="mc-tempo" type="number"></div><div class="form-group"><label>Data 1ª Carga</label><input class="form-control" id="mc-data" type="date"></div><div class="form-group"><label>Hora 1ª Carga</label><input class="form-control" id="mc-hora" type="time"></div><div class="form-group"><label>Qtde Cargas</label><input class="form-control" id="mc-qtd-cargas" type="number" value="10" min="1" max="60"></div></div><div style="display:flex;gap:10px;margin-top:14px;flex-wrap:wrap"><button class="btn btn-primary" onclick="gerarCargas()"><i class="fas fa-magic"></i>Gerar Automático</button><button class="btn btn-success" onclick="saveMaqConfig()"><i class="fas fa-save"></i>Salvar Config.</button><button class="btn btn-ghost" onclick="addCargaManual()"><i class="fas fa-plus"></i>Add Carga</button><button class="btn btn-warning btn-sm" onclick="imprimirMaquinaEmProcesso()"><i class="fas fa-print"></i>Imprimir Em Processo</button></div></div><div class="card" style="margin-bottom:12px;padding:16px;border-color:rgba(124,58,237,.3);background:rgba(124,58,237,.07)"><div style="font-family:'Syne',sans-serif;font-size:13px;font-weight:700;color:#a78bfa;margin-bottom:12px"><i class="fas fa-calculator"></i> Calculadora de Cargas por OP</div><div style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end"><div class="form-group" style="min-width:160px"><label>Selecionar OP</label><select class="form-control" id="calc-op-select"><option value="">-- Selecione --</option></select></div><div class="form-group" style="width:110px"><label>Capacidade (kg)</label><input class="form-control" id="calc-cap" type="number" step="0.1" placeholder="80"></div><div class="form-group" style="width:130px"><label>Arred. Cargas</label><select class="form-control" id="calc-arred-cargas"><option value="baixo">↓ Para baixo</option><option value="cima">↑ Para cima</option></select></div><div class="form-group" style="width:130px"><label>Arred. Peças</label><select class="form-control" id="calc-arred-pecas"><option value="baixo">↓ Para baixo</option><option value="cima">↑ Para cima</option></select></div><button class="btn btn-purple btn-sm" onclick="calcularCargasOP()"><i class="fas fa-calculator"></i>Calcular</button></div><div id="calc-resultado" style="display:none;margin-top:12px;background:var(--cinza3);border-radius:10px;padding:14px"><div style="display:flex;gap:20px;flex-wrap:wrap;align-items:center"><div style="text-align:center"><div style="font-family:'Syne',sans-serif;font-size:28px;font-weight:800;color:#a78bfa" id="calc-num-cargas">0</div><div style="font-size:11px;color:var(--txt2)">Cargas</div></div><div style="text-align:center"><div style="font-family:'DM Mono',monospace;font-size:18px;color:var(--ciano)" id="calc-peso-carga">0</div><div style="font-size:11px;color:var(--txt2)">kg/carga</div></div><div style="text-align:center"><div style="font-family:'DM Mono',monospace;font-size:18px;color:var(--verde)" id="calc-pecas-carga">0</div><div style="font-size:11px;color:var(--txt2)">peças/carga</div></div><div style="text-align:center"><div style="font-family:'DM Mono',monospace;font-size:14px;color:var(--amarelo)" id="calc-peso-total-res">0</div><div style="font-size:11px;color:var(--txt2)">peso total kg</div></div><button class="btn btn-primary btn-sm" onclick="aplicarCalculoCargas()"><i class="fas fa-check"></i>Aplicar nas Cargas</button></div></div></div><div style="overflow-x:auto"><div style="display:grid;grid-template-columns:52px 36px 82px 82px 90px 65px 68px 110px 110px 90px 75px 36px;gap:4px;align-items:center;padding:7px 8px;margin-bottom:4px;background:var(--cinza1);font-size:9px;font-weight:700;letter-spacing:1px;text-transform:uppercase;color:var(--txt2);border-radius:6px"><div>Mover</div><div>Nº</div><div>OP</div><div>Referência</div><div>Lavação</div><div>Peças</div><div>Peso(kg)</div><div>Início</div><div>Saída</div><div>Status</div><div>Parada(min)</div><div></div></div><div id="cargas-list"></div></div></div><div class="panel-foot"><div style="flex:1;font-size:13px;color:var(--txt2)">Total: <b id="maq-total-cargas" style="color:var(--txt)">0</b> cargas | <b id="maq-total-peso" style="color:var(--ciano)">0.000</b> kg</div><button class="btn btn-ghost" onclick="closePanel('maq-panel')">Fechar</button></div></div></div>
 <div class="panel-overlay" id="cal-panel"><div class="panel" style="width:min(600px,97vw)"><div class="panel-head"><div class="panel-title" id="cal-panel-title">Turnos do Dia</div><button class="btn btn-ghost btn-sm" onclick="closePanel('cal-panel')"><i class="fas fa-times"></i></button></div><div class="panel-body"><input type="hidden" id="cal-selected-date"><div class="turno-editor"><div class="turno-block t1"><div class="turno-block-title">🌅 Turno 1</div><div class="turno-row"><div><div class="turno-label">Entrada</div><input class="form-control" id="t1-entrada" type="time" value="05:00"></div><div><div class="turno-label">Saída</div><input class="form-control" id="t1-saida" type="time" value="13:00"></div></div></div><div class="turno-block t2"><div class="turno-block-title">☀️ Turno 2</div><div class="turno-row"><div><div class="turno-label">Entrada</div><input class="form-control" id="t2-entrada" type="time" value="13:00"></div><div><div class="turno-label">Saída</div><input class="form-control" id="t2-saida" type="time" value="21:00"></div></div></div><div class="turno-block t3"><div class="turno-block-title">🌙 Turno 3</div><div class="turno-row"><div><div class="turno-label">Entrada</div><input class="form-control" id="t3-entrada" type="time" value="21:00"></div><div><div class="turno-label">Saída</div><input class="form-control" id="t3-saida" type="time" value="05:00"></div></div></div></div><div class="he-block"><div class="turno-block-title" style="color:var(--laranja)">⏱️ Hora Extra</div><div class="turno-row"><div><div class="turno-label">Início</div><input class="form-control" id="he-inicio" type="time"></div><div><div class="turno-label">Fim</div><input class="form-control" id="he-fim" type="time"></div></div><div style="margin-top:8px;font-size:12px;color:var(--txt2)">Total H.Extra: <b id="he-total" style="color:var(--laranja)">--</b></div></div><div class="form-group" style="margin-top:14px"><label>Observações</label><input class="form-control" id="cal-obs" placeholder="Observações do dia"></div></div><div class="panel-foot"><button class="btn btn-ghost" onclick="closePanel('cal-panel')">Cancelar</button><button class="btn btn-primary" onclick="saveTurnos()"><i class="fas fa-save"></i>Salvar Turnos</button></div></div></div>
-<div class="panel-overlay" id="preco-panel"><div class="panel" style="width:min(500px,97vw)"><div class="panel-head"><div class="panel-title" id="preco-panel-title"><i class="fas fa-tags" style="color:var(--ciano)"></i> Nova Referência</div><button class="btn btn-ghost btn-sm" onclick="closePanel('preco-panel')"><i class="fas fa-times"></i></button></div><div class="panel-body"><input type="hidden" id="preco-edit-id"><div class="form-grid" style="grid-template-columns:1fr"><div class="form-group"><label>Referência</label><input class="form-control" id="preco-ref" placeholder="Ex: CFHV41827-1" style="text-transform:uppercase"></div><div class="form-group"><label>Preço por Peça (R$)</label><input class="form-control" id="preco-val" type="number" step="0.01" min="0" placeholder="Ex: 2.50"></div><div class="form-group"><label>Sigla de Finalização</label><input class="form-control" id="preco-sigla" placeholder="Ex: SKY, LASER, STONE" style="text-transform:uppercase"></div></div></div><div class="panel-foot"><button class="btn btn-ghost" onclick="closePanel('preco-panel')">Cancelar</button><button class="btn btn-primary" onclick="savePreco()"><i class="fas fa-save"></i>Salvar</button></div></div></div>
+
+<!-- PAINEL TABELA DE PREÇOS — OP + Referência + Preço, sem sigla_fim -->
+<div class="panel-overlay" id="preco-panel"><div class="panel" style="width:min(500px,97vw)"><div class="panel-head"><div class="panel-title" id="preco-panel-title"><i class="fas fa-tags" style="color:var(--ciano)"></i> Nova Entrada de Preço</div><button class="btn btn-ghost btn-sm" onclick="closePanel('preco-panel')"><i class="fas fa-times"></i></button></div><div class="panel-body"><input type="hidden" id="preco-edit-id"><div class="form-grid" style="grid-template-columns:1fr"><div class="form-group"><label>Nº OP</label><input class="form-control" id="preco-op" placeholder="Ex: 48000" style="text-transform:uppercase"></div><div class="form-group"><label>Referência</label><input class="form-control" id="preco-ref" placeholder="Ex: CFHV41827-1" style="text-transform:uppercase"></div><div class="form-group"><label>Preço por Peça (R$)</label><input class="form-control" id="preco-val" type="number" step="0.01" min="0" placeholder="Ex: 2.50"></div></div></div><div class="panel-foot"><button class="btn btn-ghost" onclick="closePanel('preco-panel')">Cancelar</button><button class="btn btn-primary" onclick="savePreco()"><i class="fas fa-save"></i>Salvar</button></div></div></div>
+
+<!-- MODAL FATURAR DIRETO DA TELA DE OPs -->
+<div class="fat-modal-backdrop" id="fat-modal">
+  <div class="fat-modal">
+    <div class="fat-modal-title"><i class="fas fa-file-invoice-dollar"></i> Confirmar Faturamento</div>
+    <div class="fat-preview" id="fat-preview-content"></div>
+    <div class="form-group" style="margin-bottom:16px">
+      <label>Data de Faturamento</label>
+      <input class="form-control" id="fat-modal-data" type="date">
+    </div>
+    <div style="display:flex;gap:10px;justify-content:flex-end">
+      <button class="btn btn-ghost" onclick="closeFatModal()">Cancelar</button>
+      <button class="btn btn-success" id="fat-modal-confirm-btn" onclick="confirmarFaturamento()"><i class="fas fa-check"></i>Confirmar Faturamento</button>
+    </div>
+  </div>
+</div>
+
 <div class="toast-area" id="toast-area"></div>
 <div id="print-area" style="display:none;position:fixed;top:0;left:0;width:100%;background:#fff;z-index:9999"></div>
+
 <script>
 const TAMANHOS=['PP','P','M','G','GG','XG','32','34','36','38','40','42','44','46','48','50','01','02','03','04','06','08','10','12','14','16'];
 function toast(msg,type='info'){const a=document.getElementById('toast-area');const t=document.createElement('div');t.className=`toast ${type}`;const icons={info:'fa-info-circle',success:'fa-check-circle',error:'fa-exclamation-circle'};t.innerHTML=`<i class="fas ${icons[type]||'fa-info-circle'}"></i>${msg}`;a.appendChild(t);setTimeout(()=>t.remove(),3500)}
@@ -296,8 +371,117 @@ function openOpForm(op=null){document.getElementById('op-edit-id').value=op?op.i
 function copiarOp(o){const clone=Object.assign({},o,{id:'',op:''});openOpForm(clone);setTimeout(()=>{const f=document.getElementById('op-num');if(!f)return;f.value='';f.focus();f.style.borderColor='#f59e0b';f.style.boxShadow='0 0 0 3px rgba(245,158,11,0.35)';f.placeholder='⚠ Digite o NOVO número de OP';document.getElementById('op-panel-title').innerHTML=`<i class="fas fa-copy" style="color:#f59e0b"></i> Cópia de OP ${o.op} · ${o.referencia||''} — Digite o novo nº`;setTimeout(()=>{f.style.borderColor='';f.style.boxShadow='';f.placeholder='Ex: 48000'},6000)},300);toast('📋 OP copiada — preencha o novo número!','info')}
 async function saveOp(){const id=document.getElementById('op-edit-id').value;const opVal=document.getElementById('op-num').value.trim();const refVal=document.getElementById('op-ref').value.trim();if(!opVal||!refVal){toast('Preencha o Nº da OP e a Referência','error');return}const qtd={},peso_unit={};TAMANHOS.forEach(s=>{qtd[s]=parseFloat(document.getElementById('qtd-'+s)?.value||0)||0;peso_unit[s]=parseFloat(document.getElementById('peso-'+s)?.value||0)||0});const body={op:opVal,referencia:refVal,lavacao:document.getElementById('op-lav').value.trim(),cap_pecas:parseInt(document.getElementById('op-cap').value||0)||0,qtd,peso_unit};const btn=document.querySelector('#op-panel .btn-primary');btn.disabled=true;btn.innerHTML='<i class="fas fa-spinner fa-spin"></i> Salvando…';try{if(id)await api(`/api/ops/${id}`,'PUT',body);else await api('/api/ops','POST',body);toast('OP salva!','success');closePanel('op-panel');loadOps()}finally{btn.disabled=false;btn.innerHTML='<i class="fas fa-save"></i>Salvar OP'}}
 async function calcArredondar(){const id=document.getElementById('op-edit-id').value;if(!id){toast('Salve a OP primeiro','error');return}const cap=document.getElementById('cap-arredondar').value||80;const r=await api(`/api/ops/${id}/arredondar?cap=${cap}`);document.getElementById('arr-result').style.display='block';document.getElementById('arr-cargas').textContent=r.cargas;document.getElementById('arr-peso').textContent=r.peso_total?.toLocaleString('pt-BR',{minimumFractionDigits:3})+'kg';document.getElementById('arr-ultimo').textContent=(r.ultimo_peso||0).toLocaleString('pt-BR',{minimumFractionDigits:3})+'kg'}
-async function loadOps(){const ops=await api('/api/ops');document.getElementById('ops-tbody').innerHTML=ops.map(o=>`<tr><td class="mono">${o.op}</td><td><b>${o.referencia}</b></td><td style="color:var(--txt2)">${o.lavacao||'--'}</td><td class="mono">${o.total_pecas.toLocaleString('pt-BR')}</td><td class="mono" style="color:var(--ciano)">${o.peso_total.toLocaleString('pt-BR',{minimumFractionDigits:3})} kg</td><td style="color:var(--txt2);font-size:11px">${o.created_at}</td><td style="display:flex;gap:5px;flex-wrap:wrap;align-items:center"><button class="btn btn-ghost btn-xs" onclick='openOpForm(${JSON.stringify(o).replace(/'/g,"&#39;")})'><i class="fas fa-edit"></i></button><button class="btn btn-purple btn-xs" onclick='copiarOp(${JSON.stringify(o).replace(/'/g,"&#39;")})'><i class="fas fa-copy"></i> Copiar</button><button class="btn btn-danger btn-xs" onclick="deleteOp(${o.id})"><i class="fas fa-trash"></i></button></td></tr>`).join('')}
+
+// ── LISTA DE OPs com busca e botão Faturar ──
+let _allOps = [];
+
+async function loadOps(){
+  _allOps = await api('/api/ops');
+  filtrarOps();
+}
+
+function filtrarOps(){
+  const termOP  = (document.getElementById('busca-op')?.value||'').trim().toLowerCase();
+  const termRef = (document.getElementById('busca-ref')?.value||'').trim().toLowerCase();
+  const filtradas = _allOps.filter(o=>{
+    const matchOp  = !termOP  || o.op.toLowerCase().includes(termOP);
+    const matchRef = !termRef || o.referencia.toLowerCase().includes(termRef);
+    return matchOp && matchRef;
+  });
+  const countEl = document.getElementById('ops-count');
+  if(countEl) countEl.textContent = `${filtradas.length} de ${_allOps.length} OPs`;
+  document.getElementById('ops-tbody').innerHTML = filtradas.length
+    ? filtradas.map(o=>`<tr>
+        <td class="mono">${o.op}</td>
+        <td><b>${o.referencia}</b></td>
+        <td style="color:var(--txt2)">${o.lavacao||'--'}</td>
+        <td class="mono">${o.total_pecas.toLocaleString('pt-BR')}</td>
+        <td class="mono" style="color:var(--ciano)">${o.peso_total.toLocaleString('pt-BR',{minimumFractionDigits:3})} kg</td>
+        <td style="color:var(--txt2);font-size:11px">${o.created_at}</td>
+        <td style="display:flex;gap:5px;flex-wrap:wrap;align-items:center">
+          <button class="btn btn-ghost btn-xs" onclick='openOpForm(${JSON.stringify(o).replace(/'/g,"&#39;")})'><i class="fas fa-edit"></i></button>
+          <button class="btn btn-purple btn-xs" onclick='copiarOp(${JSON.stringify(o).replace(/'/g,"&#39;")})'><i class="fas fa-copy"></i> Copiar</button>
+          <button class="btn btn-success btn-xs" onclick='abrirFaturarOp(${JSON.stringify(o).replace(/'/g,"&#39;")})' title="Faturar esta OP"><i class="fas fa-file-invoice-dollar"></i> Faturar</button>
+          <button class="btn btn-danger btn-xs" onclick="deleteOp(${o.id})"><i class="fas fa-trash"></i></button>
+        </td>
+      </tr>`).join('')
+    : '<tr><td colspan="7" style="text-align:center;padding:24px;color:var(--txt2)">Nenhuma OP encontrada.</td></tr>';
+}
+
+function limparBusca(){
+  document.getElementById('busca-op').value='';
+  document.getElementById('busca-ref').value='';
+  filtrarOps();
+}
+
 async function deleteOp(id){if(!confirm('Excluir esta OP?'))return;await api(`/api/ops/${id}`,'DELETE');toast('OP excluída','info');loadOps()}
+
+// ── FATURAR DIRETO DA TELA DE OPs ──
+let _fatOpPendente = null;
+
+async function abrirFaturarOp(o){
+  // Busca preço cadastrado para OP + Referência
+  let preco = null;
+  try {
+    preco = await api(`/api/precos/buscar?op=${encodeURIComponent(o.op)}&referencia=${encodeURIComponent(o.referencia)}`);
+  } catch(e) {
+    // erro já exibido pelo api()
+    return;
+  }
+  // Verifica se já foi faturada
+  const jaFat = await api('/api/ops_prontas');
+  const opPronta = jaFat.find(x => x.op === o.op && x.referencia === o.referencia);
+  if(opPronta && opPronta.ja_faturada){
+    toast(`OP ${o.op} já foi faturada anteriormente.`,'info');
+    return;
+  }
+  const valorTotal = o.total_pecas * preco.preco_peca;
+  _fatOpPendente = {
+    op_numero: o.op,
+    referencia: o.referencia,
+    lavacao: o.lavacao,
+    qtd_pecas: o.total_pecas,
+    preco_peca: preco.preco_peca,
+    valor_total: parseFloat(valorTotal.toFixed(2))
+  };
+  document.getElementById('fat-preview-content').innerHTML = `
+    <div class="fat-preview-row"><span class="fat-preview-label">OP</span><span class="fat-preview-val">${o.op}</span></div>
+    <div class="fat-preview-row"><span class="fat-preview-label">Referência</span><span class="fat-preview-val">${o.referencia}</span></div>
+    <div class="fat-preview-row"><span class="fat-preview-label">Lavação</span><span class="fat-preview-val" style="color:var(--txt2)">${o.lavacao||'--'}</span></div>
+    <div class="fat-preview-row"><span class="fat-preview-label">Qtd. Peças</span><span class="fat-preview-val">${o.total_pecas.toLocaleString('pt-BR')}</span></div>
+    <div class="fat-preview-row"><span class="fat-preview-label">Preço / Peça</span><span class="fat-preview-val" style="color:var(--ciano)">${fmtBRL(preco.preco_peca)}</span></div>
+    <div class="fat-preview-row"><span class="fat-preview-label">Valor Total</span><span class="fat-preview-val fat-preview-total">${fmtBRL(valorTotal)}</span></div>
+  `;
+  document.getElementById('fat-modal-data').value = new Date().toISOString().slice(0,10);
+  document.getElementById('fat-modal').classList.add('open');
+}
+
+function closeFatModal(){
+  document.getElementById('fat-modal').classList.remove('open');
+  _fatOpPendente = null;
+}
+
+async function confirmarFaturamento(){
+  if(!_fatOpPendente) return;
+  const data = document.getElementById('fat-modal-data').value;
+  if(!data){toast('Informe a data de faturamento','error');return}
+  const btn = document.getElementById('fat-modal-confirm-btn');
+  btn.disabled = true;
+  btn.innerHTML = '<i class="fas fa-spinner fa-spin"></i> Processando…';
+  try {
+    await api('/api/faturamento','POST',{..._fatOpPendente, data_faturamento: data});
+    toast(`✅ OP ${_fatOpPendente.op_numero} faturada — ${fmtBRL(_fatOpPendente.valor_total)}`,'success');
+    closeFatModal();
+    loadOps();
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '<i class="fas fa-check"></i>Confirmar Faturamento';
+  }
+}
+
+// fechar modal clicando fora
+document.getElementById('fat-modal').addEventListener('click', e => { if(e.target===document.getElementById('fat-modal')) closeFatModal(); });
+
 let calAno=new Date().getFullYear(),calMes=new Date().getMonth()+1,turnosData={};
 const meses=['Janeiro','Fevereiro','Março','Abril','Maio','Junho','Julho','Agosto','Setembro','Outubro','Novembro','Dezembro'];
 const diasSem=['Dom','Seg','Ter','Qua','Qui','Sex','Sáb'];
@@ -308,10 +492,52 @@ function calcHe(){const i=document.getElementById('he-inicio').value,f=document.
 document.getElementById('he-inicio').addEventListener('input',calcHe);
 document.getElementById('he-fim').addEventListener('input',calcHe);
 async function saveTurnos(){const data=document.getElementById('cal-selected-date').value;const obs=document.getElementById('cal-obs').value;const heI=document.getElementById('he-inicio').value,heF=document.getElementById('he-fim').value;for(const n of[1,2,3]){await api('/api/turnos','POST',{data,turno_num:n,entrada:document.getElementById(`t${n}-entrada`).value,saida:document.getElementById(`t${n}-saida`).value,he_inicio:n===1?heI:'',he_fim:n===1?heF:'',observacao:n===1?obs:''})}toast('Turnos salvos!','success');closePanel('cal-panel');renderCalendario()}
-async function loadPrecos(){const rows=await api('/api/precos');document.getElementById('precos-tbody').innerHTML=rows.length?rows.map(r=>`<tr><td><b style="font-family:'DM Mono',monospace">${r.referencia}</b></td><td class="mono" style="color:var(--verde)">${fmtBRL(r.preco_peca)}</td><td><span class="sigla-badge"><i class="fas fa-flag" style="font-size:9px"></i>${r.sigla_fim}</span></td><td style="font-size:11px;color:var(--txt2)">${r.created_at}</td><td style="display:flex;gap:5px"><button class="btn btn-ghost btn-xs" onclick='openPrecoForm(${JSON.stringify(r).replace(/'/g,"&#39;")})'><i class="fas fa-edit"></i></button><button class="btn btn-danger btn-xs" onclick="deletePreco(${r.id})"><i class="fas fa-trash"></i></button></td></tr>`).join(''):'<tr><td colspan="5" style="text-align:center;padding:24px;color:var(--txt2)">Nenhuma referência cadastrada ainda.</td></tr>'}
-function openPrecoForm(r=null){document.getElementById('preco-edit-id').value=r?r.id:'';document.getElementById('preco-panel-title').innerHTML=r?`<i class="fas fa-edit" style="color:var(--ciano)"></i> Editar: ${r.referencia}`:`<i class="fas fa-tags" style="color:var(--ciano)"></i> Nova Referência`;document.getElementById('preco-ref').value=r?.referencia||'';document.getElementById('preco-val').value=r?.preco_peca||'';document.getElementById('preco-sigla').value=r?.sigla_fim||'';document.getElementById('preco-panel').classList.add('open')}
-async function savePreco(){const id=document.getElementById('preco-edit-id').value;const body={referencia:document.getElementById('preco-ref').value.trim().toUpperCase(),preco_peca:parseFloat(document.getElementById('preco-val').value||0),sigla_fim:document.getElementById('preco-sigla').value.trim().toUpperCase()};if(!body.referencia||!body.sigla_fim){toast('Preencha Referência e Sigla','error');return}if(id)await api(`/api/precos/${id}`,'PUT',body);else await api('/api/precos','POST',body);toast('Preço salvo!','success');closePanel('preco-panel');loadPrecos()}
-async function deletePreco(id){if(!confirm('Excluir esta referência?'))return;await api(`/api/precos/${id}`,'DELETE');toast('Referência excluída','info');loadPrecos()}
+
+// ── TABELA DE PREÇOS — OP + Referência + Preço ──
+async function loadPrecos(){
+  const rows = await api('/api/precos');
+  document.getElementById('precos-tbody').innerHTML = rows.length
+    ? rows.map(r=>`<tr>
+        <td><b style="font-family:'DM Mono',monospace">${r.op}</b></td>
+        <td><b style="font-family:'DM Mono',monospace">${r.referencia}</b></td>
+        <td class="mono" style="color:var(--verde)">${fmtBRL(r.preco_peca)}</td>
+        <td style="font-size:11px;color:var(--txt2)">${r.created_at}</td>
+        <td style="display:flex;gap:5px">
+          <button class="btn btn-ghost btn-xs" onclick='openPrecoForm(${JSON.stringify(r).replace(/'/g,"&#39;")})'><i class="fas fa-edit"></i></button>
+          <button class="btn btn-danger btn-xs" onclick="deletePreco(${r.id})"><i class="fas fa-trash"></i></button>
+        </td>
+      </tr>`).join('')
+    : '<tr><td colspan="5" style="text-align:center;padding:24px;color:var(--txt2)">Nenhum preço cadastrado ainda.</td></tr>';
+}
+
+function openPrecoForm(r=null){
+  document.getElementById('preco-edit-id').value = r ? r.id : '';
+  document.getElementById('preco-panel-title').innerHTML = r
+    ? `<i class="fas fa-edit" style="color:var(--ciano)"></i> Editar: OP ${r.op} / ${r.referencia}`
+    : `<i class="fas fa-tags" style="color:var(--ciano)"></i> Nova Entrada de Preço`;
+  document.getElementById('preco-op').value  = r?.op || '';
+  document.getElementById('preco-ref').value = r?.referencia || '';
+  document.getElementById('preco-val').value = r?.preco_peca || '';
+  document.getElementById('preco-panel').classList.add('open');
+}
+
+async function savePreco(){
+  const id  = document.getElementById('preco-edit-id').value;
+  const body = {
+    op:        document.getElementById('preco-op').value.trim().toUpperCase(),
+    referencia: document.getElementById('preco-ref').value.trim().toUpperCase(),
+    preco_peca: parseFloat(document.getElementById('preco-val').value || 0)
+  };
+  if(!body.op || !body.referencia){ toast('Preencha OP e Referência','error'); return; }
+  if(id) await api(`/api/precos/${id}`,'PUT',body);
+  else   await api('/api/precos','POST',body);
+  toast('Preço salvo!','success');
+  closePanel('preco-panel');
+  loadPrecos();
+}
+
+async function deletePreco(id){if(!confirm('Excluir esta entrada de preço?'))return;await api(`/api/precos/${id}`,'DELETE');toast('Preço excluído','info');loadPrecos()}
+
 function switchFatTab(tab,el){['precos','prontas','historico'].forEach(t=>{document.getElementById(`fat-tab-${t}`).style.display=t===tab?'':'none'});document.querySelectorAll('#page-faturamento .tab').forEach(b=>b.classList.remove('active'));if(el)el.classList.add('active');if(tab==='prontas')loadOpsProntas();if(tab==='historico')loadHistorico()}
 async function loadOpsProntas(){const ops=await api('/api/ops_prontas');document.getElementById('prontas-tbody').innerHTML=ops.length?ops.map(o=>`<tr><td class="mono">${o.op}</td><td><b>${o.referencia}</b></td><td style="color:var(--txt2);font-size:12px">${o.lavacao||'--'}</td><td class="mono">${o.total_pecas.toLocaleString('pt-BR')}</td><td class="mono" style="color:var(--ciano)">${fmtBRL(o.preco_peca)}</td><td class="mono" style="color:var(--verde);font-weight:700">${fmtBRL(o.valor_total)}</td><td>${o.ja_faturada?'<span class="pill pill-faturado"><i class="fas fa-check"></i>Faturada</span>':'<span class="pill pill-pendente"><i class="fas fa-clock"></i>Pendente</span>'}</td><td>${!o.ja_faturada?`<button class="btn btn-success btn-xs" onclick="faturarOp(${JSON.stringify(o).replace(/'/g,"&#39;")})"><i class="fas fa-file-invoice-dollar"></i> Faturar</button>`:'<span style="font-size:11px;color:var(--txt2)">—</span>'}</td></tr>`).join(''):'<tr><td colspan="8" style="text-align:center;padding:24px;color:var(--txt2)">Nenhuma OP pronta para faturar.</td></tr>'}
 async function faturarOp(o){if(!confirm(`Faturar OP ${o.op} — ${o.referencia}?\nValor: ${fmtBRL(o.valor_total)}`))return;const hoje=new Date().toISOString().slice(0,10);await api('/api/faturamento','POST',{op_numero:o.op,referencia:o.referencia,lavacao:o.lavacao,qtd_pecas:o.total_pecas,preco_peca:o.preco_peca,valor_total:o.valor_total,data_faturamento:hoje});toast(`✅ OP ${o.op} faturada — ${fmtBRL(o.valor_total)}`,'success');loadOpsProntas()}
@@ -427,7 +653,6 @@ function closePanel(id){document.getElementById(id).classList.remove('open')}
 document.querySelectorAll('.panel-overlay').forEach(p=>{p.addEventListener('click',e=>{if(e.target===p)p.classList.remove('open')})});
 initHistMes();
 loadDashboard();
-
 </script>
 </body>
 </html>
