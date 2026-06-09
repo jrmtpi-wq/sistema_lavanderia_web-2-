@@ -888,9 +888,12 @@ async function selecionarOpLaser(opId){
   document.getElementById('lf-op').value = op.op;
   document.getElementById('lf-ref').value = op.referencia;
   document.getElementById('lf-lav').value = op.lavacao || '';
-  document.getElementById('lf-pecas').value = op.total_pecas;
+  // qtde peças e tempo ficam em branco para o usuário digitar
+  document.getElementById('lf-pecas').value = '';
   document.getElementById('lf-op-dropdown').style.display='none';
   limparSimulacao();
+  // foca no campo de qtde peças
+  document.getElementById('lf-pecas').focus();
 }
 
 // Fecha dropdown ao clicar fora
