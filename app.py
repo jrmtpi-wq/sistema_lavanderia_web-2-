@@ -967,7 +967,7 @@ def simular_laser(eid):
     tempo = safe_float(d.get('tempo_min', e.tempo_min))
     if qtde <= 0 or tempo <= 0:
         return jsonify({'ok': False, 'error': 'Qtde e tempo devem ser > 0'}), 400
-    total_seg = qtde * tempo
+    total_seg = qtde * tempo * 60.0  # tempo_min → segundos
     fim = _calcular_fim_laser(dt_inicio, total_seg, e.intervalos)
     duracao_h = total_seg / 3600
     return jsonify({
