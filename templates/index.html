@@ -381,11 +381,15 @@ tbody td{padding:10px 14px;vertical-align:middle;color:var(--txt)}
         <div class="card" style="padding:14px;margin-bottom:12px">
           <div style="font-family:'Syne',sans-serif;font-size:13px;font-weight:700;color:var(--ciano);margin-bottom:12px"><i class="fas fa-plus-circle"></i> Adicionar à Fila</div>
           <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:10px;margin-bottom:10px">
-            <div class="form-group"><label>OP</label><input class="form-control" id="lf-op" placeholder="Nº OP"></div>
-            <div class="form-group"><label>Referência</label><input class="form-control" id="lf-ref" placeholder="Referência"></div>
-            <div class="form-group"><label>Lavação</label><input class="form-control" id="lf-lav" placeholder="Tipo"></div>
+            <div class="form-group" style="position:relative">
+              <label>OP</label>
+              <input class="form-control" id="lf-op" placeholder="Nº OP" autocomplete="off" oninput="filtrarOpsLaser(this.value)">
+              <div id="lf-op-dropdown" style="display:none;position:absolute;top:100%;left:0;right:0;background:var(--cinza1);border:1px solid var(--ciano);border-radius:8px;z-index:999;max-height:200px;overflow-y:auto;box-shadow:var(--shadow)"></div>
+            </div>
+            <div class="form-group"><label>Referência</label><input class="form-control" id="lf-ref" placeholder="Referência" readonly style="background:var(--cinza4);cursor:default"></div>
+            <div class="form-group"><label>Lavação</label><input class="form-control" id="lf-lav" placeholder="Tipo" readonly style="background:var(--cinza4);cursor:default"></div>
             <div class="form-group"><label>Qtde Peças</label><input class="form-control" id="lf-pecas" type="number" min="0" placeholder="0" oninput="limparSimulacao()"></div>
-            <div class="form-group"><label>Tempo/Peça (min)</label><input class="form-control" id="lf-tempo" type="number" step="0.1" placeholder="1.62" oninput="limparSimulacao()"></div>
+            <div class="form-group"><label>Tempo/Peça (min)</label><input class="form-control" id="lf-tempo" type="number" step="0.01" placeholder="Ex: 1.62" oninput="limparSimulacao()"><div style="font-size:10px;color:var(--txt2);margin-top:3px" id="lf-tempo-hint"></div></div>
             <div class="form-group"><label>Data Início</label><input class="form-control" id="lf-data" type="date" onchange="limparSimulacao()"></div>
             <div class="form-group"><label>Hora Início</label><input class="form-control" id="lf-hora" type="time" onchange="limparSimulacao()"></div>
           </div>
@@ -456,22 +460,12 @@ tbody td{padding:10px 14px;vertical-align:middle;color:var(--txt)}
 
       <!-- ABA CONFIG -->
       <div id="laser-tab-config" style="display:none">
-        <div class="card" style="padding:18px;margin-bottom:14px">
-          <div style="font-family:'Syne',sans-serif;font-size:13px;font-weight:700;color:var(--ciano);margin-bottom:14px"><i class="fas fa-sliders-h"></i> Tempo Padrão por Peça</div>
-          <div style="display:flex;align-items:flex-end;gap:12px;flex-wrap:wrap">
-            <div class="form-group" style="width:200px">
-              <label>Tempo por peça (segundos)</label>
-              <input class="form-control" id="cfg-tempo" type="number" step="0.1" placeholder="1.62">
-            </div>
-            <button class="btn btn-primary btn-sm" onclick="saveLaserConfig()"><i class="fas fa-save"></i>Salvar</button>
-          </div>
-          <div style="margin-top:8px;font-size:12px;color:var(--txt2)">Ex: 1 min 37 seg = <b style="color:var(--ciano)">1.62 minutos</b> — Produção projetada/hora: <b id="cfg-proj-hora" style="color:var(--verde)">--</b> peças</div>
-        </div>
         <div class="card" style="padding:18px">
           <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px">
             <div style="font-family:'Syne',sans-serif;font-size:13px;font-weight:700;color:var(--ciano)"><i class="fas fa-coffee"></i> Intervalos de Refeição</div>
             <button class="btn btn-primary btn-sm" onclick="addIntervalo()"><i class="fas fa-plus"></i>Novo Intervalo</button>
           </div>
+          <div style="font-size:12px;color:var(--txt2);margin-bottom:12px">Cadastre os intervalos de refeição de cada turno. O sistema irá descontar esses períodos no cálculo do fim previsto da fila.</div>
           <div id="intervalos-list"></div>
         </div>
       </div>
@@ -862,9 +856,61 @@ function switchLaserTab(tab, el){
   if(tab==='apontamento') loadApontamentos();
 }
 
+// ─ Autocomplete de OP para fila laser ─
+let _opsCache = [];
+
+async function carregarOpsCache(){
+  if(_opsCache.length === 0){
+    try { _opsCache = await api('/api/ops'); } catch(e){}
+  }
+}
+
+function filtrarOpsLaser(termo){
+  const dropdown = document.getElementById('lf-op-dropdown');
+  if(!termo || termo.length < 1){ dropdown.style.display='none'; return; }
+  const t = termo.toLowerCase();
+  const filtradas = _opsCache.filter(o =>
+    o.op.toLowerCase().includes(t) || o.referencia.toLowerCase().includes(t)
+  ).slice(0, 10);
+  if(!filtradas.length){ dropdown.style.display='none'; return; }
+  dropdown.innerHTML = filtradas.map(o=>`
+    <div onclick="selecionarOpLaser(${o.id})" style="padding:8px 12px;cursor:pointer;border-bottom:1px solid var(--brd);font-size:12px;transition:background .15s"
+      onmouseover="this.style.background='var(--cinza3)'" onmouseout="this.style.background=''">
+      <div style="font-family:'DM Mono',monospace;color:var(--ciano);font-weight:700">${o.op}</div>
+      <div style="color:var(--txt2)">${o.referencia} · ${o.total_pecas.toLocaleString('pt-BR')} pç</div>
+    </div>`).join('');
+  dropdown.style.display='block';
+}
+
+async function selecionarOpLaser(opId){
+  const op = _opsCache.find(o=>o.id===opId);
+  if(!op) return;
+  document.getElementById('lf-op').value = op.op;
+  document.getElementById('lf-ref').value = op.referencia;
+  document.getElementById('lf-lav').value = op.lavacao || '';
+  document.getElementById('lf-pecas').value = op.total_pecas;
+  document.getElementById('lf-op-dropdown').style.display='none';
+  limparSimulacao();
+}
+
+// Fecha dropdown ao clicar fora
+document.addEventListener('click', e=>{
+  const dd = document.getElementById('lf-op-dropdown');
+  if(dd && !dd.contains(e.target) && e.target.id !== 'lf-op') dd.style.display='none';
+});
+
 // ─ Simulação ─
 function limparSimulacao(){
   document.getElementById('lf-simulacao').style.display='none';
+  // atualiza hint de peças/hora ao digitar tempo
+  const tempo = parseFloat(document.getElementById('lf-tempo').value||0);
+  const hint = document.getElementById('lf-tempo-hint');
+  if(hint && tempo > 0){
+    hint.textContent = `≈ ${Math.round(60/tempo)} peças/hora`;
+    hint.style.color = 'var(--verde)';
+  } else if(hint) {
+    hint.textContent = '';
+  }
 }
 
 async function simularLaser(){
@@ -897,12 +943,11 @@ function fmtMinParaDisplay(min){
 
 async function loadLaserFila(){
   if(!currentLaserId) return;
+  await carregarOpsCache();
   const data = await api(`/api/laser/equipamentos/${currentLaserId}/fila`);
   const fila = data.fila || [];
   document.getElementById('laser-fila-total').textContent =
     `Total: ${fila.length} itens | ${fila.reduce((a,f)=>a+(f.qtde_pecas||0),0).toLocaleString('pt-BR')} peças`;
-  // preenche tempo padrão
-  document.getElementById('lf-tempo').placeholder = data.equipamento.tempo_min;
   _laserEquipData = data.equipamento;
 
   document.getElementById('laser-fila-list').innerHTML = fila.length
@@ -930,17 +975,22 @@ async function loadLaserFila(){
 async function addLaserFila(){
   const data = document.getElementById('lf-data').value;
   const hora = document.getElementById('lf-hora').value;
+  const tempo = parseFloat(document.getElementById('lf-tempo').value||0);
+  if(!tempo || tempo <= 0){ toast('Informe o tempo por peça em minutos (ex: 1.62)','error'); return; }
   const body = {
     op: document.getElementById('lf-op').value,
     referencia: document.getElementById('lf-ref').value,
     lavacao: document.getElementById('lf-lav').value,
     qtde_pecas: parseInt(document.getElementById('lf-pecas').value||0),
-    tempo_min: parseFloat(document.getElementById('lf-tempo').value || _laserEquipData?.tempo_min || 1.42),
+    tempo_min: tempo,
     data_inicio: data && hora ? `${data}T${hora}` : null
   };
+  if(!body.op){ toast('Selecione uma OP','error'); return; }
   await api(`/api/laser/equipamentos/${currentLaserId}/fila`,'POST',body);
   toast('Adicionado à fila!','success');
-  ['lf-op','lf-ref','lf-lav','lf-pecas'].forEach(id=>document.getElementById(id).value='');
+  ['lf-op','lf-ref','lf-lav','lf-pecas','lf-tempo'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('lf-tempo-hint').textContent='';
+  limparSimulacao();
   await loadLaserFila();
 }
 
@@ -1071,28 +1121,8 @@ async function deleteApontamento(id){
 // ─ Config ─
 async function loadLaserConfig(){
   if(!currentLaserId) return;
-  const equips = await api('/api/laser/equipamentos');
-  const e = equips.find(x=>x.id===currentLaserId);
-  if(e){
-    document.getElementById('cfg-tempo').value = e.tempo_min;
-    atualizarProjHora();
-  }
   const ivs = await api(`/api/laser/equipamentos/${currentLaserId}/intervalos`);
   renderIntervalos(ivs);
-}
-
-function atualizarProjHora(){
-  const seg = parseFloat(document.getElementById('cfg-tempo').value||85);
-  const proj = seg > 0 ? Math.round(60/seg) : 0;
-  document.getElementById('cfg-proj-hora').textContent = proj.toLocaleString('pt-BR');
-}
-document.getElementById('cfg-tempo')?.addEventListener('input', atualizarProjHora);
-
-async function saveLaserConfig(){
-  const tempo = parseFloat(document.getElementById('cfg-tempo').value||85);
-  await api(`/api/laser/equipamentos/${currentLaserId}`,'PUT',{tempo_min: tempo});
-  toast('Configuração salva!','success');
-  atualizarProjHora();
 }
 
 function renderIntervalos(ivs){
