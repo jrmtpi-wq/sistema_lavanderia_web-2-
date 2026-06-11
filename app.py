@@ -99,11 +99,13 @@ class LaserFila(db.Model):
     id              = db.Column(db.Integer, primary_key=True)
     equipamento_id  = db.Column(db.Integer, db.ForeignKey('laser_equipamento.id'))
     numero          = db.Column(db.Integer)
+    tipo            = db.Column(db.String(10), default='op')   # 'op' ou 'parada'
     op              = db.Column(db.String(20))
     referencia      = db.Column(db.String(50))
-    lavacao         = db.Column(db.String(80))
+    descricao       = db.Column(db.String(200))   # usado para paradas
     qtde_pecas      = db.Column(db.Integer, default=0)
-    tempo_min       = db.Column(db.Float, default=1.42)  # tempo por peça em MINUTOS (ex: 1.62 = 1min37seg)
+    tempo_min       = db.Column(db.Float, default=1.42)
+    parada_min      = db.Column(db.Integer, default=0)   # duração da parada em minutos
     data_inicio     = db.Column(db.DateTime, nullable=True)
     data_fim        = db.Column(db.DateTime, nullable=True)
     status          = db.Column(db.String(20), default='aguardando')
@@ -112,18 +114,16 @@ class LaserFila(db.Model):
 
     @property
     def duracao_seg(self):
-        # converte minutos para segundos
+        if self.tipo == 'parada':
+            return (self.parada_min or 0) * 60.0
         return (self.qtde_pecas or 0) * (self.tempo_min or 1.42) * 60.0
 
     def calcular_fim(self, intervalos):
-        """
-        Calcula data_fim usando os turnos do calendário como janelas de trabalho.
-        - Busca os turnos cadastrados para cada dia
-        - Dentro de cada janela de turno, subtrai os intervalos de refeição (LaserIntervalo)
-        - Pula sábado/domingo sem turno cadastrado
-        - Avança dentro das janelas disponíveis consumindo os segundos de produção
-        """
-        if not self.data_inicio or not self.qtde_pecas:
+        if not self.data_inicio:
+            return None
+        if self.tipo == 'parada':
+            return self.data_inicio + timedelta(minutes=self.parada_min or 0)
+        if not self.qtde_pecas:
             return None
         return _calcular_fim_laser(self.data_inicio, self.duracao_seg, intervalos)
 
@@ -356,6 +356,9 @@ def init_db_route():
             created_at TIMESTAMP DEFAULT NOW())""",
         'ALTER TABLE laser_equipamento ADD COLUMN IF NOT EXISTS tempo_min FLOAT DEFAULT 1.42',
         'ALTER TABLE laser_fila ADD COLUMN IF NOT EXISTS tempo_min FLOAT DEFAULT 1.42',
+        "ALTER TABLE laser_fila ADD COLUMN IF NOT EXISTS tipo VARCHAR(10) DEFAULT 'op'",
+        'ALTER TABLE laser_fila ADD COLUMN IF NOT EXISTS parada_min INTEGER DEFAULT 0',
+        'ALTER TABLE laser_fila ADD COLUMN IF NOT EXISTS descricao VARCHAR(200)',
         "INSERT INTO laser_equipamento (numero, tempo_min) SELECT 1, 1.42 WHERE NOT EXISTS (SELECT 1 FROM laser_equipamento WHERE numero=1)",
         "INSERT INTO laser_equipamento (numero, tempo_min) SELECT 2, 1.42 WHERE NOT EXISTS (SELECT 1 FROM laser_equipamento WHERE numero=2)",
         "INSERT INTO laser_equipamento (numero, tempo_min) SELECT 3, 1.42 WHERE NOT EXISTS (SELECT 1 FROM laser_equipamento WHERE numero=3)",
@@ -989,9 +992,11 @@ def get_laser_fila(eid):
     for f in filas:
         fim = f.data_fim or f.calcular_fim(intervalos)
         result.append({
-            'id': f.id, 'numero': f.numero, 'op': f.op,
-            'referencia': f.referencia, 'lavacao': f.lavacao,
+            'id': f.id, 'numero': f.numero, 'tipo': f.tipo or 'op',
+            'op': f.op, 'referencia': f.referencia,
+            'descricao': f.descricao or '',
             'qtde_pecas': f.qtde_pecas, 'tempo_min': f.tempo_min,
+            'parada_min': f.parada_min or 0,
             'status': f.status, 'observacao': f.observacao,
             'data_inicio': f.data_inicio.strftime('%Y-%m-%dT%H:%M') if f.data_inicio else None,
             'data_fim': fim.strftime('%Y-%m-%dT%H:%M') if fim else None,
@@ -1015,11 +1020,31 @@ def add_laser_fila(eid):
         last = sorted(e.filas, key=lambda x: x.numero)[-1]
         fim = last.data_fim or last.calcular_fim(e.intervalos)
         if fim: dt_inicio = fim
+    tipo = d.get('tipo', 'op')
     tempo = safe_float(d.get('tempo_min', e.tempo_min))
+    apos_numero = d.get('apos_numero', None)
+
+    # Se inserção após um item específico, reordena numeração
+    filas_ord = sorted(e.filas, key=lambda x: x.numero)
+    if apos_numero is not None:
+        # Incrementa número de todos os itens após a posição
+        for ff in filas_ord:
+            if ff.numero > apos_numero:
+                ff.numero += 1
+        num = apos_numero + 1
+        # Data início = data_fim do item anterior
+        item_anterior = next((ff for ff in filas_ord if ff.numero == apos_numero), None)
+        if item_anterior:
+            dt_inicio = item_anterior.data_fim or item_anterior.calcular_fim(e.intervalos)
+    else:
+        num = len(e.filas) + 1
+
     f = LaserFila(
-        equipamento_id=eid, numero=num,
+        equipamento_id=eid, numero=num, tipo=tipo,
         op=d.get('op',''), referencia=d.get('referencia',''),
-        lavacao=d.get('lavacao',''), qtde_pecas=safe_int(d.get('qtde_pecas',0)),
+        descricao=d.get('descricao',''),
+        qtde_pecas=safe_int(d.get('qtde_pecas',0)),
+        parada_min=safe_int(d.get('parada_min',0)),
         tempo_min=tempo, data_inicio=dt_inicio, status='aguardando',
         observacao=d.get('observacao','')
     )
@@ -1039,8 +1064,9 @@ def update_laser_fila(fid):
     d = request.json
     if 'op' in d: f.op = d['op']
     if 'referencia' in d: f.referencia = d['referencia']
-    if 'lavacao' in d: f.lavacao = d['lavacao']
+    if 'descricao' in d: f.descricao = d['descricao']
     if 'qtde_pecas' in d: f.qtde_pecas = safe_int(d['qtde_pecas'])
+    if 'parada_min' in d: f.parada_min = safe_int(d['parada_min'])
     if 'tempo_min' in d: f.tempo_min = safe_float(d['tempo_min'])
     if 'status' in d: f.status = d['status']
     if 'observacao' in d: f.observacao = d['observacao']
@@ -1131,4 +1157,3 @@ if __name__ == '__main__':
     with app.app_context():
         init_db()
     app.run(debug=True, host='0.0.0.0', port=5000)
-
