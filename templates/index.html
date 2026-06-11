@@ -792,6 +792,12 @@ async function imprimirMaquinaEmProcesso(){
   janela.document.close();
 }
 
+function closePanel(id){document.getElementById(id).classList.remove('open')}
+document.querySelectorAll('.panel-overlay').forEach(p=>{p.addEventListener('click',e=>{if(e.target===p)p.classList.remove('open')})});
+
+// ── CLOSE PANEL ──
+function closePanel(id){document.getElementById(id).classList.remove('open')}
+
 // ══════════════════════════════════════════════
 // ── LASER ──
 // ══════════════════════════════════════════════
@@ -1160,7 +1166,6 @@ async function deleteIntervalo(id){
 }
 
 // ══════════════════════════════════════════════
-document.querySelectorAll('.panel-overlay').forEach(p=>{p.addEventListener('click',e=>{if(e.target===p)p.classList.remove('open')})});
 initHistMes();
 loadDashboard();
 </script>
