@@ -387,7 +387,7 @@ tbody td{padding:10px 14px;vertical-align:middle;color:var(--txt)}
               <div id="lf-op-dropdown" style="display:none;position:absolute;top:100%;left:0;right:0;background:var(--cinza1);border:1px solid var(--ciano);border-radius:8px;z-index:999;max-height:200px;overflow-y:auto;box-shadow:var(--shadow)"></div>
             </div>
             <div class="form-group"><label>Referência</label><input class="form-control" id="lf-ref" placeholder="Referência" readonly style="background:var(--cinza4);cursor:default"></div>
-            <div class="form-group"><label>Lavação</label><input class="form-control" id="lf-lav" placeholder="Tipo" readonly style="background:var(--cinza4);cursor:default"></div>
+            <div class="form-group"><label>Descrição Laser</label><input class="form-control" id="lf-desc" placeholder="Ex: Jato, Desgaste..."></div>
             <div class="form-group"><label>Qtde Peças</label><input class="form-control" id="lf-pecas" type="number" min="0" placeholder="0" oninput="limparSimulacao()"></div>
             <div class="form-group"><label>Tempo/Peça (min)</label><input class="form-control" id="lf-tempo" type="number" step="0.01" placeholder="Ex: 1.62" oninput="limparSimulacao()"><div style="font-size:10px;color:var(--txt2);margin-top:3px" id="lf-tempo-hint"></div></div>
             <div class="form-group"><label>Data Início</label><input class="form-control" id="lf-data" type="date" onchange="limparSimulacao()"></div>
@@ -795,9 +795,6 @@ async function imprimirMaquinaEmProcesso(){
 function closePanel(id){document.getElementById(id).classList.remove('open')}
 document.querySelectorAll('.panel-overlay').forEach(p=>{p.addEventListener('click',e=>{if(e.target===p)p.classList.remove('open')})});
 
-// ── CLOSE PANEL ──
-function closePanel(id){document.getElementById(id).classList.remove('open')}
-
 // ══════════════════════════════════════════════
 // ── LASER ──
 // ══════════════════════════════════════════════
@@ -893,13 +890,12 @@ async function selecionarOpLaser(opId){
   if(!op) return;
   document.getElementById('lf-op').value = op.op;
   document.getElementById('lf-ref').value = op.referencia;
-  document.getElementById('lf-lav').value = op.lavacao || '';
-  // qtde peças e tempo ficam em branco para o usuário digitar
+  // lavação/descrição e qtde ficam em branco para o usuário digitar
+  document.getElementById('lf-desc').value = '';
   document.getElementById('lf-pecas').value = '';
   document.getElementById('lf-op-dropdown').style.display='none';
   limparSimulacao();
-  // foca no campo de qtde peças
-  document.getElementById('lf-pecas').focus();
+  document.getElementById('lf-desc').focus();
 }
 
 // Fecha dropdown ao clicar fora
@@ -959,26 +955,51 @@ async function loadLaserFila(){
     `Total: ${fila.length} itens | ${fila.reduce((a,f)=>a+(f.qtde_pecas||0),0).toLocaleString('pt-BR')} peças`;
   _laserEquipData = data.equipamento;
 
-  document.getElementById('laser-fila-list').innerHTML = fila.length
-    ? fila.map(f=>`
-      <div class="laser-fila-row" id="lf-${f.id}">
-        <div style="font-family:'DM Mono',monospace;font-size:12px;font-weight:700;color:var(--ciano);text-align:center">${f.numero}</div>
-        <input class="carga-input" value="${f.op||''}" onchange="patchLaserFila(${f.id},'op',this.value)" placeholder="OP">
-        <input class="carga-input" value="${f.referencia||''}" onchange="patchLaserFila(${f.id},'referencia',this.value)" placeholder="Ref.">
-        <input class="carga-input" value="${f.lavacao||''}" onchange="patchLaserFila(${f.id},'lavacao',this.value)" placeholder="Lavação">
-        <input class="carga-input" value="${f.qtde_pecas||0}" type="number" onchange="patchLaserFila(${f.id},'qtde_pecas',this.value)" style="width:58px">
-        <div style="font-family:'DM Mono',monospace;font-size:11px;color:var(--roxo);text-align:center">${fmtMinParaDisplay(f.tempo_min)}</div>
-        <div style="font-family:'DM Mono',monospace;font-size:10px;color:var(--ciano);line-height:1.4">${f.data_inicio ? fmtDT(f.data_inicio) : '--'}</div>
-        <div style="font-family:'DM Mono',monospace;font-size:10px;color:var(--laranja);line-height:1.4">${f.data_fim ? fmtDT(f.data_fim) : '--'}</div>
-        <select class="carga-input" onchange="patchLaserFila(${f.id},'status',this.value)">
-          <option value="aguardando" ${f.status==='aguardando'?'selected':''}>⏳ Aguard.</option>
-          <option value="em_processo" ${f.status==='em_processo'?'selected':''}>🔄 Em Proc.</option>
-          <option value="concluido" ${f.status==='concluido'?'selected':''}>✅ Concluído</option>
-        </select>
-        <input class="carga-input" value="${f.observacao||''}" onchange="patchLaserFila(${f.id},'observacao',this.value)" placeholder="Obs.">
-        <button class="btn btn-danger btn-xs" onclick="deleteLaserFila(${f.id})"><i class="fas fa-trash"></i></button>
-      </div>`).join('')
-    : '<div style="padding:24px;text-align:center;color:var(--txt2)">Fila vazia. Adicione itens acima.</div>';
+  if(!fila.length){
+    document.getElementById('laser-fila-list').innerHTML = '<div style="padding:24px;text-align:center;color:var(--txt2)">Fila vazia. Adicione itens acima.</div>';
+  } else {
+    const Q = "'"; // aspas simples para usar dentro de strings
+    let html = '';
+    fila.forEach(function(f){
+      if(f.tipo === 'parada'){
+        html += '<div id="lf-' + f.id + '" style="display:grid;grid-template-columns:36px 1fr 80px 110px 110px 70px 36px;gap:4px;align-items:center;padding:7px 10px;border-radius:8px;margin-bottom:2px;background:rgba(245,158,11,.12);border:1px dashed rgba(245,158,11,.4)">';
+        html += '<div style="font-family:monospace;font-size:12px;font-weight:700;color:var(--amarelo);text-align:center">' + f.numero + '</div>';
+        html += '<div style="display:flex;align-items:center;gap:8px">';
+        html += '<i class="fas fa-pause-circle" style="color:var(--amarelo)"></i>';
+        html += '<input class="carga-input" value="' + (f.descricao||'Parada').replace(/"/g,'&quot;') + '" onchange="patchLaserFila(' + f.id + ',' + Q + 'descricao' + Q + ',this.value)" placeholder="Descrição" style="background:transparent;border-color:rgba(245,158,11,.3)">';
+        html += '</div>';
+        html += '<input class="carga-input" value="' + (f.parada_min||0) + '" type="number" min="0" onchange="patchLaserFila(' + f.id + ',' + Q + 'parada_min' + Q + ',this.value)" style="width:70px;text-align:center">';
+        html += '<div style="font-family:monospace;font-size:10px;color:var(--ciano);line-height:1.4">' + (f.data_inicio ? fmtDT(f.data_inicio) : '--') + '</div>';
+        html += '<div style="font-family:monospace;font-size:10px;color:var(--laranja);line-height:1.4">' + (f.data_fim ? fmtDT(f.data_fim) : '--') + '</div>';
+        html += '<div style="font-size:10px;color:var(--amarelo);text-align:center">' + (f.parada_min||0) + ' min</div>';
+        html += '<button class="btn btn-danger btn-xs" onclick="deleteLaserFila(' + f.id + ')"><i class="fas fa-trash"></i></button>';
+        html += '</div>';
+      } else {
+        html += '<div class="laser-fila-row" id="lf-' + f.id + '">';
+        html += '<div style="font-family:monospace;font-size:12px;font-weight:700;color:var(--ciano);text-align:center">' + f.numero + '</div>';
+        html += '<input class="carga-input" value="' + (f.op||'').replace(/"/g,'&quot;') + '" onchange="patchLaserFila(' + f.id + ',' + Q + 'op' + Q + ',this.value)" placeholder="OP">';
+        html += '<input class="carga-input" value="' + (f.referencia||'').replace(/"/g,'&quot;') + '" onchange="patchLaserFila(' + f.id + ',' + Q + 'referencia' + Q + ',this.value)" placeholder="Ref.">';
+        html += '<input class="carga-input" value="' + (f.descricao||'').replace(/"/g,'&quot;') + '" onchange="patchLaserFila(' + f.id + ',' + Q + 'descricao' + Q + ',this.value)" placeholder="Descrição Laser">';
+        html += '<input class="carga-input" value="' + (f.qtde_pecas||0) + '" type="number" onchange="patchLaserFila(' + f.id + ',' + Q + 'qtde_pecas' + Q + ',this.value)" style="width:58px">';
+        html += '<div style="font-family:monospace;font-size:11px;color:var(--roxo);text-align:center">' + fmtMinParaDisplay(f.tempo_min) + '</div>';
+        html += '<div style="font-family:monospace;font-size:10px;color:var(--ciano);line-height:1.4">' + (f.data_inicio ? fmtDT(f.data_inicio) : '--') + '</div>';
+        html += '<div style="font-family:monospace;font-size:10px;color:var(--laranja);line-height:1.4">' + (f.data_fim ? fmtDT(f.data_fim) : '--') + '</div>';
+        html += '<select class="carga-input" onchange="patchLaserFila(' + f.id + ',' + Q + 'status' + Q + ',this.value)">';
+        html += '<option value="aguardando"' + (f.status==='aguardando'?' selected':'') + '>⏳ Aguard.</option>';
+        html += '<option value="em_processo"' + (f.status==='em_processo'?' selected':'') + '>🔄 Em Proc.</option>';
+        html += '<option value="concluido"' + (f.status==='concluido'?' selected':'') + '>✅ Concluído</option>';
+        html += '</select>';
+        html += '<input class="carga-input" value="' + (f.observacao||'').replace(/"/g,'&quot;') + '" onchange="patchLaserFila(' + f.id + ',' + Q + 'observacao' + Q + ',this.value)" placeholder="Obs.">';
+        html += '<button class="btn btn-danger btn-xs" onclick="deleteLaserFila(' + f.id + ')"><i class="fas fa-trash"></i></button>';
+        html += '</div>';
+      }
+      // Botão parada após cada item
+      html += '<div style="display:flex;justify-content:center;margin:2px 0">';
+      html += '<button class="btn btn-warning btn-xs" onclick="addParadaFila(' + f.numero + ')" title="Inserir parada após este item">';
+      html += '<i class="fas fa-plus"></i> Parada</button></div>';
+    });
+    document.getElementById('laser-fila-list').innerHTML = html;
+  }
 }
 
 async function addLaserFila(){
@@ -987,9 +1008,10 @@ async function addLaserFila(){
   const tempo = parseFloat(document.getElementById('lf-tempo').value||0);
   if(!tempo || tempo <= 0){ toast('Informe o tempo por peça em minutos (ex: 1.62)','error'); return; }
   const body = {
+    tipo: 'op',
     op: document.getElementById('lf-op').value,
     referencia: document.getElementById('lf-ref').value,
-    lavacao: document.getElementById('lf-lav').value,
+    descricao: document.getElementById('lf-desc').value,
     qtde_pecas: parseInt(document.getElementById('lf-pecas').value||0),
     tempo_min: tempo,
     data_inicio: data && hora ? `${data}T${hora}` : null
@@ -997,15 +1019,30 @@ async function addLaserFila(){
   if(!body.op){ toast('Selecione uma OP','error'); return; }
   await api(`/api/laser/equipamentos/${currentLaserId}/fila`,'POST',body);
   toast('Adicionado à fila!','success');
-  ['lf-op','lf-ref','lf-lav','lf-pecas','lf-tempo'].forEach(id=>document.getElementById(id).value='');
+  ['lf-op','lf-ref','lf-desc','lf-pecas','lf-tempo'].forEach(id=>document.getElementById(id).value='');
   document.getElementById('lf-tempo-hint').textContent='';
   limparSimulacao();
   await loadLaserFila();
 }
 
+async function addParadaFila(aposNumero){
+  const dur = prompt('Duração da parada em minutos:', '30');
+  if(!dur || isNaN(dur)) return;
+  const desc = prompt('Descrição da parada:', 'Setup');
+  if(desc === null) return;
+  await api(`/api/laser/equipamentos/${currentLaserId}/fila`,'POST',{
+    tipo: 'parada',
+    parada_min: parseInt(dur),
+    descricao: desc || 'Parada',
+    apos_numero: aposNumero
+  });
+  toast('Parada adicionada!','success');
+  await loadLaserFila();
+}
+
 async function patchLaserFila(id, field, value){
   await api(`/api/laser/fila/${id}`,'PUT',{[field]:value});
-  if(field==='qtde_pecas'||field==='tempo_min') await loadLaserFila();
+  if(field==='qtde_pecas'||field==='tempo_min'||field==='parada_min') await loadLaserFila();
 }
 
 async function deleteLaserFila(id){
