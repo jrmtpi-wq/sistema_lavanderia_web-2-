@@ -403,6 +403,24 @@ def diagnostico():
 def index():
     return render_template('index.html')
 
+@app.route('/debug_index')
+def debug_index():
+    import os, hashlib
+    path = os.path.join(app.root_path, 'templates', 'index.html')
+    with open(path, 'rb') as f:
+        content = f.read()
+    return jsonify({
+        'path': path,
+        'size_bytes': len(content),
+        'md5': hashlib.md5(content).hexdigest(),
+        'mtime': os.path.getmtime(path),
+        'has_lf_desc': b'lf-desc' in content,
+        'has_descricao_laser': 'Descrição Laser'.encode('utf-8') in content,
+        'has_add_parada': b'addParadaFila' in content,
+        'has_version_badge': b'version-badge' in content,
+        'num_lines': content.count(b'\n')
+    })
+
 # ─ OP ─
 @app.route('/api/ops', methods=['GET'])
 def get_ops():
