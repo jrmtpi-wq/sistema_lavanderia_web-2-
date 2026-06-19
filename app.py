@@ -583,8 +583,8 @@ def gerar_cargas(mid):
         op  = d.get('op', '')
         ref = d.get('referencia', '')
         lav = d.get('lavacao', '')
-        n   = safe_int(d.get('quantidade', 10)) or 10          # ← corrigido
-        peso_carga  = safe_float(d.get('peso_carga', m.capacidade)) or m.capacidade  # ← corrigido
+        n   = safe_int(d.get('quantidade', 10)) or 10
+        peso_carga  = safe_float(d.get('peso_carga', m.capacidade)) or m.capacidade
         append_mode = d.get('append', False)
 
         cargas_existentes = sorted(m.cargas, key=lambda x: x.numero)
@@ -592,6 +592,13 @@ def gerar_cargas(mid):
         if cargas_existentes and (append_mode or not d.get('data_inicio')):
             ultima = cargas_existentes[-1]
             parada_ultima = ultima.parada_min or 0
+            # Herda OP/ref/lav da última carga se não fornecidos
+            if not op and ultima.op_manual:
+                op = ultima.op_manual
+            if not ref and ultima.referencia:
+                ref = ultima.referencia
+            if not lav and ultima.lavacao:
+                lav = ultima.lavacao
             if ultima.data_inicio:
                 dt = ultima.data_inicio + timedelta(minutes=m.tempo_min + parada_ultima)
             else:
@@ -605,9 +612,16 @@ def gerar_cargas(mid):
             dt = datetime.strptime(d['data_inicio'], '%Y-%m-%dT%H:%M')
             num_inicio = 1
 
+        # Herda qtde_pecas da última carga se disponível e não informado
+        qtde_pecas_padrao = safe_int(d.get('qtde_pecas', 0))
+        if not qtde_pecas_padrao and cargas_existentes:
+            ultima_com_pecas = next((c for c in reversed(cargas_existentes) if c.qtde_pecas), None)
+            if ultima_com_pecas:
+                qtde_pecas_padrao = ultima_com_pecas.qtde_pecas
+
         for i in range(num_inicio, num_inicio + n):
             c = Carga(maquina_id=mid, numero=i, op_manual=op,
-                      referencia=ref, lavacao=lav, qtde_pecas=0,
+                      referencia=ref, lavacao=lav, qtde_pecas=qtde_pecas_padrao,
                       peso=peso_carga, data_inicio=dt, status='aguardando')
             db.session.add(c)
             dt = dt + timedelta(minutes=m.tempo_min)
@@ -1096,33 +1110,3 @@ if __name__ == '__main__':
     with app.app_context():
         init_db()
     app.run(debug=True, host='0.0.0.0', port=5000)
- 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
