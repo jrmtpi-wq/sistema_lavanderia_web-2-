@@ -612,12 +612,21 @@ def gerar_cargas(mid):
             dt = datetime.strptime(d['data_inicio'], '%Y-%m-%dT%H:%M')
             num_inicio = 1
 
-        # Herda qtde_pecas da última carga se disponível e não informado
+        # Calcula qtde_pecas automaticamente se não informado
         qtde_pecas_padrao = safe_int(d.get('qtde_pecas', 0))
-        if not qtde_pecas_padrao and cargas_existentes:
-            ultima_com_pecas = next((c for c in reversed(cargas_existentes) if c.qtde_pecas), None)
-            if ultima_com_pecas:
-                qtde_pecas_padrao = ultima_com_pecas.qtde_pecas
+        if not qtde_pecas_padrao:
+            # Tenta calcular pela OP selecionada
+            op_id = safe_int(d.get('op_id', 0))
+            if op_id:
+                op_obj = OrdemProducao.query.get(op_id)
+                if op_obj and n > 0:
+                    import math as _math
+                    qtde_pecas_padrao = _math.floor(op_obj.total_pecas / n)
+            # Se não tem op_id, herda da última carga com peças
+            if not qtde_pecas_padrao and cargas_existentes:
+                ultima_com_pecas = next((c for c in reversed(cargas_existentes) if c.qtde_pecas), None)
+                if ultima_com_pecas:
+                    qtde_pecas_padrao = ultima_com_pecas.qtde_pecas
 
         for i in range(num_inicio, num_inicio + n):
             c = Carga(maquina_id=mid, numero=i, op_manual=op,
@@ -1106,31 +1115,6 @@ def delete_laser_apontamento(aid):
     db.session.delete(a); db.session.commit()
     return jsonify({'ok': True})
 
-
-@app.route('/fix_cargas_vazias/<int:mid>')
-def fix_cargas_vazias(mid):
-    """Rota temporária: preenche cargas sem OP/ref com dados da primeira carga que tiver."""
-    m = Maquina.query.get_or_404(mid)
-    cargas = sorted(m.cargas, key=lambda x: x.numero)
-    # Pega referência da primeira carga preenchida
-    ref_op, ref_ref, ref_lav = '', '', ''
-    for c in cargas:
-        if c.op_manual and c.referencia:
-            ref_op  = c.op_manual
-            ref_ref = c.referencia
-            ref_lav = c.lavacao or ''
-            break
-    if not ref_op:
-        return 'Nenhuma carga com OP encontrada.'
-    atualizadas = 0
-    for c in cargas:
-        if not c.op_manual or not c.referencia:
-            c.op_manual  = ref_op
-            c.referencia = ref_ref
-            c.lavacao    = ref_lav
-            atualizadas += 1
-    db.session.commit()
-    return f'✅ {atualizadas} cargas atualizadas com OP={ref_op} / Ref={ref_ref} / Lav={ref_lav}'
 
 if __name__ == '__main__':
     with app.app_context():
