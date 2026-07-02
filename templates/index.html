@@ -337,7 +337,12 @@ tbody td{padding:10px 14px;vertical-align:middle;color:var(--txt)}
     <div class="form-group"><label>Salário Base Mensal (R$)</label><input class="form-control" id="func-salario-base" type="number" step="0.01" placeholder="2000.00" oninput="calcCPMPreview()"></div>
     <div class="form-group"><label>Salário Mínimo Vigente (R$)</label><input class="form-control" id="func-salario-minimo" type="number" step="0.01" value="1621.00" oninput="calcCPMPreview()"></div>
     <div class="form-group"><label>Adicional de Insalubridade (%)</label><select class="form-control" id="func-insalubridade" onchange="calcCPMPreview()"><option value="0">Sem adicional</option><option value="20">Grau médio (20%)</option><option value="40">Grau máximo (40%)</option></select></div>
-    <div class="form-group"><label>Percentual de Encargos Sociais (%)</label><input class="form-control" id="func-encargos" type="number" step="0.01" value="68" oninput="calcCPMPreview()"></div>
+    <div class="form-group" style="grid-column:1/-1;margin-top:6px;padding-top:10px;border-top:1px solid var(--brd)"><label style="font-weight:700;color:var(--txt)">Encargos Provisionados Mensalmente (%)</label></div>
+    <div class="form-group"><label>FGTS Mensal (%)</label><input class="form-control" id="func-fgts" type="number" step="0.01" value="8.00" oninput="calcCPMPreview()"></div>
+    <div class="form-group"><label>Férias Constitucionais (%)</label><input class="form-control" id="func-ferias" type="number" step="0.01" value="8.33" oninput="calcCPMPreview()"></div>
+    <div class="form-group"><label>1/3 Constitucional de Férias (%)</label><input class="form-control" id="func-um-terco" type="number" step="0.01" value="2.78" oninput="calcCPMPreview()"></div>
+    <div class="form-group"><label>13º Salário (%)</label><input class="form-control" id="func-decimo-terceiro" type="number" step="0.01" value="8.33" oninput="calcCPMPreview()"></div>
+    <div class="form-group"><label>Outros Encargos (%) <span style="font-weight:400;color:var(--txt2);font-size:11px">— INSS, RAT, Terceiros etc.</span></label><input class="form-control" id="func-outros-encargos" type="number" step="0.01" value="0" placeholder="0 no Simples Nacional" oninput="calcCPMPreview()"></div>
     <div class="form-group"><label>Benefícios Fixos Mensais (R$)</label><input class="form-control" id="func-beneficios" type="number" step="0.01" placeholder="VT + VR + EPI" oninput="calcCPMPreview()"></div>
     <div class="form-group"><label>Jornada Mensal (horas)</label><input class="form-control" id="func-jornada" type="number" step="1" value="220" oninput="calcCPMPreview()"></div>
     <div class="form-group"><label>Eficiência Operacional (%)</label><input class="form-control" id="func-eficiencia" type="number" step="1" value="85" oninput="calcCPMPreview()"></div>
@@ -347,6 +352,7 @@ tbody td{padding:10px 14px;vertical-align:middle;color:var(--txt)}
       <div style="text-align:center"><div style="font-family:'Syne',sans-serif;font-size:22px;font-weight:800;color:var(--verde)" id="func-preview-mensal">R$ 0,00</div><div style="font-size:11px;color:var(--txt2)">Custo Mensal Total</div></div>
       <div style="text-align:center"><div style="font-family:'DM Mono',monospace;font-size:20px;color:var(--ciano)" id="func-preview-hora">R$ 0,00</div><div style="font-size:11px;color:var(--txt2)">Custo por Hora</div></div>
       <div style="text-align:center"><div style="font-family:'DM Mono',monospace;font-size:20px;color:var(--amarelo)" id="func-preview-cpm">R$ 0,0000</div><div style="font-size:11px;color:var(--txt2)">Custo por Minuto (CPM)</div></div>
+      <div style="text-align:center"><div style="font-family:'DM Mono',monospace;font-size:20px;color:var(--roxo)" id="func-preview-encargos-total">0,00%</div><div style="font-size:11px;color:var(--txt2)">Total de Encargos</div></div>
     </div>
   </div>
 </div><div class="panel-foot"><button class="btn btn-ghost" onclick="closePanel('func-panel')">Cancelar</button><button class="btn btn-primary" onclick="saveFuncionario()"><i class="fas fa-save"></i>Salvar Funcionário</button></div></div></div>
@@ -642,7 +648,11 @@ function openFuncForm(f=null){
   document.getElementById('func-salario-base').value = f?.salario_base ?? '';
   document.getElementById('func-salario-minimo').value = f?.salario_minimo ?? 1621.00;
   document.getElementById('func-insalubridade').value = f?.insalubridade_pct ?? 0;
-  document.getElementById('func-encargos').value = f?.encargos_pct ?? 68;
+  document.getElementById('func-fgts').value = f?.fgts_pct ?? 8.00;
+  document.getElementById('func-ferias').value = f?.ferias_pct ?? 8.33;
+  document.getElementById('func-um-terco').value = f?.um_terco_ferias_pct ?? 2.78;
+  document.getElementById('func-decimo-terceiro').value = f?.decimo_terceiro_pct ?? 8.33;
+  document.getElementById('func-outros-encargos').value = f?.outros_encargos_pct ?? 0;
   document.getElementById('func-beneficios').value = f?.beneficios_fixos ?? '';
   document.getElementById('func-jornada').value = f?.jornada_mensal_h ?? 220;
   document.getElementById('func-eficiencia').value = f?.eficiencia_pct ?? 85;
@@ -654,7 +664,12 @@ function calcCPMPreview(){
   const salarioBase   = parseFloat(document.getElementById('func-salario-base').value) || 0;
   const salarioMinimo = parseFloat(document.getElementById('func-salario-minimo').value) || 0;
   const insalPct      = parseFloat(document.getElementById('func-insalubridade').value) || 0;
-  const encargosPct   = parseFloat(document.getElementById('func-encargos').value) || 0;
+  const fgtsPct       = parseFloat(document.getElementById('func-fgts').value) || 0;
+  const feriasPct     = parseFloat(document.getElementById('func-ferias').value) || 0;
+  const umTercoPct    = parseFloat(document.getElementById('func-um-terco').value) || 0;
+  const decimoPct     = parseFloat(document.getElementById('func-decimo-terceiro').value) || 0;
+  const outrosPct     = parseFloat(document.getElementById('func-outros-encargos').value) || 0;
+  const encargosPct   = fgtsPct + feriasPct + umTercoPct + decimoPct + outrosPct;
   const beneficios    = parseFloat(document.getElementById('func-beneficios').value) || 0;
   const jornadaH      = parseFloat(document.getElementById('func-jornada').value) || 0;
   const eficienciaPct = parseFloat(document.getElementById('func-eficiencia').value) || 100;
@@ -670,6 +685,7 @@ function calcCPMPreview(){
   document.getElementById('func-preview-mensal').textContent = fmtBRL2(custoMensalTotal);
   document.getElementById('func-preview-hora').textContent   = fmtBRL2(hora);
   document.getElementById('func-preview-cpm').textContent    = 'R$ ' + cpm.toLocaleString('pt-BR',{minimumFractionDigits:4,maximumFractionDigits:4});
+  document.getElementById('func-preview-encargos-total').textContent = encargosPct.toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2}) + '%';
 }
 
 async function saveFuncionario(){
@@ -683,7 +699,11 @@ async function saveFuncionario(){
     salario_base: document.getElementById('func-salario-base').value,
     salario_minimo: document.getElementById('func-salario-minimo').value,
     insalubridade_pct: document.getElementById('func-insalubridade').value,
-    encargos_pct: document.getElementById('func-encargos').value,
+    fgts_pct: document.getElementById('func-fgts').value,
+    ferias_pct: document.getElementById('func-ferias').value,
+    um_terco_ferias_pct: document.getElementById('func-um-terco').value,
+    decimo_terceiro_pct: document.getElementById('func-decimo-terceiro').value,
+    outros_encargos_pct: document.getElementById('func-outros-encargos').value,
     beneficios_fixos: document.getElementById('func-beneficios').value,
     jornada_mensal_h: document.getElementById('func-jornada').value,
     eficiencia_pct: document.getElementById('func-eficiencia').value,

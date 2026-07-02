@@ -248,18 +248,23 @@ class Faturamento(db.Model):
     created_at      = db.Column(db.DateTime, default=datetime.utcnow)
 
 class Funcionario(db.Model):
-    id                 = db.Column(db.Integer, primary_key=True)
-    nome               = db.Column(db.String(100), nullable=False)
-    cargo              = db.Column(db.String(80))
-    salario_base       = db.Column(db.Float, default=0.0)
-    salario_minimo     = db.Column(db.Float, default=1621.00)
-    insalubridade_pct  = db.Column(db.Float, default=0.0)
-    encargos_pct       = db.Column(db.Float, default=68.0)
-    beneficios_fixos   = db.Column(db.Float, default=0.0)
-    jornada_mensal_h   = db.Column(db.Float, default=220.0)
-    eficiencia_pct     = db.Column(db.Float, default=85.0)
-    ativo              = db.Column(db.Boolean, default=True)
-    created_at         = db.Column(db.DateTime, default=datetime.utcnow)
+    id                   = db.Column(db.Integer, primary_key=True)
+    nome                 = db.Column(db.String(100), nullable=False)
+    cargo                = db.Column(db.String(80))
+    salario_base         = db.Column(db.Float, default=0.0)
+    salario_minimo       = db.Column(db.Float, default=1621.00)
+    insalubridade_pct    = db.Column(db.Float, default=0.0)
+    # Encargos provisionados mensalmente (Grupo A + B da tabela de custos):
+    fgts_pct             = db.Column(db.Float, default=8.0)     # FGTS mensal
+    ferias_pct           = db.Column(db.Float, default=8.33)    # Férias constitucionais (1/12)
+    um_terco_ferias_pct  = db.Column(db.Float, default=2.78)    # 1/3 constitucional de férias
+    decimo_terceiro_pct  = db.Column(db.Float, default=8.33)    # 13º salário (1/12)
+    outros_encargos_pct  = db.Column(db.Float, default=0.0)     # INSS patronal, RAT/SAT, Terceiros, etc. (Lucro Presumido/Real)
+    beneficios_fixos     = db.Column(db.Float, default=0.0)
+    jornada_mensal_h     = db.Column(db.Float, default=220.0)
+    eficiencia_pct       = db.Column(db.Float, default=85.0)
+    ativo                = db.Column(db.Boolean, default=True)
+    created_at           = db.Column(db.DateTime, default=datetime.utcnow)
 
     # ── Cálculo do Custo por Minuto (CPM) — Mão de Obra Direta ──
     @property
@@ -271,8 +276,15 @@ class Funcionario(db.Model):
         return (self.salario_base or 0.0) + self.insalubridade_valor
 
     @property
+    def encargos_pct(self):
+        """Soma de todos os encargos provisionados mensalmente (FGTS + Férias + 1/3 + 13º + outros)."""
+        return ((self.fgts_pct or 0.0) + (self.ferias_pct or 0.0) +
+                (self.um_terco_ferias_pct or 0.0) + (self.decimo_terceiro_pct or 0.0) +
+                (self.outros_encargos_pct or 0.0))
+
+    @property
     def custo_com_encargos(self):
-        return self.base_salarial * (1 + (self.encargos_pct or 0.0) / 100)
+        return self.base_salarial * (1 + self.encargos_pct / 100)
 
     @property
     def custo_mensal_total(self):
@@ -295,7 +307,12 @@ class Funcionario(db.Model):
         return {
             'id': self.id, 'nome': self.nome, 'cargo': self.cargo,
             'salario_base': self.salario_base, 'salario_minimo': self.salario_minimo,
-            'insalubridade_pct': self.insalubridade_pct, 'encargos_pct': self.encargos_pct,
+            'insalubridade_pct': self.insalubridade_pct,
+            'fgts_pct': self.fgts_pct, 'ferias_pct': self.ferias_pct,
+            'um_terco_ferias_pct': self.um_terco_ferias_pct,
+            'decimo_terceiro_pct': self.decimo_terceiro_pct,
+            'outros_encargos_pct': self.outros_encargos_pct,
+            'encargos_pct': round(self.encargos_pct, 2),
             'beneficios_fixos': self.beneficios_fixos, 'jornada_mensal_h': self.jornada_mensal_h,
             'eficiencia_pct': self.eficiencia_pct, 'ativo': self.ativo,
             'insalubridade_valor': round(self.insalubridade_valor, 2),
@@ -386,6 +403,12 @@ def init_db_route():
             beneficios_fixos FLOAT DEFAULT 0.0, jornada_mensal_h FLOAT DEFAULT 220.0,
             eficiencia_pct FLOAT DEFAULT 85.0, ativo BOOLEAN DEFAULT TRUE,
             created_at TIMESTAMP DEFAULT NOW())""",
+        'ALTER TABLE funcionario ADD COLUMN IF NOT EXISTS fgts_pct FLOAT DEFAULT 8.0',
+        'ALTER TABLE funcionario ADD COLUMN IF NOT EXISTS ferias_pct FLOAT DEFAULT 8.33',
+        'ALTER TABLE funcionario ADD COLUMN IF NOT EXISTS um_terco_ferias_pct FLOAT DEFAULT 2.78',
+        'ALTER TABLE funcionario ADD COLUMN IF NOT EXISTS decimo_terceiro_pct FLOAT DEFAULT 8.33',
+        'ALTER TABLE funcionario ADD COLUMN IF NOT EXISTS outros_encargos_pct FLOAT DEFAULT 0.0',
+        'ALTER TABLE funcionario DROP COLUMN IF EXISTS encargos_pct',
     ]
     for sql in sqls:
         try:
@@ -1221,7 +1244,11 @@ def add_funcionario():
         salario_base=safe_float(d.get('salario_base')),
         salario_minimo=safe_float(d.get('salario_minimo'), 1621.00),
         insalubridade_pct=safe_float(d.get('insalubridade_pct')),
-        encargos_pct=safe_float(d.get('encargos_pct'), 68.0),
+        fgts_pct=safe_float(d.get('fgts_pct'), 8.0),
+        ferias_pct=safe_float(d.get('ferias_pct'), 8.33),
+        um_terco_ferias_pct=safe_float(d.get('um_terco_ferias_pct'), 2.78),
+        decimo_terceiro_pct=safe_float(d.get('decimo_terceiro_pct'), 8.33),
+        outros_encargos_pct=safe_float(d.get('outros_encargos_pct')),
         beneficios_fixos=safe_float(d.get('beneficios_fixos')),
         jornada_mensal_h=safe_float(d.get('jornada_mensal_h'), 220.0),
         eficiencia_pct=safe_float(d.get('eficiencia_pct'), 85.0),
@@ -1239,7 +1266,11 @@ def update_funcionario(fid):
     if 'salario_base' in d: f.salario_base = safe_float(d['salario_base'])
     if 'salario_minimo' in d: f.salario_minimo = safe_float(d['salario_minimo'], 1621.00)
     if 'insalubridade_pct' in d: f.insalubridade_pct = safe_float(d['insalubridade_pct'])
-    if 'encargos_pct' in d: f.encargos_pct = safe_float(d['encargos_pct'], 68.0)
+    if 'fgts_pct' in d: f.fgts_pct = safe_float(d['fgts_pct'], 8.0)
+    if 'ferias_pct' in d: f.ferias_pct = safe_float(d['ferias_pct'], 8.33)
+    if 'um_terco_ferias_pct' in d: f.um_terco_ferias_pct = safe_float(d['um_terco_ferias_pct'], 2.78)
+    if 'decimo_terceiro_pct' in d: f.decimo_terceiro_pct = safe_float(d['decimo_terceiro_pct'], 8.33)
+    if 'outros_encargos_pct' in d: f.outros_encargos_pct = safe_float(d['outros_encargos_pct'])
     if 'beneficios_fixos' in d: f.beneficios_fixos = safe_float(d['beneficios_fixos'])
     if 'jornada_mensal_h' in d: f.jornada_mensal_h = safe_float(d['jornada_mensal_h'], 220.0)
     if 'eficiencia_pct' in d: f.eficiencia_pct = safe_float(d['eficiencia_pct'], 85.0)
