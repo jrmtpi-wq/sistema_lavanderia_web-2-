@@ -323,6 +323,75 @@ class Funcionario(db.Model):
             'cpm': self.cpm, 'custo_hora': self.custo_hora,
         }
 
+# ── ESTOQUE DE QUÍMICOS E MATÉRIAS-PRIMAS ──────────────────────────
+class ProdutoQuimico(db.Model):
+    id                    = db.Column(db.Integer, primary_key=True)
+    nome                  = db.Column(db.String(120), nullable=False)
+    categoria             = db.Column(db.String(40), default='Lavanderia de Jeans')  # Lavanderia de Jeans / Tingimento de Sarja / Consumíveis
+    unidade               = db.Column(db.String(10), default='kg')  # kg, L, un
+    quantidade_atual      = db.Column(db.Float, default=0.0)
+    custo_unitario        = db.Column(db.Float, default=0.0)  # custo por unidade de estoque (kg/L/un)
+    estoque_minimo        = db.Column(db.Float, default=0.0)
+    estoque_maximo        = db.Column(db.Float, default=0.0)
+    unidade_compra        = db.Column(db.String(40))          # Ex: "Saco 25kg", "Rolo 500un"
+    fator_conversao       = db.Column(db.Float, default=1.0)  # Ex: 1 saco = 25 kg → fator = 25
+    fornecedor             = db.Column(db.String(120))
+    lead_time_dias        = db.Column(db.Integer, default=0)  # tempo de atendimento do fornecedor
+    ativo                 = db.Column(db.Boolean, default=True)
+    created_at            = db.Column(db.DateTime, default=datetime.utcnow)
+    movimentacoes         = db.relationship('MovimentacaoEstoque', backref='produto', lazy=True,
+                                             cascade='all, delete-orphan',
+                                             order_by='MovimentacaoEstoque.data.desc()')
+
+    @property
+    def status_estoque(self):
+        if self.estoque_minimo and self.quantidade_atual <= self.estoque_minimo * 0.5:
+            return 'critico'
+        if self.estoque_minimo and self.quantidade_atual <= self.estoque_minimo:
+            return 'baixo'
+        return 'ok'
+
+    @property
+    def sugestao_compra(self):
+        if self.quantidade_atual <= self.estoque_minimo and self.estoque_maximo:
+            qtd = max(self.estoque_maximo - self.quantidade_atual, 0)
+            return round(qtd, 2)
+        return 0.0
+
+    @property
+    def valor_em_estoque(self):
+        return round((self.quantidade_atual or 0.0) * (self.custo_unitario or 0.0), 2)
+
+    def to_dict(self):
+        return {
+            'id': self.id, 'nome': self.nome, 'categoria': self.categoria, 'unidade': self.unidade,
+            'quantidade_atual': self.quantidade_atual, 'custo_unitario': self.custo_unitario,
+            'estoque_minimo': self.estoque_minimo, 'estoque_maximo': self.estoque_maximo,
+            'unidade_compra': self.unidade_compra, 'fator_conversao': self.fator_conversao,
+            'fornecedor': self.fornecedor, 'lead_time_dias': self.lead_time_dias, 'ativo': self.ativo,
+            'status_estoque': self.status_estoque, 'sugestao_compra': self.sugestao_compra,
+            'valor_em_estoque': self.valor_em_estoque,
+        }
+
+class MovimentacaoEstoque(db.Model):
+    id              = db.Column(db.Integer, primary_key=True)
+    produto_id      = db.Column(db.Integer, db.ForeignKey('produto_quimico.id'), nullable=False)
+    tipo            = db.Column(db.String(10), nullable=False)  # entrada / saida / ajuste
+    quantidade      = db.Column(db.Float, default=0.0)
+    lote_fornecedor = db.Column(db.String(60))
+    observacao      = db.Column(db.String(200))
+    saldo_apos      = db.Column(db.Float, default=0.0)
+    data            = db.Column(db.DateTime, default=datetime.utcnow)
+
+    def to_dict(self):
+        return {
+            'id': self.id, 'produto_id': self.produto_id, 'tipo': self.tipo,
+            'quantidade': self.quantidade, 'lote_fornecedor': self.lote_fornecedor,
+            'observacao': self.observacao, 'saldo_apos': self.saldo_apos,
+            'data': self.data.strftime('%d/%m/%Y %H:%M') if self.data else None,
+        }
+
+
 # ── HELPERS ──────────────────────────────────────────────────────
 def safe_int(v, default=0):
     try: return int(float(v or default))
@@ -409,6 +478,19 @@ def init_db_route():
         'ALTER TABLE funcionario ADD COLUMN IF NOT EXISTS decimo_terceiro_pct FLOAT DEFAULT 8.33',
         'ALTER TABLE funcionario ADD COLUMN IF NOT EXISTS outros_encargos_pct FLOAT DEFAULT 0.0',
         'ALTER TABLE funcionario DROP COLUMN IF EXISTS encargos_pct',
+        """CREATE TABLE IF NOT EXISTS produto_quimico (
+            id SERIAL PRIMARY KEY, nome VARCHAR(120) NOT NULL,
+            categoria VARCHAR(40) DEFAULT 'Lavanderia de Jeans', unidade VARCHAR(10) DEFAULT 'kg',
+            quantidade_atual FLOAT DEFAULT 0.0, custo_unitario FLOAT DEFAULT 0.0,
+            estoque_minimo FLOAT DEFAULT 0.0, estoque_maximo FLOAT DEFAULT 0.0,
+            unidade_compra VARCHAR(40), fator_conversao FLOAT DEFAULT 1.0,
+            fornecedor VARCHAR(120), lead_time_dias INTEGER DEFAULT 0,
+            ativo BOOLEAN DEFAULT TRUE, created_at TIMESTAMP DEFAULT NOW())""",
+        """CREATE TABLE IF NOT EXISTS movimentacao_estoque (
+            id SERIAL PRIMARY KEY, produto_id INTEGER REFERENCES produto_quimico(id),
+            tipo VARCHAR(10) NOT NULL, quantidade FLOAT DEFAULT 0.0,
+            lote_fornecedor VARCHAR(60), observacao VARCHAR(200),
+            saldo_apos FLOAT DEFAULT 0.0, data TIMESTAMP DEFAULT NOW())""",
     ]
     for sql in sqls:
         try:
@@ -1283,6 +1365,109 @@ def delete_funcionario(fid):
     f = Funcionario.query.get_or_404(fid)
     db.session.delete(f); db.session.commit()
     return jsonify({'ok': True})
+
+# ── ESTOQUE DE QUÍMICOS ─────────────────────────────────────────────
+@app.route('/api/quimicos', methods=['GET'])
+def get_quimicos():
+    q = ProdutoQuimico.query
+    if request.args.get('ativos') == '1':
+        q = q.filter_by(ativo=True)
+    categoria = request.args.get('categoria')
+    if categoria:
+        q = q.filter_by(categoria=categoria)
+    rows = q.order_by(ProdutoQuimico.nome).all()
+    return jsonify([p.to_dict() for p in rows])
+
+@app.route('/api/quimicos/<int:pid>', methods=['GET'])
+def get_quimico(pid):
+    p = ProdutoQuimico.query.get_or_404(pid)
+    return jsonify(p.to_dict())
+
+@app.route('/api/quimicos', methods=['POST'])
+def add_quimico():
+    d = request.json or {}
+    if not d.get('nome'):
+        return jsonify({'error': 'Nome é obrigatório'}), 400
+    p = ProdutoQuimico(
+        nome=d.get('nome', '').strip(),
+        categoria=d.get('categoria') or 'Lavanderia de Jeans',
+        unidade=d.get('unidade') or 'kg',
+        quantidade_atual=safe_float(d.get('quantidade_atual')),
+        custo_unitario=safe_float(d.get('custo_unitario')),
+        estoque_minimo=safe_float(d.get('estoque_minimo')),
+        estoque_maximo=safe_float(d.get('estoque_maximo')),
+        unidade_compra=(d.get('unidade_compra') or '').strip(),
+        fator_conversao=safe_float(d.get('fator_conversao'), 1.0),
+        fornecedor=(d.get('fornecedor') or '').strip(),
+        lead_time_dias=safe_int(d.get('lead_time_dias')),
+        ativo=bool(d.get('ativo', True)),
+    )
+    db.session.add(p); db.session.commit()
+    # Se já entrou com saldo inicial, registra como movimentação de ajuste inicial
+    if p.quantidade_atual:
+        db.session.add(MovimentacaoEstoque(produto_id=p.id, tipo='ajuste', quantidade=p.quantidade_atual,
+                                            observacao='Saldo inicial de cadastro', saldo_apos=p.quantidade_atual))
+        db.session.commit()
+    return jsonify(p.to_dict())
+
+@app.route('/api/quimicos/<int:pid>', methods=['PUT'])
+def update_quimico(pid):
+    p = ProdutoQuimico.query.get_or_404(pid)
+    d = request.json or {}
+    if 'nome' in d: p.nome = (d['nome'] or '').strip()
+    if 'categoria' in d: p.categoria = d['categoria']
+    if 'unidade' in d: p.unidade = d['unidade']
+    if 'custo_unitario' in d: p.custo_unitario = safe_float(d['custo_unitario'])
+    if 'estoque_minimo' in d: p.estoque_minimo = safe_float(d['estoque_minimo'])
+    if 'estoque_maximo' in d: p.estoque_maximo = safe_float(d['estoque_maximo'])
+    if 'unidade_compra' in d: p.unidade_compra = (d['unidade_compra'] or '').strip()
+    if 'fator_conversao' in d: p.fator_conversao = safe_float(d['fator_conversao'], 1.0)
+    if 'fornecedor' in d: p.fornecedor = (d['fornecedor'] or '').strip()
+    if 'lead_time_dias' in d: p.lead_time_dias = safe_int(d['lead_time_dias'])
+    if 'ativo' in d: p.ativo = bool(d['ativo'])
+    # quantidade_atual não é editada direto aqui — usa /movimentar para manter rastreabilidade
+    db.session.commit()
+    return jsonify(p.to_dict())
+
+@app.route('/api/quimicos/<int:pid>', methods=['DELETE'])
+def delete_quimico(pid):
+    p = ProdutoQuimico.query.get_or_404(pid)
+    db.session.delete(p); db.session.commit()
+    return jsonify({'ok': True})
+
+@app.route('/api/quimicos/<int:pid>/movimentar', methods=['POST'])
+def movimentar_quimico(pid):
+    p = ProdutoQuimico.query.get_or_404(pid)
+    d = request.json or {}
+    tipo = d.get('tipo')  # entrada / saida
+    qtd = safe_float(d.get('quantidade'))
+    if tipo not in ('entrada', 'saida') or qtd <= 0:
+        return jsonify({'error': 'Informe tipo (entrada/saida) e uma quantidade maior que zero'}), 400
+    if tipo == 'saida' and qtd > p.quantidade_atual:
+        return jsonify({'error': f'Saldo insuficiente. Estoque atual: {p.quantidade_atual} {p.unidade}'}), 400
+    p.quantidade_atual = (p.quantidade_atual or 0.0) + (qtd if tipo == 'entrada' else -qtd)
+    mov = MovimentacaoEstoque(
+        produto_id=p.id, tipo=tipo, quantidade=qtd,
+        lote_fornecedor=(d.get('lote_fornecedor') or '').strip(),
+        observacao=(d.get('observacao') or '').strip(),
+        saldo_apos=p.quantidade_atual,
+    )
+    db.session.add(mov); db.session.commit()
+    return jsonify({'ok': True, 'produto': p.to_dict(), 'movimentacao': mov.to_dict()})
+
+@app.route('/api/quimicos/<int:pid>/movimentacoes', methods=['GET'])
+def get_movimentacoes(pid):
+    ProdutoQuimico.query.get_or_404(pid)
+    rows = MovimentacaoEstoque.query.filter_by(produto_id=pid).order_by(MovimentacaoEstoque.data.desc()).limit(50).all()
+    return jsonify([m.to_dict() for m in rows])
+
+@app.route('/api/quimicos/compras', methods=['GET'])
+def relatorio_compras():
+    """Relatório de Necessidade de Compras: itens no ou abaixo do estoque mínimo."""
+    rows = ProdutoQuimico.query.filter(ProdutoQuimico.ativo == True,
+                                        ProdutoQuimico.quantidade_atual <= ProdutoQuimico.estoque_minimo,
+                                        ProdutoQuimico.estoque_minimo > 0).order_by(ProdutoQuimico.nome).all()
+    return jsonify([p.to_dict() for p in rows])
 
 if __name__ == '__main__':
     with app.app_context():

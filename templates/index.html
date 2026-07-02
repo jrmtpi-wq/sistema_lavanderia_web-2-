@@ -214,6 +214,7 @@ tbody td{padding:10px 14px;vertical-align:middle;color:var(--txt)}
     <div class="nav-section">Cadastros</div>
     <button class="nav-btn" onclick="goPage('ops')"><i class="fas fa-file-alt"></i>Ordens de Produção</button>
     <button class="nav-btn" onclick="goPage('funcionarios')"><i class="fas fa-users"></i>Funcionários</button>
+    <button class="nav-btn" onclick="goPage('quimicos')"><i class="fas fa-flask"></i>Estoque de Químicos</button>
     <div class="nav-section">Máquinas de Lavar</div>
     <button class="nav-btn" onclick="goMaqPage('lavar')"><i class="fas fa-soap"></i>Máquinas de Lavar</button>
     <div class="nav-section">Centrífugas</div>
@@ -325,6 +326,24 @@ tbody td{padding:10px 14px;vertical-align:middle;color:var(--txt)}
         <div class="tbl-wrap"><table><thead><tr><th>Nome</th><th>Cargo</th><th>Salário Base</th><th>Encargos %</th><th>Custo Mensal Total</th><th>Custo/Hora</th><th>CPM (R$/min)</th><th>Status</th><th>Ações</th></tr></thead><tbody id="funcionarios-tbody"></tbody></table></div>
       </div>
     </div>
+    <div class="page" id="page-quimicos">
+      <div class="card" style="margin-bottom:16px">
+        <div class="card-header">
+          <div class="card-title"><i class="fas fa-flask"></i>Estoque de Químicos e Matérias-Primas</div>
+          <div style="display:flex;gap:8px">
+            <select class="form-control" id="quim-filtro-categoria" style="width:220px" onchange="loadQuimicos()">
+              <option value="">Todas as Categorias</option>
+              <option value="Lavanderia de Jeans">Lavanderia de Jeans</option>
+              <option value="Tingimento de Sarja">Tingimento de Sarja</option>
+              <option value="Consumíveis">Consumíveis / Rastreabilidade</option>
+            </select>
+            <button class="btn btn-primary" onclick="openQuimForm()"><i class="fas fa-plus"></i>Novo Produto</button>
+          </div>
+        </div>
+        <div id="quim-alerta-bar" style="display:none;padding:12px 20px;background:rgba(239,68,68,.1);border-top:1px solid rgba(239,68,68,.3);color:#f87171;font-size:13px"></div>
+        <div class="tbl-wrap"><table><thead><tr><th>Produto</th><th>Categoria</th><th>Unidade</th><th>Qtd. Atual</th><th>Mín / Máx</th><th>Custo Unit.</th><th>Valor em Estoque</th><th>Status</th><th>Ações</th></tr></thead><tbody id="quimicos-tbody"></tbody></table></div>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -357,7 +376,40 @@ tbody td{padding:10px 14px;vertical-align:middle;color:var(--txt)}
   </div>
 </div><div class="panel-foot"><button class="btn btn-ghost" onclick="closePanel('func-panel')">Cancelar</button><button class="btn btn-primary" onclick="saveFuncionario()"><i class="fas fa-save"></i>Salvar Funcionário</button></div></div></div>
 
+<div class="panel-overlay" id="quim-panel"><div class="panel" style="width:min(620px,97vw)"><div class="panel-head"><div class="panel-title" id="quim-panel-title"><i class="fas fa-flask" style="color:var(--ciano)"></i> Novo Produto</div><button class="btn btn-ghost btn-sm" onclick="closePanel('quim-panel')"><i class="fas fa-times"></i></button></div><div class="panel-body"><input type="hidden" id="quim-edit-id">
+  <div class="form-grid">
+    <div class="form-group" style="grid-column:1/-1"><label>Nome do Produto</label><input class="form-control" id="quim-nome" placeholder="Ex: Enzima Celulase Neutra"></div>
+    <div class="form-group"><label>Categoria</label><select class="form-control" id="quim-categoria"><option value="Lavanderia de Jeans">Lavanderia de Jeans</option><option value="Tingimento de Sarja">Tingimento de Sarja</option><option value="Consumíveis">Consumíveis / Rastreabilidade</option></select></div>
+    <div class="form-group"><label>Unidade de Estoque</label><select class="form-control" id="quim-unidade"><option value="kg">kg (Quilo)</option><option value="L">L (Litro)</option><option value="un">un (Unidade)</option></select></div>
+    <div class="form-group"><label>Custo por Unidade (R$)</label><input class="form-control" id="quim-custo" type="number" step="0.0001" placeholder="Ex: 18.50"></div>
+    <div class="form-group"><label><input type="checkbox" id="quim-ativo" checked style="width:auto;margin-right:6px"> Ativo</label></div>
+    <div class="form-group" style="grid-column:1/-1;margin-top:6px;padding-top:10px;border-top:1px solid var(--brd)"><label style="font-weight:700;color:var(--txt)">Controle de Estoque</label></div>
+    <div class="form-group"><label>Estoque Mínimo</label><input class="form-control" id="quim-min" type="number" step="0.01" placeholder="Ex: 30"></div>
+    <div class="form-group"><label>Estoque Máximo</label><input class="form-control" id="quim-max" type="number" step="0.01" placeholder="Ex: 80"></div>
+    <div class="form-group"><label>Lead Time do Fornecedor (dias)</label><input class="form-control" id="quim-leadtime" type="number" step="1" placeholder="Ex: 5"></div>
+    <div class="form-group"><label>Fornecedor</label><input class="form-control" id="quim-fornecedor" placeholder="Nome do fornecedor"></div>
+    <div class="form-group" style="grid-column:1/-1;margin-top:6px;padding-top:10px;border-top:1px solid var(--brd)"><label style="font-weight:700;color:var(--txt)">Conversão de Compra <span style="font-weight:400;color:var(--txt2);font-size:11px">— evita erro de inventário quando o fornecedor vende em saco/rolo</span></label></div>
+    <div class="form-group"><label>Unidade de Compra</label><input class="form-control" id="quim-unidade-compra" placeholder="Ex: Saco 25kg"></div>
+    <div class="form-group"><label>Fator de Conversão <span style="font-weight:400;color:var(--txt2);font-size:11px">— 1 unidade de compra = quantas kg/L/un de estoque</span></label><input class="form-control" id="quim-fator" type="number" step="0.01" value="1"></div>
+  </div>
+</div><div class="panel-foot"><button class="btn btn-ghost" onclick="closePanel('quim-panel')">Cancelar</button><button class="btn btn-primary" onclick="saveQuimico()"><i class="fas fa-save"></i>Salvar Produto</button></div></div></div>
+
+<div class="panel-overlay" id="mov-panel"><div class="panel" style="width:min(480px,97vw)"><div class="panel-head"><div class="panel-title" id="mov-panel-title">Movimentar Estoque</div><button class="btn btn-ghost btn-sm" onclick="closePanel('mov-panel')"><i class="fas fa-times"></i></button></div><div class="panel-body"><input type="hidden" id="mov-produto-id">
+  <div style="display:flex;gap:8px;margin-bottom:16px">
+    <button class="btn btn-sm" id="mov-btn-entrada" onclick="setMovTipo('entrada')" style="flex:1"><i class="fas fa-arrow-down"></i> Entrada</button>
+    <button class="btn btn-sm" id="mov-btn-saida" onclick="setMovTipo('saida')" style="flex:1"><i class="fas fa-arrow-up"></i> Saída</button>
+  </div>
+  <input type="hidden" id="mov-tipo" value="entrada">
+  <div class="form-group"><label>Estoque Atual</label><div class="form-control" id="mov-estoque-atual" style="background:var(--cinza3)">--</div></div>
+  <div class="form-group"><label>Quantidade</label><input class="form-control" id="mov-quantidade" type="number" step="0.01" placeholder="0.00"></div>
+  <div class="form-group"><label>Lote do Fornecedor <span style="font-weight:400;color:var(--txt2);font-size:11px">— opcional, para rastreabilidade</span></label><input class="form-control" id="mov-lote" placeholder="Ex: LF-2026-0034"></div>
+  <div class="form-group"><label>Observação</label><input class="form-control" id="mov-observacao" placeholder="Ex: Compra NF 12345 / Consumo receita X"></div>
+</div><div class="panel-foot"><button class="btn btn-ghost" onclick="closePanel('mov-panel')">Cancelar</button><button class="btn btn-primary" onclick="confirmarMovimentacao()"><i class="fas fa-save"></i>Confirmar</button></div></div></div>
+
+<div class="panel-overlay" id="hist-panel"><div class="panel" style="width:min(560px,97vw)"><div class="panel-head"><div class="panel-title" id="hist-panel-title">Histórico de Movimentações</div><button class="btn btn-ghost btn-sm" onclick="closePanel('hist-panel')"><i class="fas fa-times"></i></button></div><div class="panel-body"><div class="tbl-wrap"><table><thead><tr><th>Data</th><th>Tipo</th><th>Qtd</th><th>Lote</th><th>Obs.</th><th>Saldo</th></tr></thead><tbody id="hist-tbody"></tbody></table></div></div></div></div>
+
 <div class="panel-overlay" id="op-panel"><div class="panel"><div class="panel-head"><div class="panel-title" id="op-panel-title"><i class="fas fa-file-alt" style="color:var(--ciano)"></i> Nova Ordem de Produção</div><button class="btn btn-ghost btn-sm" onclick="closePanel('op-panel')"><i class="fas fa-times"></i></button></div><div class="panel-body"><input type="hidden" id="op-edit-id"><div class="form-grid"><div class="form-group"><label>Nº OP</label><input class="form-control" id="op-num" placeholder="Ex: 48000"></div><div class="form-group"><label>Referência</label><input class="form-control" id="op-ref" placeholder="Ex: CFHV41827-1"></div><div class="form-group" style="grid-column:1/-1"><label>Tipo de Lavação</label><input class="form-control" id="op-lav" placeholder="Ex: STONAGEM / SKY / LASER"></div><div class="form-group"><label>Cap. Peças/Carga</label><input class="form-control" id="op-cap" type="number" placeholder="134"></div></div><div class="sizes-section"><p class="sizes-group-title" style="color:var(--laranja)">🅰️ ADULTO – LETRAS</p><div class="sizes-grid" id="sizes-letras"></div><p class="sizes-group-title" style="color:var(--roxo)">🔢 ADULTO – NUMÉRICO</p><div class="sizes-grid" id="sizes-num"></div><p class="sizes-group-title" style="color:var(--verde)">👶 INFANTIL</p><div class="sizes-grid" id="sizes-inf"></div></div><div style="margin-top:20px;padding-top:20px;border-top:1px solid var(--brd)"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px"><p class="sizes-group-title" style="margin:0">⚖️ PESO POR TAMANHO (kg/peça)</p><div style="display:flex;align-items:center;gap:10px"><input class="form-control" id="cap-arredondar" type="number" step="0.1" placeholder="Cap. kg/carga" style="width:140px"><button class="btn btn-warning btn-sm" onclick="calcArredondar()"><i class="fas fa-calculator"></i> Arredondar Cargas</button></div></div><div class="sizes-grid" id="pesos-grid"></div><div class="arr-result" id="arr-result" style="display:none"><div style="display:flex;align-items:center;gap:20px;flex-wrap:wrap"><div><div class="arr-big" id="arr-cargas">0</div><div class="arr-sub">Cargas necessárias</div></div><div><div style="font-family:'DM Mono',monospace;font-size:20px;color:var(--amarelo)" id="arr-peso">0.000</div><div class="arr-sub">Peso total (kg)</div></div><div><div style="font-family:'DM Mono',monospace;font-size:20px;color:var(--verde)" id="arr-ultimo">0.000</div><div class="arr-sub">Peso última carga</div></div></div></div></div></div><div class="panel-foot"><div style="flex:1;font-size:13px;color:var(--txt2);display:flex;gap:18px;align-items:center"><span>Peças: <b id="live-pecas" style="color:var(--txt)">0</b></span><span>Peso Total: <b id="live-peso" style="color:var(--ciano)">0.000 kg</b></span></div><button class="btn btn-ghost" onclick="closePanel('op-panel')">Cancelar</button><button class="btn btn-primary" onclick="saveOp()"><i class="fas fa-save"></i>Salvar OP</button></div></div></div>
+
 
 <div class="panel-overlay fullscreen" id="maq-panel"><div class="panel">
 <div class="panel-sticky-top">
@@ -587,7 +639,7 @@ function closePanel(id){document.getElementById(id).classList.remove('open')}
 document.querySelectorAll('.panel-overlay').forEach(p=>{p.addEventListener('click',e=>{if(e.target===p)p.classList.remove('open')})});
 
 let currentLaserId=null,_laserEquipData=null;
-function goPage(page){document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));document.getElementById('page-'+page)?.classList.add('active');event?.currentTarget?.classList.add('active');const titles={dashboard:'Dashboard / Resumo',ops:'Ordens de Produção',maquinas:'Máquinas',calendario:'Calendário de Turnos',faturamento:'Faturamento',dre:'DRE / Demonstrativo de Resultado',laser:'Fila de Laser / Equipamentos',funcionarios:'Funcionários / Custo de Mão de Obra'};const t=titles[page]||page;document.getElementById('topbar-title').innerHTML=t.includes('/')?t.replace(/\/(.*)/,'<span>/ $1</span>'):t;if(page==='dashboard')loadDashboard();if(page==='ops')loadOps();if(page==='calendario')renderCalendario();if(page==='faturamento')loadPrecos();if(page==='dre')initDRE();if(page==='laser')loadLaserGrid();if(page==='funcionarios')loadFuncionarios()}
+function goPage(page){document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));document.getElementById('page-'+page)?.classList.add('active');event?.currentTarget?.classList.add('active');const titles={dashboard:'Dashboard / Resumo',ops:'Ordens de Produção',maquinas:'Máquinas',calendario:'Calendário de Turnos',faturamento:'Faturamento',dre:'DRE / Demonstrativo de Resultado',laser:'Fila de Laser / Equipamentos',funcionarios:'Funcionários / Custo de Mão de Obra',quimicos:'Estoque de Químicos'};const t=titles[page]||page;document.getElementById('topbar-title').innerHTML=t.includes('/')?t.replace(/\/(.*)/,'<span>/ $1</span>'):t;if(page==='dashboard')loadDashboard();if(page==='ops')loadOps();if(page==='calendario')renderCalendario();if(page==='faturamento')loadPrecos();if(page==='dre')initDRE();if(page==='laser')loadLaserGrid();if(page==='funcionarios')loadFuncionarios();if(page==='quimicos')loadQuimicos()}
 async function loadLaserGrid(){const equips=await api('/api/laser/equipamentos');document.getElementById('laser-grid').innerHTML=equips.map(e=>{const pct=e.total_filas>0?Math.round((e.concluido/e.total_filas)*100)||0:0;return`<div class="laser-card maq-card" onclick="openLaserPanel(${e.id},${e.numero})"><div class="maq-header" style="background:linear-gradient(135deg,#0d3b2e,#10b981)"><div class="maq-name">⚡ LASER ${String(e.numero).padStart(2,'0')}</div><div class="maq-icon">🔆</div></div><div class="maq-body"><div class="maq-stat-row"><div class="maq-stat"><div class="maq-stat-val">${e.total_filas}</div><div class="maq-stat-lbl">na fila</div></div><div class="maq-stat"><div class="maq-stat-val" style="color:var(--amarelo)">${e.em_processo}</div><div class="maq-stat-lbl">em processo</div></div><div class="maq-stat"><div class="maq-stat-val" style="color:var(--verde)">${e.concluido}</div><div class="maq-stat-lbl">concluídos</div></div><div class="maq-stat"><div class="maq-stat-val">${e.total_pecas.toLocaleString('pt-BR')}</div><div class="maq-stat-lbl">peças</div></div></div><div class="maq-progress"><div class="maq-progress-bar" style="width:${pct}%;background:linear-gradient(90deg,#10b981,#059669)"></div></div></div></div>`}).join('')}
 async function openLaserPanel(id,numero){currentLaserId=id;document.getElementById('laser-panel-title').innerHTML=`⚡ Laser ${String(numero).padStart(2,'0')}`;switchLaserTab('fila',document.querySelector('#laser-tabs .tab'));await loadLaserFila();document.getElementById('ap-data').value=new Date().toISOString().slice(0,10);document.getElementById('laser-panel').classList.add('open')}
 function switchLaserTab(tab,el){['fila','apontamento','config'].forEach(t=>{document.getElementById(`laser-tab-${t}`).style.display=t===tab?'':'none'});document.querySelectorAll('#laser-tabs .tab').forEach(b=>b.classList.remove('active'));if(el)el.classList.add('active');if(tab==='config')loadLaserConfig();if(tab==='apontamento')loadApontamentos()}
@@ -721,6 +773,151 @@ async function deleteFuncionario(id){
   await api(`/api/funcionarios/${id}`, 'DELETE');
   toast('Funcionário excluído','info');
   loadFuncionarios();
+}
+
+let _quimMovAtual = null;
+
+function statusBadge(status){
+  if(status==='critico') return '<span style="color:#f87171"><i class="fas fa-circle" style="font-size:8px"></i> Crítico</span>';
+  if(status==='baixo') return '<span style="color:#fbbf24"><i class="fas fa-circle" style="font-size:8px"></i> Baixo</span>';
+  return '<span style="color:var(--verde)"><i class="fas fa-circle" style="font-size:8px"></i> OK</span>';
+}
+
+async function loadQuimicos(){
+  const cat = document.getElementById('quim-filtro-categoria').value;
+  const rows = await api('/api/quimicos' + (cat ? `?categoria=${encodeURIComponent(cat)}` : ''));
+  document.getElementById('quimicos-tbody').innerHTML = rows.length ? rows.map(p=>`<tr>
+    <td><b>${p.nome}</b>${p.fornecedor?`<div style="font-size:11px;color:var(--txt2)">${p.fornecedor}</div>`:''}</td>
+    <td>${p.categoria}</td>
+    <td>${p.unidade}</td>
+    <td class="mono">${Number(p.quantidade_atual).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})}</td>
+    <td class="mono" style="color:var(--txt2)">${Number(p.estoque_minimo).toLocaleString('pt-BR')} / ${Number(p.estoque_maximo).toLocaleString('pt-BR')}</td>
+    <td class="mono">${fmtBRL2(p.custo_unitario)}</td>
+    <td class="mono" style="color:var(--ciano)">${fmtBRL2(p.valor_em_estoque)}</td>
+    <td>${statusBadge(p.status_estoque)}</td>
+    <td><div style="display:flex;gap:4px;flex-wrap:wrap">
+      <button class="btn btn-ghost btn-xs" title="Entrada/Saída" onclick='openMovPanel(${JSON.stringify(p)})'><i class="fas fa-exchange-alt"></i></button>
+      <button class="btn btn-ghost btn-xs" title="Histórico" onclick="verHistorico(${p.id},'${p.nome.replace(/'/g,"\\'")}')"><i class="fas fa-history"></i></button>
+      <button class="btn btn-ghost btn-xs" title="Editar" onclick='openQuimForm(${JSON.stringify(p)})'><i class="fas fa-edit"></i></button>
+      <button class="btn btn-danger btn-xs" title="Excluir" onclick="deleteQuimico(${p.id})"><i class="fas fa-trash"></i></button>
+    </div></td>
+  </tr>`).join('') : '<tr><td colspan="9" style="text-align:center;padding:24px;color:var(--txt2)">Nenhum produto cadastrado ainda.</td></tr>';
+
+  const criticos = rows.filter(p=>p.status_estoque==='critico');
+  const baixos = rows.filter(p=>p.status_estoque==='baixo');
+  const bar = document.getElementById('quim-alerta-bar');
+  if(criticos.length || baixos.length){
+    bar.style.display='block';
+    bar.innerHTML = `<i class="fas fa-exclamation-triangle"></i> ${criticos.length ? `<b>${criticos.length} produto(s) em nível crítico</b>` : ''}${criticos.length && baixos.length ? ' — ' : ''}${baixos.length ? `${baixos.length} produto(s) abaixo do estoque mínimo` : ''}. Verifique a necessidade de compra.`;
+  } else {
+    bar.style.display='none';
+  }
+}
+
+function openQuimForm(p=null){
+  document.getElementById('quim-edit-id').value = p ? p.id : '';
+  document.getElementById('quim-panel-title').innerHTML = p
+    ? `<i class="fas fa-edit" style="color:var(--ciano)"></i> Editar: ${p.nome}`
+    : `<i class="fas fa-flask" style="color:var(--ciano)"></i> Novo Produto`;
+  document.getElementById('quim-nome').value = p?.nome || '';
+  document.getElementById('quim-categoria').value = p?.categoria || 'Lavanderia de Jeans';
+  document.getElementById('quim-unidade').value = p?.unidade || 'kg';
+  document.getElementById('quim-custo').value = p?.custo_unitario ?? '';
+  document.getElementById('quim-ativo').checked = p ? !!p.ativo : true;
+  document.getElementById('quim-min').value = p?.estoque_minimo ?? '';
+  document.getElementById('quim-max').value = p?.estoque_maximo ?? '';
+  document.getElementById('quim-leadtime').value = p?.lead_time_dias ?? '';
+  document.getElementById('quim-fornecedor').value = p?.fornecedor || '';
+  document.getElementById('quim-unidade-compra').value = p?.unidade_compra || '';
+  document.getElementById('quim-fator').value = p?.fator_conversao ?? 1;
+  document.getElementById('quim-panel').classList.add('open');
+}
+
+async function saveQuimico(){
+  const id = document.getElementById('quim-edit-id').value;
+  const nome = document.getElementById('quim-nome').value.trim();
+  if(!nome){ toast('Informe o nome do produto','error'); return; }
+  const payload = {
+    nome,
+    categoria: document.getElementById('quim-categoria').value,
+    unidade: document.getElementById('quim-unidade').value,
+    custo_unitario: document.getElementById('quim-custo').value,
+    ativo: document.getElementById('quim-ativo').checked,
+    estoque_minimo: document.getElementById('quim-min').value,
+    estoque_maximo: document.getElementById('quim-max').value,
+    lead_time_dias: document.getElementById('quim-leadtime').value,
+    fornecedor: document.getElementById('quim-fornecedor').value,
+    unidade_compra: document.getElementById('quim-unidade-compra').value,
+    fator_conversao: document.getElementById('quim-fator').value,
+  };
+  try{
+    if(id){ await api(`/api/quimicos/${id}`, 'PUT', payload); toast('Produto atualizado!'); }
+    else  {
+      // saldo inicial só é aceito na criação, via campo de quantidade — aqui inicia zerado e usa Entrada depois
+      await api('/api/quimicos', 'POST', payload); toast('Produto cadastrado! Use "Entrada" para lançar o estoque inicial.');
+    }
+    closePanel('quim-panel');
+    loadQuimicos();
+  }catch(e){ /* erro já mostrado pelo api() */ }
+}
+
+async function deleteQuimico(id){
+  if(!confirm('Excluir este produto? O histórico de movimentações também será apagado.')) return;
+  await api(`/api/quimicos/${id}`, 'DELETE');
+  toast('Produto excluído','info');
+  loadQuimicos();
+}
+
+function openMovPanel(p){
+  _quimMovAtual = p;
+  document.getElementById('mov-produto-id').value = p.id;
+  document.getElementById('mov-panel-title').innerHTML = `Movimentar Estoque — ${p.nome}`;
+  document.getElementById('mov-estoque-atual').textContent = `${Number(p.quantidade_atual).toLocaleString('pt-BR',{minimumFractionDigits:2})} ${p.unidade}`;
+  document.getElementById('mov-quantidade').value = '';
+  document.getElementById('mov-lote').value = '';
+  document.getElementById('mov-observacao').value = '';
+  setMovTipo('entrada');
+  document.getElementById('mov-panel').classList.add('open');
+}
+
+function setMovTipo(tipo){
+  document.getElementById('mov-tipo').value = tipo;
+  const be = document.getElementById('mov-btn-entrada'), bs = document.getElementById('mov-btn-saida');
+  be.className = 'btn btn-sm ' + (tipo==='entrada' ? 'btn-success' : 'btn-ghost');
+  bs.className = 'btn btn-sm ' + (tipo==='saida' ? 'btn-danger' : 'btn-ghost');
+  be.style.flex = '1'; bs.style.flex = '1';
+}
+
+async function confirmarMovimentacao(){
+  const id = document.getElementById('mov-produto-id').value;
+  const tipo = document.getElementById('mov-tipo').value;
+  const qtd = parseFloat(document.getElementById('mov-quantidade').value);
+  if(!qtd || qtd <= 0){ toast('Informe uma quantidade válida','error'); return; }
+  const payload = {
+    tipo, quantidade: qtd,
+    lote_fornecedor: document.getElementById('mov-lote').value,
+    observacao: document.getElementById('mov-observacao').value,
+  };
+  try{
+    await api(`/api/quimicos/${id}/movimentar`, 'POST', payload);
+    toast(tipo==='entrada' ? 'Entrada registrada!' : 'Saída registrada!');
+    closePanel('mov-panel');
+    loadQuimicos();
+  }catch(e){ /* erro já mostrado pelo api() */ }
+}
+
+async function verHistorico(id, nome){
+  const rows = await api(`/api/quimicos/${id}/movimentacoes`);
+  document.getElementById('hist-panel-title').innerHTML = `Histórico — ${nome}`;
+  document.getElementById('hist-tbody').innerHTML = rows.length ? rows.map(m=>`<tr>
+    <td style="font-size:12px;color:var(--txt2)">${m.data}</td>
+    <td>${m.tipo==='entrada'?'<span style="color:var(--verde)">Entrada</span>':m.tipo==='saida'?'<span style="color:#f87171">Saída</span>':'<span style="color:var(--txt2)">Ajuste</span>'}</td>
+    <td class="mono">${Number(m.quantidade).toLocaleString('pt-BR',{minimumFractionDigits:2})}</td>
+    <td>${m.lote_fornecedor||'--'}</td>
+    <td style="font-size:12px">${m.observacao||'--'}</td>
+    <td class="mono">${Number(m.saldo_apos).toLocaleString('pt-BR',{minimumFractionDigits:2})}</td>
+  </tr>`).join('') : '<tr><td colspan="6" style="text-align:center;padding:20px;color:var(--txt2)">Nenhuma movimentação registrada.</td></tr>';
+  document.getElementById('hist-panel').classList.add('open');
 }
 
 initHistMes();
