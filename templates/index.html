@@ -213,6 +213,7 @@ tbody td{padding:10px 14px;vertical-align:middle;color:var(--txt)}
     <button class="nav-btn active" onclick="goPage('dashboard')"><i class="fas fa-chart-pie"></i>Dashboard</button>
     <div class="nav-section">Cadastros</div>
     <button class="nav-btn" onclick="goPage('ops')"><i class="fas fa-file-alt"></i>Ordens de Produção</button>
+    <button class="nav-btn" onclick="goPage('funcionarios')"><i class="fas fa-users"></i>Funcionários</button>
     <div class="nav-section">Máquinas de Lavar</div>
     <button class="nav-btn" onclick="goMaqPage('lavar')"><i class="fas fa-soap"></i>Máquinas de Lavar</button>
     <div class="nav-section">Centrífugas</div>
@@ -315,10 +316,41 @@ tbody td{padding:10px 14px;vertical-align:middle;color:var(--txt)}
         <div class="tbl-wrap"><table><thead><tr><th>Data</th><th>OP</th><th>Referência</th><th>Peças</th><th>Preço/Peça</th><th>Valor</th></tr></thead><tbody id="dre-tbody"></tbody></table></div>
       </div>
     </div>
+    <div class="page" id="page-funcionarios">
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title"><i class="fas fa-users"></i>Funcionários — Custo de Mão de Obra (CPM)</div>
+          <button class="btn btn-primary" onclick="openFuncForm()"><i class="fas fa-plus"></i>Novo Funcionário</button>
+        </div>
+        <div class="tbl-wrap"><table><thead><tr><th>Nome</th><th>Cargo</th><th>Salário Base</th><th>Encargos %</th><th>Custo Mensal Total</th><th>Custo/Hora</th><th>CPM (R$/min)</th><th>Status</th><th>Ações</th></tr></thead><tbody id="funcionarios-tbody"></tbody></table></div>
+      </div>
+    </div>
   </div>
 </div>
 
 <!-- PAINÉIS -->
+<div class="panel-overlay" id="func-panel"><div class="panel" style="width:min(620px,97vw)"><div class="panel-head"><div class="panel-title" id="func-panel-title"><i class="fas fa-users" style="color:var(--ciano)"></i> Novo Funcionário</div><button class="btn btn-ghost btn-sm" onclick="closePanel('func-panel')"><i class="fas fa-times"></i></button></div><div class="panel-body"><input type="hidden" id="func-edit-id">
+  <div class="form-grid">
+    <div class="form-group" style="grid-column:1/-1"><label>Nome</label><input class="form-control" id="func-nome" placeholder="Nome do funcionário" oninput="calcCPMPreview()"></div>
+    <div class="form-group"><label>Cargo / Função</label><input class="form-control" id="func-cargo" placeholder="Ex: Operador de Máquina"></div>
+    <div class="form-group"><label><input type="checkbox" id="func-ativo" checked style="width:auto;margin-right:6px"> Ativo</label></div>
+    <div class="form-group"><label>Salário Base Mensal (R$)</label><input class="form-control" id="func-salario-base" type="number" step="0.01" placeholder="2000.00" oninput="calcCPMPreview()"></div>
+    <div class="form-group"><label>Salário Mínimo Vigente (R$)</label><input class="form-control" id="func-salario-minimo" type="number" step="0.01" value="1621.00" oninput="calcCPMPreview()"></div>
+    <div class="form-group"><label>Adicional de Insalubridade (%)</label><select class="form-control" id="func-insalubridade" onchange="calcCPMPreview()"><option value="0">Sem adicional</option><option value="20">Grau médio (20%)</option><option value="40">Grau máximo (40%)</option></select></div>
+    <div class="form-group"><label>Percentual de Encargos Sociais (%)</label><input class="form-control" id="func-encargos" type="number" step="0.01" value="68" oninput="calcCPMPreview()"></div>
+    <div class="form-group"><label>Benefícios Fixos Mensais (R$)</label><input class="form-control" id="func-beneficios" type="number" step="0.01" placeholder="VT + VR + EPI" oninput="calcCPMPreview()"></div>
+    <div class="form-group"><label>Jornada Mensal (horas)</label><input class="form-control" id="func-jornada" type="number" step="1" value="220" oninput="calcCPMPreview()"></div>
+    <div class="form-group"><label>Eficiência Operacional (%)</label><input class="form-control" id="func-eficiencia" type="number" step="1" value="85" oninput="calcCPMPreview()"></div>
+  </div>
+  <div id="func-cpm-preview" style="margin-top:16px;background:var(--cinza3);border-radius:10px;padding:14px">
+    <div style="display:flex;gap:24px;flex-wrap:wrap;align-items:center">
+      <div style="text-align:center"><div style="font-family:'Syne',sans-serif;font-size:22px;font-weight:800;color:var(--verde)" id="func-preview-mensal">R$ 0,00</div><div style="font-size:11px;color:var(--txt2)">Custo Mensal Total</div></div>
+      <div style="text-align:center"><div style="font-family:'DM Mono',monospace;font-size:20px;color:var(--ciano)" id="func-preview-hora">R$ 0,00</div><div style="font-size:11px;color:var(--txt2)">Custo por Hora</div></div>
+      <div style="text-align:center"><div style="font-family:'DM Mono',monospace;font-size:20px;color:var(--amarelo)" id="func-preview-cpm">R$ 0,0000</div><div style="font-size:11px;color:var(--txt2)">Custo por Minuto (CPM)</div></div>
+    </div>
+  </div>
+</div><div class="panel-foot"><button class="btn btn-ghost" onclick="closePanel('func-panel')">Cancelar</button><button class="btn btn-primary" onclick="saveFuncionario()"><i class="fas fa-save"></i>Salvar Funcionário</button></div></div></div>
+
 <div class="panel-overlay" id="op-panel"><div class="panel"><div class="panel-head"><div class="panel-title" id="op-panel-title"><i class="fas fa-file-alt" style="color:var(--ciano)"></i> Nova Ordem de Produção</div><button class="btn btn-ghost btn-sm" onclick="closePanel('op-panel')"><i class="fas fa-times"></i></button></div><div class="panel-body"><input type="hidden" id="op-edit-id"><div class="form-grid"><div class="form-group"><label>Nº OP</label><input class="form-control" id="op-num" placeholder="Ex: 48000"></div><div class="form-group"><label>Referência</label><input class="form-control" id="op-ref" placeholder="Ex: CFHV41827-1"></div><div class="form-group" style="grid-column:1/-1"><label>Tipo de Lavação</label><input class="form-control" id="op-lav" placeholder="Ex: STONAGEM / SKY / LASER"></div><div class="form-group"><label>Cap. Peças/Carga</label><input class="form-control" id="op-cap" type="number" placeholder="134"></div></div><div class="sizes-section"><p class="sizes-group-title" style="color:var(--laranja)">🅰️ ADULTO – LETRAS</p><div class="sizes-grid" id="sizes-letras"></div><p class="sizes-group-title" style="color:var(--roxo)">🔢 ADULTO – NUMÉRICO</p><div class="sizes-grid" id="sizes-num"></div><p class="sizes-group-title" style="color:var(--verde)">👶 INFANTIL</p><div class="sizes-grid" id="sizes-inf"></div></div><div style="margin-top:20px;padding-top:20px;border-top:1px solid var(--brd)"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px"><p class="sizes-group-title" style="margin:0">⚖️ PESO POR TAMANHO (kg/peça)</p><div style="display:flex;align-items:center;gap:10px"><input class="form-control" id="cap-arredondar" type="number" step="0.1" placeholder="Cap. kg/carga" style="width:140px"><button class="btn btn-warning btn-sm" onclick="calcArredondar()"><i class="fas fa-calculator"></i> Arredondar Cargas</button></div></div><div class="sizes-grid" id="pesos-grid"></div><div class="arr-result" id="arr-result" style="display:none"><div style="display:flex;align-items:center;gap:20px;flex-wrap:wrap"><div><div class="arr-big" id="arr-cargas">0</div><div class="arr-sub">Cargas necessárias</div></div><div><div style="font-family:'DM Mono',monospace;font-size:20px;color:var(--amarelo)" id="arr-peso">0.000</div><div class="arr-sub">Peso total (kg)</div></div><div><div style="font-family:'DM Mono',monospace;font-size:20px;color:var(--verde)" id="arr-ultimo">0.000</div><div class="arr-sub">Peso última carga</div></div></div></div></div></div><div class="panel-foot"><div style="flex:1;font-size:13px;color:var(--txt2);display:flex;gap:18px;align-items:center"><span>Peças: <b id="live-pecas" style="color:var(--txt)">0</b></span><span>Peso Total: <b id="live-peso" style="color:var(--ciano)">0.000 kg</b></span></div><button class="btn btn-ghost" onclick="closePanel('op-panel')">Cancelar</button><button class="btn btn-primary" onclick="saveOp()"><i class="fas fa-save"></i>Salvar OP</button></div></div></div>
 
 <div class="panel-overlay fullscreen" id="maq-panel"><div class="panel">
@@ -549,7 +581,7 @@ function closePanel(id){document.getElementById(id).classList.remove('open')}
 document.querySelectorAll('.panel-overlay').forEach(p=>{p.addEventListener('click',e=>{if(e.target===p)p.classList.remove('open')})});
 
 let currentLaserId=null,_laserEquipData=null;
-function goPage(page){document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));document.getElementById('page-'+page)?.classList.add('active');event?.currentTarget?.classList.add('active');const titles={dashboard:'Dashboard / Resumo',ops:'Ordens de Produção',maquinas:'Máquinas',calendario:'Calendário de Turnos',faturamento:'Faturamento',dre:'DRE / Demonstrativo de Resultado',laser:'Fila de Laser / Equipamentos'};const t=titles[page]||page;document.getElementById('topbar-title').innerHTML=t.includes('/')?t.replace(/\/(.*)/,'<span>/ $1</span>'):t;if(page==='dashboard')loadDashboard();if(page==='ops')loadOps();if(page==='calendario')renderCalendario();if(page==='faturamento')loadPrecos();if(page==='dre')initDRE();if(page==='laser')loadLaserGrid()}
+function goPage(page){document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));document.getElementById('page-'+page)?.classList.add('active');event?.currentTarget?.classList.add('active');const titles={dashboard:'Dashboard / Resumo',ops:'Ordens de Produção',maquinas:'Máquinas',calendario:'Calendário de Turnos',faturamento:'Faturamento',dre:'DRE / Demonstrativo de Resultado',laser:'Fila de Laser / Equipamentos',funcionarios:'Funcionários / Custo de Mão de Obra'};const t=titles[page]||page;document.getElementById('topbar-title').innerHTML=t.includes('/')?t.replace(/\/(.*)/,'<span>/ $1</span>'):t;if(page==='dashboard')loadDashboard();if(page==='ops')loadOps();if(page==='calendario')renderCalendario();if(page==='faturamento')loadPrecos();if(page==='dre')initDRE();if(page==='laser')loadLaserGrid();if(page==='funcionarios')loadFuncionarios()}
 async function loadLaserGrid(){const equips=await api('/api/laser/equipamentos');document.getElementById('laser-grid').innerHTML=equips.map(e=>{const pct=e.total_filas>0?Math.round((e.concluido/e.total_filas)*100)||0:0;return`<div class="laser-card maq-card" onclick="openLaserPanel(${e.id},${e.numero})"><div class="maq-header" style="background:linear-gradient(135deg,#0d3b2e,#10b981)"><div class="maq-name">⚡ LASER ${String(e.numero).padStart(2,'0')}</div><div class="maq-icon">🔆</div></div><div class="maq-body"><div class="maq-stat-row"><div class="maq-stat"><div class="maq-stat-val">${e.total_filas}</div><div class="maq-stat-lbl">na fila</div></div><div class="maq-stat"><div class="maq-stat-val" style="color:var(--amarelo)">${e.em_processo}</div><div class="maq-stat-lbl">em processo</div></div><div class="maq-stat"><div class="maq-stat-val" style="color:var(--verde)">${e.concluido}</div><div class="maq-stat-lbl">concluídos</div></div><div class="maq-stat"><div class="maq-stat-val">${e.total_pecas.toLocaleString('pt-BR')}</div><div class="maq-stat-lbl">peças</div></div></div><div class="maq-progress"><div class="maq-progress-bar" style="width:${pct}%;background:linear-gradient(90deg,#10b981,#059669)"></div></div></div></div>`}).join('')}
 async function openLaserPanel(id,numero){currentLaserId=id;document.getElementById('laser-panel-title').innerHTML=`⚡ Laser ${String(numero).padStart(2,'0')}`;switchLaserTab('fila',document.querySelector('#laser-tabs .tab'));await loadLaserFila();document.getElementById('ap-data').value=new Date().toISOString().slice(0,10);document.getElementById('laser-panel').classList.add('open')}
 function switchLaserTab(tab,el){['fila','apontamento','config'].forEach(t=>{document.getElementById(`laser-tab-${t}`).style.display=t===tab?'':'none'});document.querySelectorAll('#laser-tabs .tab').forEach(b=>b.classList.remove('active'));if(el)el.classList.add('active');if(tab==='config')loadLaserConfig();if(tab==='apontamento')loadApontamentos()}
@@ -578,6 +610,98 @@ function renderIntervalos(ivs){const el=document.getElementById('intervalos-list
 async function addIntervalo(){await api(`/api/laser/equipamentos/${currentLaserId}/intervalos`,'POST',{nome:'',hora_inicio:'12:00',hora_fim:'13:00'});const ivs=await api(`/api/laser/equipamentos/${currentLaserId}/intervalos`);renderIntervalos(ivs)}
 async function updateIntervalo(id,field,value){await api(`/api/laser/intervalos/${id}`,'PUT',{[field]:value})}
 async function deleteIntervalo(id){if(!confirm('Excluir intervalo?'))return;await api(`/api/laser/intervalos/${id}`,'DELETE');const ivs=await api(`/api/laser/equipamentos/${currentLaserId}/intervalos`);renderIntervalos(ivs);toast('Intervalo excluído','info')}
+
+function fmtBRL2(v){return 'R$ '+Number(v||0).toLocaleString('pt-BR',{minimumFractionDigits:2,maximumFractionDigits:2})}
+
+async function loadFuncionarios(){
+  const rows = await api('/api/funcionarios');
+  document.getElementById('funcionarios-tbody').innerHTML = rows.length ? rows.map(f=>`<tr>
+    <td><b>${f.nome}</b></td>
+    <td>${f.cargo||'--'}</td>
+    <td class="mono">${fmtBRL2(f.salario_base)}</td>
+    <td class="mono">${Number(f.encargos_pct).toLocaleString('pt-BR')}%</td>
+    <td class="mono" style="color:var(--verde);font-weight:700">${fmtBRL2(f.custo_mensal_total)}</td>
+    <td class="mono" style="color:var(--ciano)">${fmtBRL2(f.custo_hora)}</td>
+    <td class="mono" style="color:var(--amarelo)">${Number(f.cpm).toLocaleString('pt-BR',{minimumFractionDigits:4,maximumFractionDigits:4})}</td>
+    <td>${f.ativo?'<span style="color:var(--verde)"><i class="fas fa-circle" style="font-size:8px"></i> Ativo</span>':'<span style="color:var(--txt2)"><i class="fas fa-circle" style="font-size:8px"></i> Inativo</span>'}</td>
+    <td><div style="display:flex;gap:6px">
+      <button class="btn btn-ghost btn-xs" onclick='openFuncForm(${JSON.stringify(f)})'><i class="fas fa-edit"></i></button>
+      <button class="btn btn-danger btn-xs" onclick="deleteFuncionario(${f.id})"><i class="fas fa-trash"></i></button>
+    </div></td>
+  </tr>`).join('') : '<tr><td colspan="9" style="text-align:center;padding:24px;color:var(--txt2)">Nenhum funcionário cadastrado ainda.</td></tr>';
+}
+
+function openFuncForm(f=null){
+  document.getElementById('func-edit-id').value = f ? f.id : '';
+  document.getElementById('func-panel-title').innerHTML = f
+    ? `<i class="fas fa-edit" style="color:var(--ciano)"></i> Editar: ${f.nome}`
+    : `<i class="fas fa-users" style="color:var(--ciano)"></i> Novo Funcionário`;
+  document.getElementById('func-nome').value = f?.nome || '';
+  document.getElementById('func-cargo').value = f?.cargo || '';
+  document.getElementById('func-ativo').checked = f ? !!f.ativo : true;
+  document.getElementById('func-salario-base').value = f?.salario_base ?? '';
+  document.getElementById('func-salario-minimo').value = f?.salario_minimo ?? 1621.00;
+  document.getElementById('func-insalubridade').value = f?.insalubridade_pct ?? 0;
+  document.getElementById('func-encargos').value = f?.encargos_pct ?? 68;
+  document.getElementById('func-beneficios').value = f?.beneficios_fixos ?? '';
+  document.getElementById('func-jornada').value = f?.jornada_mensal_h ?? 220;
+  document.getElementById('func-eficiencia').value = f?.eficiencia_pct ?? 85;
+  calcCPMPreview();
+  document.getElementById('func-panel').classList.add('open');
+}
+
+function calcCPMPreview(){
+  const salarioBase   = parseFloat(document.getElementById('func-salario-base').value) || 0;
+  const salarioMinimo = parseFloat(document.getElementById('func-salario-minimo').value) || 0;
+  const insalPct      = parseFloat(document.getElementById('func-insalubridade').value) || 0;
+  const encargosPct   = parseFloat(document.getElementById('func-encargos').value) || 0;
+  const beneficios    = parseFloat(document.getElementById('func-beneficios').value) || 0;
+  const jornadaH      = parseFloat(document.getElementById('func-jornada').value) || 0;
+  const eficienciaPct = parseFloat(document.getElementById('func-eficiencia').value) || 100;
+
+  const insalubridadeVal = salarioMinimo * (insalPct/100);
+  const baseSalarial     = salarioBase + insalubridadeVal;
+  const custoComEncargos = baseSalarial * (1 + encargosPct/100);
+  const custoMensalTotal = custoComEncargos + beneficios;
+  const minutosProdutivos= jornadaH * 60 * (eficienciaPct/100);
+  const cpm  = minutosProdutivos ? custoMensalTotal / minutosProdutivos : 0;
+  const hora = cpm * 60;
+
+  document.getElementById('func-preview-mensal').textContent = fmtBRL2(custoMensalTotal);
+  document.getElementById('func-preview-hora').textContent   = fmtBRL2(hora);
+  document.getElementById('func-preview-cpm').textContent    = 'R$ ' + cpm.toLocaleString('pt-BR',{minimumFractionDigits:4,maximumFractionDigits:4});
+}
+
+async function saveFuncionario(){
+  const id = document.getElementById('func-edit-id').value;
+  const nome = document.getElementById('func-nome').value.trim();
+  if(!nome){ toast('Informe o nome do funcionário','error'); return; }
+  const payload = {
+    nome,
+    cargo: document.getElementById('func-cargo').value.trim(),
+    ativo: document.getElementById('func-ativo').checked,
+    salario_base: document.getElementById('func-salario-base').value,
+    salario_minimo: document.getElementById('func-salario-minimo').value,
+    insalubridade_pct: document.getElementById('func-insalubridade').value,
+    encargos_pct: document.getElementById('func-encargos').value,
+    beneficios_fixos: document.getElementById('func-beneficios').value,
+    jornada_mensal_h: document.getElementById('func-jornada').value,
+    eficiencia_pct: document.getElementById('func-eficiencia').value,
+  };
+  try{
+    if(id){ await api(`/api/funcionarios/${id}`, 'PUT', payload); toast('Funcionário atualizado!'); }
+    else  { await api('/api/funcionarios', 'POST', payload); toast('Funcionário cadastrado!'); }
+    closePanel('func-panel');
+    loadFuncionarios();
+  }catch(e){ /* erro já mostrado pelo api() */ }
+}
+
+async function deleteFuncionario(id){
+  if(!confirm('Excluir este funcionário?')) return;
+  await api(`/api/funcionarios/${id}`, 'DELETE');
+  toast('Funcionário excluído','info');
+  loadFuncionarios();
+}
 
 initHistMes();
 loadDashboard();

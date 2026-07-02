@@ -247,6 +247,65 @@ class Faturamento(db.Model):
     observacao      = db.Column(db.String(200))
     created_at      = db.Column(db.DateTime, default=datetime.utcnow)
 
+class Funcionario(db.Model):
+    id                 = db.Column(db.Integer, primary_key=True)
+    nome               = db.Column(db.String(100), nullable=False)
+    cargo              = db.Column(db.String(80))
+    salario_base       = db.Column(db.Float, default=0.0)
+    salario_minimo     = db.Column(db.Float, default=1621.00)
+    insalubridade_pct  = db.Column(db.Float, default=0.0)
+    encargos_pct       = db.Column(db.Float, default=68.0)
+    beneficios_fixos   = db.Column(db.Float, default=0.0)
+    jornada_mensal_h   = db.Column(db.Float, default=220.0)
+    eficiencia_pct     = db.Column(db.Float, default=85.0)
+    ativo              = db.Column(db.Boolean, default=True)
+    created_at         = db.Column(db.DateTime, default=datetime.utcnow)
+
+    # ── Cálculo do Custo por Minuto (CPM) — Mão de Obra Direta ──
+    @property
+    def insalubridade_valor(self):
+        return (self.salario_minimo or 0.0) * ((self.insalubridade_pct or 0.0) / 100)
+
+    @property
+    def base_salarial(self):
+        return (self.salario_base or 0.0) + self.insalubridade_valor
+
+    @property
+    def custo_com_encargos(self):
+        return self.base_salarial * (1 + (self.encargos_pct or 0.0) / 100)
+
+    @property
+    def custo_mensal_total(self):
+        return self.custo_com_encargos + (self.beneficios_fixos or 0.0)
+
+    @property
+    def minutos_produtivos(self):
+        return (self.jornada_mensal_h or 0.0) * 60 * ((self.eficiencia_pct or 100.0) / 100)
+
+    @property
+    def cpm(self):
+        mp = self.minutos_produtivos
+        return round(self.custo_mensal_total / mp, 4) if mp else 0.0
+
+    @property
+    def custo_hora(self):
+        return round(self.cpm * 60, 2)
+
+    def to_dict(self):
+        return {
+            'id': self.id, 'nome': self.nome, 'cargo': self.cargo,
+            'salario_base': self.salario_base, 'salario_minimo': self.salario_minimo,
+            'insalubridade_pct': self.insalubridade_pct, 'encargos_pct': self.encargos_pct,
+            'beneficios_fixos': self.beneficios_fixos, 'jornada_mensal_h': self.jornada_mensal_h,
+            'eficiencia_pct': self.eficiencia_pct, 'ativo': self.ativo,
+            'insalubridade_valor': round(self.insalubridade_valor, 2),
+            'base_salarial': round(self.base_salarial, 2),
+            'custo_com_encargos': round(self.custo_com_encargos, 2),
+            'custo_mensal_total': round(self.custo_mensal_total, 2),
+            'minutos_produtivos': round(self.minutos_produtivos, 1),
+            'cpm': self.cpm, 'custo_hora': self.custo_hora,
+        }
+
 # ── HELPERS ──────────────────────────────────────────────────────
 def safe_int(v, default=0):
     try: return int(float(v or default))
@@ -320,6 +379,13 @@ def init_db_route():
         "INSERT INTO laser_equipamento (numero, tempo_min) SELECT 3, 1.42 WHERE NOT EXISTS (SELECT 1 FROM laser_equipamento WHERE numero=3)",
         'ALTER TABLE tabela_preco DROP CONSTRAINT IF EXISTS tabela_preco_referencia_key',
         'CREATE UNIQUE INDEX IF NOT EXISTS uq_tabela_preco_op_ref ON tabela_preco(op, referencia)',
+        """CREATE TABLE IF NOT EXISTS funcionario (
+            id SERIAL PRIMARY KEY, nome VARCHAR(100) NOT NULL, cargo VARCHAR(80),
+            salario_base FLOAT DEFAULT 0.0, salario_minimo FLOAT DEFAULT 1621.00,
+            insalubridade_pct FLOAT DEFAULT 0.0, encargos_pct FLOAT DEFAULT 68.0,
+            beneficios_fixos FLOAT DEFAULT 0.0, jornada_mensal_h FLOAT DEFAULT 220.0,
+            eficiencia_pct FLOAT DEFAULT 85.0, ativo BOOLEAN DEFAULT TRUE,
+            created_at TIMESTAMP DEFAULT NOW())""",
     ]
     for sql in sqls:
         try:
@@ -1130,6 +1196,62 @@ def delete_laser_apontamento(aid):
     db.session.delete(a); db.session.commit()
     return jsonify({'ok': True})
 
+# ── FUNCIONÁRIOS / CUSTO DE MÃO DE OBRA (CPM) ──────────────────────
+@app.route('/api/funcionarios', methods=['GET'])
+def get_funcionarios():
+    q = Funcionario.query
+    if request.args.get('ativos') == '1':
+        q = q.filter_by(ativo=True)
+    rows = q.order_by(Funcionario.nome).all()
+    return jsonify([f.to_dict() for f in rows])
+
+@app.route('/api/funcionarios/<int:fid>', methods=['GET'])
+def get_funcionario(fid):
+    f = Funcionario.query.get_or_404(fid)
+    return jsonify(f.to_dict())
+
+@app.route('/api/funcionarios', methods=['POST'])
+def add_funcionario():
+    d = request.json or {}
+    if not d.get('nome'):
+        return jsonify({'error': 'Nome é obrigatório'}), 400
+    f = Funcionario(
+        nome=d.get('nome', '').strip(),
+        cargo=(d.get('cargo') or '').strip(),
+        salario_base=safe_float(d.get('salario_base')),
+        salario_minimo=safe_float(d.get('salario_minimo'), 1621.00),
+        insalubridade_pct=safe_float(d.get('insalubridade_pct')),
+        encargos_pct=safe_float(d.get('encargos_pct'), 68.0),
+        beneficios_fixos=safe_float(d.get('beneficios_fixos')),
+        jornada_mensal_h=safe_float(d.get('jornada_mensal_h'), 220.0),
+        eficiencia_pct=safe_float(d.get('eficiencia_pct'), 85.0),
+        ativo=bool(d.get('ativo', True)),
+    )
+    db.session.add(f); db.session.commit()
+    return jsonify(f.to_dict())
+
+@app.route('/api/funcionarios/<int:fid>', methods=['PUT'])
+def update_funcionario(fid):
+    f = Funcionario.query.get_or_404(fid)
+    d = request.json or {}
+    if 'nome' in d: f.nome = (d['nome'] or '').strip()
+    if 'cargo' in d: f.cargo = (d['cargo'] or '').strip()
+    if 'salario_base' in d: f.salario_base = safe_float(d['salario_base'])
+    if 'salario_minimo' in d: f.salario_minimo = safe_float(d['salario_minimo'], 1621.00)
+    if 'insalubridade_pct' in d: f.insalubridade_pct = safe_float(d['insalubridade_pct'])
+    if 'encargos_pct' in d: f.encargos_pct = safe_float(d['encargos_pct'], 68.0)
+    if 'beneficios_fixos' in d: f.beneficios_fixos = safe_float(d['beneficios_fixos'])
+    if 'jornada_mensal_h' in d: f.jornada_mensal_h = safe_float(d['jornada_mensal_h'], 220.0)
+    if 'eficiencia_pct' in d: f.eficiencia_pct = safe_float(d['eficiencia_pct'], 85.0)
+    if 'ativo' in d: f.ativo = bool(d['ativo'])
+    db.session.commit()
+    return jsonify(f.to_dict())
+
+@app.route('/api/funcionarios/<int:fid>', methods=['DELETE'])
+def delete_funcionario(fid):
+    f = Funcionario.query.get_or_404(fid)
+    db.session.delete(f); db.session.commit()
+    return jsonify({'ok': True})
 
 if __name__ == '__main__':
     with app.app_context():
