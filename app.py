@@ -266,6 +266,46 @@ class PassadoriaItem(db.Model):
             'duracao_min': round(self.duracao_seg / 60, 1),
         }
 
+# ── ROBÔ DE PASSADORIA ──────────────────────────────────────────────
+class RoboPassadoriaItem(db.Model):
+    id                = db.Column(db.Integer, primary_key=True)
+    numero            = db.Column(db.Integer)
+    op                = db.Column(db.String(20))
+    referencia        = db.Column(db.String(50))
+    descricao_produto = db.Column(db.String(200))
+    qtde_pecas        = db.Column(db.Integer, default=0)
+    tempo_padrao_min  = db.Column(db.Float, default=0.85)   # tempo padrão por peça (minutos)
+    qtde_robos        = db.Column(db.Integer, default=1)    # robôs trabalhando em paralelo neste item
+    parada_min        = db.Column(db.Integer, default=0)
+    data_inicio       = db.Column(db.DateTime, nullable=True)
+    data_fim          = db.Column(db.DateTime, nullable=True)
+    status            = db.Column(db.String(20), default='aguardando')
+    observacao        = db.Column(db.String(200))
+    created_at        = db.Column(db.DateTime, default=datetime.utcnow)
+
+    @property
+    def duracao_seg(self):
+        qr = self.qtde_robos or 1
+        base = (self.qtde_pecas or 0) * (self.tempo_padrao_min or 0) * 60.0 / qr
+        return base + (self.parada_min or 0) * 60.0
+
+    def calcular_fim(self):
+        if not self.data_inicio or not self.qtde_pecas:
+            return None
+        return _calcular_fim_laser(self.data_inicio, self.duracao_seg, [])
+
+    def to_dict(self):
+        fim = self.data_fim or self.calcular_fim()
+        return {
+            'id': self.id, 'numero': self.numero, 'op': self.op, 'referencia': self.referencia,
+            'descricao_produto': self.descricao_produto, 'qtde_pecas': self.qtde_pecas,
+            'tempo_padrao_min': self.tempo_padrao_min, 'qtde_robos': self.qtde_robos,
+            'parada_min': self.parada_min or 0, 'status': self.status, 'observacao': self.observacao,
+            'data_inicio': self.data_inicio.strftime('%Y-%m-%dT%H:%M') if self.data_inicio else None,
+            'data_fim': fim.strftime('%Y-%m-%dT%H:%M') if fim else None,
+            'duracao_min': round(self.duracao_seg / 60, 1),
+        }
+
 
 class TabelaPreco(db.Model):
     id              = db.Column(db.Integer, primary_key=True)
@@ -621,6 +661,13 @@ def init_db_route():
             id SERIAL PRIMARY KEY, numero INTEGER, op VARCHAR(20), referencia VARCHAR(50),
             descricao_produto VARCHAR(200), qtde_pecas INTEGER DEFAULT 0,
             tempo_padrao_min FLOAT DEFAULT 0.85, qtde_passadeiras INTEGER DEFAULT 1,
+            parada_min INTEGER DEFAULT 0, data_inicio TIMESTAMP, data_fim TIMESTAMP,
+            status VARCHAR(20) DEFAULT 'aguardando', observacao VARCHAR(200),
+            created_at TIMESTAMP DEFAULT NOW())""",
+        """CREATE TABLE IF NOT EXISTS robo_passadoria_item (
+            id SERIAL PRIMARY KEY, numero INTEGER, op VARCHAR(20), referencia VARCHAR(50),
+            descricao_produto VARCHAR(200), qtde_pecas INTEGER DEFAULT 0,
+            tempo_padrao_min FLOAT DEFAULT 0.85, qtde_robos INTEGER DEFAULT 1,
             parada_min INTEGER DEFAULT 0, data_inicio TIMESTAMP, data_fim TIMESTAMP,
             status VARCHAR(20) DEFAULT 'aguardando', observacao VARCHAR(200),
             created_at TIMESTAMP DEFAULT NOW())""",
@@ -1521,6 +1568,101 @@ def delete_passadoria_fila(iid):
         db.session.delete(item)
         db.session.flush()
         restantes = PassadoriaItem.query.order_by(PassadoriaItem.numero).all()
+        for i, it in enumerate(restantes, 1):
+            it.numero = i
+        db.session.commit()
+        return jsonify({'ok': True})
+    except Exception as ex:
+        db.session.rollback()
+        return jsonify({'ok': False, 'error': str(ex)}), 500
+
+# ── ROBÔ DE PASSADORIA ────────────────────────────────────────────
+@app.route('/api/passadoria-robo/fila', methods=['GET'])
+def get_robo_passadoria_fila():
+    itens = RoboPassadoriaItem.query.order_by(RoboPassadoriaItem.numero).all()
+    return jsonify([i.to_dict() for i in itens])
+
+@app.route('/api/passadoria-robo/simular', methods=['POST'])
+def simular_robo_passadoria():
+    d = request.json or {}
+    try:
+        dt_inicio = datetime.strptime(d['data_inicio'], '%Y-%m-%dT%H:%M')
+    except:
+        return jsonify({'ok': False, 'error': 'Data/hora de início inválida'}), 400
+    qtde  = safe_int(d.get('qtde_pecas', 0))
+    tempo = safe_float(d.get('tempo_padrao_min', 0.85))
+    qr    = safe_int(d.get('qtde_robos', 1)) or 1
+    if qtde <= 0 or tempo <= 0:
+        return jsonify({'ok': False, 'error': 'Qtde de peças e tempo padrão devem ser maiores que zero'}), 400
+    total_seg = (qtde * tempo * 60.0) / qr
+    fim = _calcular_fim_laser(dt_inicio, total_seg, [])
+    duracao_h = total_seg / 3600
+    return jsonify({
+        'ok': True,
+        'data_inicio': dt_inicio.strftime('%d/%m/%Y %H:%M'),
+        'data_fim': fim.strftime('%d/%m/%Y %H:%M') if fim else None,
+        'duracao_horas': round(duracao_h, 2),
+        'duracao_fmt': f"{int(duracao_h)}h{int((duracao_h%1)*60):02d}min",
+        'pecas_hora_robo': round(60/tempo, 1) if tempo > 0 else 0,
+        'pecas_hora_total': round((60/tempo) * qr, 1) if tempo > 0 else 0,
+    })
+
+@app.route('/api/passadoria-robo/fila', methods=['POST'])
+def add_robo_passadoria_fila():
+    d = request.json or {}
+    dt_inicio = None
+    if d.get('data_inicio'):
+        try: dt_inicio = datetime.strptime(d['data_inicio'], '%Y-%m-%dT%H:%M')
+        except: pass
+    else:
+        ultimo = RoboPassadoriaItem.query.order_by(RoboPassadoriaItem.numero.desc()).first()
+        if ultimo:
+            fim = ultimo.data_fim or ultimo.calcular_fim()
+            if fim: dt_inicio = fim
+    num = (db.session.query(db.func.max(RoboPassadoriaItem.numero)).scalar() or 0) + 1
+    item = RoboPassadoriaItem(
+        numero=num, op=d.get('op',''), referencia=d.get('referencia',''),
+        descricao_produto=d.get('descricao_produto',''),
+        qtde_pecas=safe_int(d.get('qtde_pecas',0)),
+        tempo_padrao_min=safe_float(d.get('tempo_padrao_min', 0.85)),
+        qtde_robos=safe_int(d.get('qtde_robos', 1)) or 1,
+        parada_min=safe_int(d.get('parada_min', 0)),
+        data_inicio=dt_inicio, status='aguardando',
+        observacao=d.get('observacao',''),
+    )
+    db.session.add(item)
+    db.session.flush()
+    item.data_fim = item.calcular_fim()
+    db.session.commit()
+    return jsonify({'ok': True, 'item': item.to_dict()})
+
+@app.route('/api/passadoria-robo/fila/<int:iid>', methods=['PUT'])
+def update_robo_passadoria_fila(iid):
+    item = RoboPassadoriaItem.query.get_or_404(iid)
+    d = request.json or {}
+    if 'op' in d: item.op = d['op']
+    if 'referencia' in d: item.referencia = d['referencia']
+    if 'descricao_produto' in d: item.descricao_produto = d['descricao_produto']
+    if 'qtde_pecas' in d: item.qtde_pecas = safe_int(d['qtde_pecas'])
+    if 'tempo_padrao_min' in d: item.tempo_padrao_min = safe_float(d['tempo_padrao_min'])
+    if 'qtde_robos' in d: item.qtde_robos = safe_int(d['qtde_robos']) or 1
+    if 'parada_min' in d: item.parada_min = safe_int(d['parada_min'])
+    if 'status' in d: item.status = d['status']
+    if 'observacao' in d: item.observacao = d['observacao']
+    if 'data_inicio' in d:
+        try: item.data_inicio = datetime.strptime(d['data_inicio'], '%Y-%m-%dT%H:%M')
+        except: item.data_inicio = None
+    item.data_fim = item.calcular_fim()
+    db.session.commit()
+    return jsonify({'ok': True, 'item': item.to_dict()})
+
+@app.route('/api/passadoria-robo/fila/<int:iid>', methods=['DELETE'])
+def delete_robo_passadoria_fila(iid):
+    try:
+        item = RoboPassadoriaItem.query.get_or_404(iid)
+        db.session.delete(item)
+        db.session.flush()
+        restantes = RoboPassadoriaItem.query.order_by(RoboPassadoriaItem.numero).all()
         for i, it in enumerate(restantes, 1):
             it.numero = i
         db.session.commit()

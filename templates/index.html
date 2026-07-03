@@ -227,6 +227,7 @@ tbody td{padding:10px 14px;vertical-align:middle;color:var(--txt)}
     <button class="nav-btn" onclick="goPage('laser')"><i class="fas fa-bolt"></i>Fila de Laser</button>
     <div class="nav-section">Passadoria</div>
     <button class="nav-btn" onclick="goPage('passadoria')"><i class="fas fa-tshirt"></i>Fila de Passadoria</button>
+    <button class="nav-btn" onclick="goPage('passadoriarobo')"><i class="fas fa-robot"></i>Robô de Passadoria</button>
     <div class="nav-section">Calendário</div>
     <button class="nav-btn" onclick="goPage('calendario')"><i class="fas fa-calendar-alt"></i>Turnos e H.Extra</button>
     <div class="nav-section">Financeiro</div>
@@ -408,6 +409,29 @@ tbody td{padding:10px 14px;vertical-align:middle;color:var(--txt)}
         <div class="tbl-wrap"><table><thead><tr><th>Nº</th><th>OP</th><th>Referência</th><th>Descrição</th><th>Qtde Peças</th><th>Tempo/Peça</th><th>Qtde Passadeiras</th><th>Início</th><th>Previsão Fim</th><th>Status</th><th>Ações</th></tr></thead><tbody id="passadoria-tbody"></tbody></table></div>
       </div>
     </div>
+
+    <div class="page" id="page-passadoriarobo">
+      <div class="card" style="margin-bottom:16px;border-color:rgba(124,58,237,.3);background:rgba(124,58,237,.07)">
+        <div class="card-header"><div class="card-title"><i class="fas fa-calculator" style="color:#a78bfa"></i>Calculadora de Capacidade Diária</div></div>
+        <div style="padding:16px 20px;display:flex;gap:14px;flex-wrap:wrap;align-items:flex-end">
+          <div class="form-group" style="width:150px"><label>Minutos do Turno</label><input class="form-control" id="robo-calc-turno-min" type="number" value="540" oninput="calcCapacidadeRobo()"></div>
+          <div class="form-group" style="width:150px"><label>Tempo Padrão/Peça (min)</label><input class="form-control" id="robo-calc-tempo" type="number" step="0.01" value="0.85" oninput="calcCapacidadeRobo()"></div>
+          <div class="form-group" style="width:150px"><label>Qtde de Robôs</label><input class="form-control" id="robo-calc-qtd" type="number" value="2" oninput="calcCapacidadeRobo()"></div>
+          <div style="background:var(--cinza3);border-radius:10px;padding:10px 20px;text-align:center">
+            <div style="font-family:'Syne',sans-serif;font-size:24px;font-weight:800;color:#a78bfa" id="robo-calc-resultado">0</div>
+            <div style="font-size:11px;color:var(--txt2)">peças / dia (capacidade)</div>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title"><i class="fas fa-robot"></i>Fila de Robô de Passadoria</div>
+          <div><button class="btn btn-primary" onclick="openRoboForm()"><i class="fas fa-plus"></i>Novo Item</button></div>
+        </div>
+        <div style="padding:8px 20px;font-size:13px;color:var(--txt2)" id="robo-total">Total: 0 itens</div>
+        <div class="tbl-wrap"><table><thead><tr><th>Nº</th><th>OP</th><th>Referência</th><th>Descrição</th><th>Qtde Peças</th><th>Tempo/Peça</th><th>Qtde Robôs</th><th>Início</th><th>Previsão Fim</th><th>Status</th><th>Ações</th></tr></thead><tbody id="robo-tbody"></tbody></table></div>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -525,6 +549,33 @@ tbody td{padding:10px 14px;vertical-align:middle;color:var(--txt)}
   <button class="btn btn-ghost" onclick="closePanel('passadoria-panel')">Cancelar</button>
   <button class="btn btn-warning btn-sm" onclick="simularPassadoria()"><i class="fas fa-calculator"></i>Simular</button>
   <button class="btn btn-primary" id="pass-btn-salvar" onclick="addPassadoria()"><i class="fas fa-plus"></i>Adicionar</button>
+</div></div></div>
+
+<div class="panel-overlay" id="robo-panel"><div class="panel" style="width:min(620px,97vw)"><div class="panel-head"><div class="panel-title" id="robo-panel-title"><i class="fas fa-robot" style="color:var(--ciano)"></i> Novo Item de Robô de Passadoria</div><button class="btn btn-ghost btn-sm" onclick="closePanel('robo-panel')"><i class="fas fa-times"></i></button></div><div class="panel-body"><input type="hidden" id="robo-edit-id">
+  <div class="form-grid">
+    <div class="form-group"><label>OP</label><input class="form-control" id="robo-op" placeholder="Ex: 48000"></div>
+    <div class="form-group"><label>Referência</label><input class="form-control" id="robo-ref" placeholder="Ex: CFHV41827-1"></div>
+    <div class="form-group" style="grid-column:1/-1"><label>Descrição do Produto</label><input class="form-control" id="robo-desc" placeholder="Ex: Camisa Jeans Manga Longa"></div>
+    <div class="form-group"><label>Qtde de Peças</label><input class="form-control" id="robo-pecas" type="number" placeholder="Ex: 1000"></div>
+    <div class="form-group"><label>Tempo Padrão/Peça (min)</label><input class="form-control" id="robo-tempo" type="number" step="0.01" value="0.85"></div>
+    <div class="form-group"><label>Qtde de Robôs</label><input class="form-control" id="robo-qtd-robos" type="number" value="1"></div>
+    <div class="form-group"><label>Data Início</label><input class="form-control" id="robo-data" type="date"></div>
+    <div class="form-group"><label>Hora Início</label><input class="form-control" id="robo-hora" type="time"></div>
+    <div class="form-group"><label>Status</label><select class="form-control" id="robo-status"><option value="aguardando">⏳ Aguardando</option><option value="em_processo">🔄 Em Processo</option><option value="concluido">✅ Concluído</option></select></div>
+    <div class="form-group" style="grid-column:1/-1"><label>Observação</label><input class="form-control" id="robo-obs" placeholder="Opcional"></div>
+  </div>
+  <div id="robo-simulacao" style="display:none;margin-top:14px;background:var(--cinza3);border-radius:10px;padding:14px">
+    <div style="display:flex;gap:20px;flex-wrap:wrap;align-items:center">
+      <div style="text-align:center"><div style="font-family:'DM Mono',monospace;font-size:14px;color:var(--ciano)" id="robo-sim-inicio">--</div><div style="font-size:11px;color:var(--txt2)">Início</div></div>
+      <div style="text-align:center"><div style="font-family:'DM Mono',monospace;font-size:14px;color:var(--laranja)" id="robo-sim-fim">--</div><div style="font-size:11px;color:var(--txt2)">Previsão de Fim</div></div>
+      <div style="text-align:center"><div style="font-family:'DM Mono',monospace;font-size:14px;color:var(--verde)" id="robo-sim-dur">--</div><div style="font-size:11px;color:var(--txt2)">Duração</div></div>
+      <div style="text-align:center"><div style="font-family:'DM Mono',monospace;font-size:14px;color:#a78bfa" id="robo-sim-ph">--</div><div style="font-size:11px;color:var(--txt2)">Peças/hora (total)</div></div>
+    </div>
+  </div>
+</div><div class="panel-foot">
+  <button class="btn btn-ghost" onclick="closePanel('robo-panel')">Cancelar</button>
+  <button class="btn btn-warning btn-sm" onclick="simularRobo()"><i class="fas fa-calculator"></i>Simular</button>
+  <button class="btn btn-primary" id="robo-btn-salvar" onclick="addRobo()"><i class="fas fa-plus"></i>Adicionar</button>
 </div></div></div>
 
 
@@ -759,7 +810,7 @@ function closePanel(id){document.getElementById(id).classList.remove('open')}
 document.querySelectorAll('.panel-overlay').forEach(p=>{p.addEventListener('click',e=>{if(e.target===p)p.classList.remove('open')})});
 
 let currentLaserId=null,_laserEquipData=null;
-function goPage(page){document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));document.getElementById('page-'+page)?.classList.add('active');event?.currentTarget?.classList.add('active');const titles={dashboard:'Dashboard / Resumo',ops:'Ordens de Produção',maquinas:'Máquinas',calendario:'Calendário de Turnos',faturamento:'Faturamento',dre:'DRE / Demonstrativo de Resultado',laser:'Fila de Laser / Equipamentos',funcionarios:'Funcionários / Custo de Mão de Obra',quimicos:'Estoque de Químicos',receitas:'Receitas de Lavagem',amostras:'Peças de Amostra',passadoria:'Fila de Passadoria'};const t=titles[page]||page;document.getElementById('topbar-title').innerHTML=t.includes('/')?t.replace(/\/(.*)/,'<span>/ $1</span>'):t;if(page==='dashboard')loadDashboard();if(page==='ops')loadOps();if(page==='calendario')renderCalendario();if(page==='faturamento')loadPrecos();if(page==='dre')initDRE();if(page==='laser')loadLaserGrid();if(page==='funcionarios')loadFuncionarios();if(page==='quimicos')loadQuimicos();if(page==='receitas')loadReceitas();if(page==='amostras')loadAmostras();if(page==='passadoria'){loadPassadoria();calcCapacidadePassadoria()}}
+function goPage(page){document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));document.getElementById('page-'+page)?.classList.add('active');event?.currentTarget?.classList.add('active');const titles={dashboard:'Dashboard / Resumo',ops:'Ordens de Produção',maquinas:'Máquinas',calendario:'Calendário de Turnos',faturamento:'Faturamento',dre:'DRE / Demonstrativo de Resultado',laser:'Fila de Laser / Equipamentos',funcionarios:'Funcionários / Custo de Mão de Obra',quimicos:'Estoque de Químicos',receitas:'Receitas de Lavagem',amostras:'Peças de Amostra',passadoria:'Fila de Passadoria',passadoriarobo:'Robô de Passadoria'};const t=titles[page]||page;document.getElementById('topbar-title').innerHTML=t.includes('/')?t.replace(/\/(.*)/,'<span>/ $1</span>'):t;if(page==='dashboard')loadDashboard();if(page==='ops')loadOps();if(page==='calendario')renderCalendario();if(page==='faturamento')loadPrecos();if(page==='dre')initDRE();if(page==='laser')loadLaserGrid();if(page==='funcionarios')loadFuncionarios();if(page==='quimicos')loadQuimicos();if(page==='receitas')loadReceitas();if(page==='amostras')loadAmostras();if(page==='passadoria'){loadPassadoria();calcCapacidadePassadoria()}if(page==='passadoriarobo'){loadRobo();calcCapacidadeRobo()}}
 async function loadLaserGrid(){const equips=await api('/api/laser/equipamentos');document.getElementById('laser-grid').innerHTML=equips.map(e=>{const pct=e.total_filas>0?Math.round((e.concluido/e.total_filas)*100)||0:0;return`<div class="laser-card maq-card" onclick="openLaserPanel(${e.id},${e.numero})"><div class="maq-header" style="background:linear-gradient(135deg,#0d3b2e,#10b981)"><div class="maq-name">⚡ LASER ${String(e.numero).padStart(2,'0')}</div><div class="maq-icon">🔆</div></div><div class="maq-body"><div class="maq-stat-row"><div class="maq-stat"><div class="maq-stat-val">${e.total_filas}</div><div class="maq-stat-lbl">na fila</div></div><div class="maq-stat"><div class="maq-stat-val" style="color:var(--amarelo)">${e.em_processo}</div><div class="maq-stat-lbl">em processo</div></div><div class="maq-stat"><div class="maq-stat-val" style="color:var(--verde)">${e.concluido}</div><div class="maq-stat-lbl">concluídos</div></div><div class="maq-stat"><div class="maq-stat-val">${e.total_pecas.toLocaleString('pt-BR')}</div><div class="maq-stat-lbl">peças</div></div></div><div class="maq-progress"><div class="maq-progress-bar" style="width:${pct}%;background:linear-gradient(90deg,#10b981,#059669)"></div></div></div></div>`}).join('')}
 async function openLaserPanel(id,numero){currentLaserId=id;document.getElementById('laser-panel-title').innerHTML=`⚡ Laser ${String(numero).padStart(2,'0')}`;switchLaserTab('fila',document.querySelector('#laser-tabs .tab'));await loadLaserFila();document.getElementById('ap-data').value=new Date().toISOString().slice(0,10);document.getElementById('laser-panel').classList.add('open')}
 function switchLaserTab(tab,el){['fila','apontamento','config'].forEach(t=>{document.getElementById(`laser-tab-${t}`).style.display=t===tab?'':'none'});document.querySelectorAll('#laser-tabs .tab').forEach(b=>b.classList.remove('active'));if(el)el.classList.add('active');if(tab==='config')loadLaserConfig();if(tab==='apontamento')loadApontamentos()}
@@ -1432,6 +1483,126 @@ async function deletePassadoria(id){
   await api(`/api/passadoria/fila/${id}`, 'DELETE');
   toast('Item excluído','info');
   loadPassadoria();
+}
+
+// ══════════════ ROBÔ DE PASSADORIA ══════════════
+function calcCapacidadeRobo(){
+  const turnoMin = parseFloat(document.getElementById('robo-calc-turno-min').value) || 0;
+  const tempo = parseFloat(document.getElementById('robo-calc-tempo').value) || 0;
+  const qtd = parseInt(document.getElementById('robo-calc-qtd').value) || 0;
+  const cap = tempo > 0 ? Math.floor(turnoMin / tempo) * qtd : 0;
+  document.getElementById('robo-calc-resultado').textContent = cap.toLocaleString('pt-BR');
+}
+
+async function loadRobo(){
+  const rows = await api('/api/passadoria-robo/fila');
+  document.getElementById('robo-total').textContent = `Total: ${rows.length} itens | ${rows.reduce((a,r)=>a+(r.qtde_pecas||0),0).toLocaleString('pt-BR')} peças`;
+  document.getElementById('robo-tbody').innerHTML = rows.length ? rows.map(r=>`<tr>
+    <td class="mono">${r.numero}</td>
+    <td>${r.op||'--'}</td>
+    <td>${r.referencia||'--'}</td>
+    <td>${r.descricao_produto||'--'}</td>
+    <td class="mono">${(r.qtde_pecas||0).toLocaleString('pt-BR')}</td>
+    <td class="mono">${r.tempo_padrao_min}</td>
+    <td class="mono">${r.qtde_robos}</td>
+    <td style="font-size:11px;color:var(--ciano)">${r.data_inicio?fmtDT(r.data_inicio):'--'}</td>
+    <td style="font-size:11px;color:var(--laranja)">${r.data_fim?fmtDT(r.data_fim):'--'}</td>
+    <td>${statusPassadoriaBadge(r.status)}</td>
+    <td><div style="display:flex;gap:4px">
+      <button class="btn btn-ghost btn-xs" title="Editar" onclick='openRoboForm(${JSON.stringify(r)})'><i class="fas fa-edit"></i></button>
+      <button class="btn btn-danger btn-xs" title="Excluir" onclick="deleteRobo(${r.id})"><i class="fas fa-trash"></i></button>
+    </div></td>
+  </tr>`).join('') : '<tr><td colspan="11" style="text-align:center;padding:24px;color:var(--txt2)">Fila vazia. Clique em "Novo Item" para adicionar.</td></tr>';
+}
+
+function openRoboForm(r=null){
+  document.getElementById('robo-edit-id').value = r ? r.id : '';
+  document.getElementById('robo-panel-title').innerHTML = r
+    ? `<i class="fas fa-edit" style="color:var(--ciano)"></i> Editar Item #${r.numero}`
+    : `<i class="fas fa-robot" style="color:var(--ciano)"></i> Novo Item de Robô de Passadoria`;
+  document.getElementById('robo-op').value = r?.op || '';
+  document.getElementById('robo-ref').value = r?.referencia || '';
+  document.getElementById('robo-desc').value = r?.descricao_produto || '';
+  document.getElementById('robo-pecas').value = r?.qtde_pecas || '';
+  document.getElementById('robo-tempo').value = r?.tempo_padrao_min ?? 0.85;
+  document.getElementById('robo-qtd-robos').value = r?.qtde_robos ?? 1;
+  document.getElementById('robo-status').value = r?.status || 'aguardando';
+  document.getElementById('robo-obs').value = r?.observacao || '';
+  if(r?.data_inicio){
+    const [d,h] = r.data_inicio.split('T');
+    document.getElementById('robo-data').value = d;
+    document.getElementById('robo-hora').value = h;
+  } else {
+    document.getElementById('robo-data').value = new Date().toISOString().slice(0,10);
+    document.getElementById('robo-hora').value = '';
+  }
+  document.getElementById('robo-simulacao').style.display = 'none';
+  const btn = document.getElementById('robo-btn-salvar');
+  if(r){ btn.innerHTML = '<i class="fas fa-save"></i>Atualizar'; btn.onclick = () => updateRobo(r.id); }
+  else { btn.innerHTML = '<i class="fas fa-plus"></i>Adicionar'; btn.onclick = addRobo; }
+  document.getElementById('robo-panel').classList.add('open');
+}
+
+function getRoboPayload(){
+  return {
+    op: document.getElementById('robo-op').value,
+    referencia: document.getElementById('robo-ref').value,
+    descricao_produto: document.getElementById('robo-desc').value,
+    qtde_pecas: document.getElementById('robo-pecas').value,
+    tempo_padrao_min: document.getElementById('robo-tempo').value,
+    qtde_robos: document.getElementById('robo-qtd-robos').value,
+    status: document.getElementById('robo-status').value,
+    observacao: document.getElementById('robo-obs').value,
+    data_inicio: (document.getElementById('robo-data').value && document.getElementById('robo-hora').value)
+      ? `${document.getElementById('robo-data').value}T${document.getElementById('robo-hora').value}` : null,
+  };
+}
+
+async function simularRobo(){
+  const data = document.getElementById('robo-data').value;
+  const hora = document.getElementById('robo-hora').value;
+  const pecas = parseInt(document.getElementById('robo-pecas').value || 0);
+  const tempo = parseFloat(document.getElementById('robo-tempo').value || 0.85);
+  const qtd = parseInt(document.getElementById('robo-qtd-robos').value || 1);
+  if(!data || !hora){ toast('Informe data e hora de início','error'); return; }
+  if(!pecas){ toast('Informe a quantidade de peças','error'); return; }
+  try{
+    const r = await api('/api/passadoria-robo/simular', 'POST', {data_inicio:`${data}T${hora}`, qtde_pecas:pecas, tempo_padrao_min:tempo, qtde_robos:qtd});
+    document.getElementById('robo-sim-inicio').textContent = r.data_inicio;
+    document.getElementById('robo-sim-fim').textContent = r.data_fim || '--';
+    document.getElementById('robo-sim-dur').textContent = r.duracao_fmt;
+    document.getElementById('robo-sim-ph').textContent = r.pecas_hora_total.toLocaleString('pt-BR') + ' pç/h';
+    document.getElementById('robo-simulacao').style.display = '';
+    toast('Simulação calculada com os turnos do calendário!','success');
+  }catch(e){ /* erro já mostrado */ }
+}
+
+async function addRobo(){
+  const payload = getRoboPayload();
+  if(!payload.qtde_pecas){ toast('Informe a quantidade de peças','error'); return; }
+  try{
+    await api('/api/passadoria-robo/fila', 'POST', payload);
+    toast('Item adicionado à fila!');
+    closePanel('robo-panel');
+    loadRobo();
+  }catch(e){ /* erro já mostrado */ }
+}
+
+async function updateRobo(id){
+  const payload = getRoboPayload();
+  try{
+    await api(`/api/passadoria-robo/fila/${id}`, 'PUT', payload);
+    toast('Item atualizado!');
+    closePanel('robo-panel');
+    loadRobo();
+  }catch(e){ /* erro já mostrado */ }
+}
+
+async function deleteRobo(id){
+  if(!confirm('Excluir este item da fila?')) return;
+  await api(`/api/passadoria-robo/fila/${id}`, 'DELETE');
+  toast('Item excluído','info');
+  loadRobo();
 }
 
 initHistMes();
