@@ -392,6 +392,92 @@ class MovimentacaoEstoque(db.Model):
         }
 
 
+# ── RECEITAS DE LAVAGEM ─────────────────────────────────────────────
+class Receita(db.Model):
+    id                = db.Column(db.Integer, primary_key=True)
+    nome              = db.Column(db.String(120), nullable=False)
+    referencia        = db.Column(db.String(50))
+    lavacao           = db.Column(db.String(80))
+    versao            = db.Column(db.Integer, default=1)
+    receita_pai_id    = db.Column(db.Integer, db.ForeignKey('receita.id'), nullable=True)
+    status            = db.Column(db.String(20), default='rascunho')  # rascunho / ativa / descontinuada
+    observacoes       = db.Column(db.String(300))
+    criado_por        = db.Column(db.String(80))
+    created_at        = db.Column(db.DateTime, default=datetime.utcnow)
+    etapas            = db.relationship('ReceitaEtapa', backref='receita', lazy=True,
+                                         cascade='all, delete-orphan', order_by='ReceitaEtapa.ordem')
+    versoes_filhas    = db.relationship('Receita', backref=db.backref('receita_pai', remote_side=[id]),
+                                         lazy=True)
+
+    @property
+    def tempo_total_min(self):
+        return sum((e.tempo_min or 0) for e in self.etapas)
+
+    def to_dict(self, with_etapas=True):
+        d = {
+            'id': self.id, 'nome': self.nome, 'referencia': self.referencia, 'lavacao': self.lavacao,
+            'versao': self.versao, 'receita_pai_id': self.receita_pai_id, 'status': self.status,
+            'observacoes': self.observacoes, 'criado_por': self.criado_por,
+            'created_at': self.created_at.strftime('%d/%m/%Y %H:%M') if self.created_at else None,
+            'tempo_total_min': self.tempo_total_min,
+            'total_etapas': len(self.etapas),
+        }
+        if with_etapas:
+            d['etapas'] = [e.to_dict() for e in self.etapas]
+        return d
+
+class ReceitaEtapa(db.Model):
+    id                = db.Column(db.Integer, primary_key=True)
+    receita_id        = db.Column(db.Integer, db.ForeignKey('receita.id'), nullable=False)
+    ordem             = db.Column(db.Integer, default=1)
+    titulo            = db.Column(db.String(120), nullable=False)
+    tipo              = db.Column(db.String(20), default='quimico')  # agua/quimico/mecanico/temperatura/secagem/outro
+    produto_quimico_id= db.Column(db.Integer, db.ForeignKey('produto_quimico.id'), nullable=True)
+    quantidade        = db.Column(db.Float, default=0.0)
+    unidade           = db.Column(db.String(10))
+    temperatura_agua  = db.Column(db.Float)
+    tempo_min         = db.Column(db.Integer, default=0)
+    instrucao_texto   = db.Column(db.Text)
+    produto           = db.relationship('ProdutoQuimico', lazy=True)
+
+    def to_dict(self):
+        return {
+            'id': self.id, 'receita_id': self.receita_id, 'ordem': self.ordem, 'titulo': self.titulo,
+            'tipo': self.tipo, 'produto_quimico_id': self.produto_quimico_id,
+            'produto_nome': self.produto.nome if self.produto else None,
+            'quantidade': self.quantidade, 'unidade': self.unidade or (self.produto.unidade if self.produto else None),
+            'temperatura_agua': self.temperatura_agua, 'tempo_min': self.tempo_min,
+            'instrucao_texto': self.instrucao_texto,
+        }
+
+# ── PEÇAS DE AMOSTRA ────────────────────────────────────────────────
+class PecaAmostra(db.Model):
+    id                 = db.Column(db.Integer, primary_key=True)
+    referencia         = db.Column(db.String(50), nullable=False)
+    lavacao            = db.Column(db.String(80))
+    receita_id         = db.Column(db.Integer, db.ForeignKey('receita.id'), nullable=True)
+    numero_lacre       = db.Column(db.String(30))
+    status             = db.Column(db.String(20), default='em_teste')  # em_teste/aprovada/reprovada/arquivada
+    versao_anterior_id = db.Column(db.Integer, db.ForeignKey('peca_amostra.id'), nullable=True)
+    observacoes        = db.Column(db.String(300))
+    aprovado_por       = db.Column(db.String(80))
+    data_criacao       = db.Column(db.DateTime, default=datetime.utcnow)
+    data_aprovacao     = db.Column(db.DateTime, nullable=True)
+    receita            = db.relationship('Receita', lazy=True)
+    versoes_filhas     = db.relationship('PecaAmostra', backref=db.backref('versao_anterior', remote_side=[id]),
+                                          lazy=True)
+
+    def to_dict(self):
+        return {
+            'id': self.id, 'referencia': self.referencia, 'lavacao': self.lavacao,
+            'receita_id': self.receita_id, 'receita_nome': self.receita.nome if self.receita else None,
+            'numero_lacre': self.numero_lacre, 'status': self.status,
+            'versao_anterior_id': self.versao_anterior_id,
+            'observacoes': self.observacoes, 'aprovado_por': self.aprovado_por,
+            'data_criacao': self.data_criacao.strftime('%d/%m/%Y %H:%M') if self.data_criacao else None,
+            'data_aprovacao': self.data_aprovacao.strftime('%d/%m/%Y %H:%M') if self.data_aprovacao else None,
+        }
+
 # ── HELPERS ──────────────────────────────────────────────────────
 def safe_int(v, default=0):
     try: return int(float(v or default))
@@ -1468,6 +1554,211 @@ def relatorio_compras():
                                         ProdutoQuimico.quantidade_atual <= ProdutoQuimico.estoque_minimo,
                                         ProdutoQuimico.estoque_minimo > 0).order_by(ProdutoQuimico.nome).all()
     return jsonify([p.to_dict() for p in rows])
+
+# ── RECEITAS DE LAVAGEM ──────────────────────────────────────────────
+@app.route('/api/receitas', methods=['GET'])
+def get_receitas():
+    q = Receita.query
+    status = request.args.get('status')
+    if status:
+        q = q.filter_by(status=status)
+    rows = q.order_by(Receita.created_at.desc()).all()
+    return jsonify([r.to_dict(with_etapas=False) for r in rows])
+
+@app.route('/api/receitas/<int:rid>', methods=['GET'])
+def get_receita(rid):
+    r = Receita.query.get_or_404(rid)
+    return jsonify(r.to_dict())
+
+@app.route('/api/receitas', methods=['POST'])
+def add_receita():
+    d = request.json or {}
+    if not d.get('nome'):
+        return jsonify({'error': 'Nome da receita é obrigatório'}), 400
+    r = Receita(
+        nome=d.get('nome', '').strip(),
+        referencia=(d.get('referencia') or '').strip(),
+        lavacao=(d.get('lavacao') or '').strip(),
+        status=d.get('status') or 'rascunho',
+        observacoes=(d.get('observacoes') or '').strip(),
+        criado_por=(d.get('criado_por') or '').strip(),
+    )
+    db.session.add(r); db.session.commit()
+    for i, e in enumerate(d.get('etapas') or []):
+        _add_etapa(r.id, e, i + 1)
+    db.session.commit()
+    return jsonify(r.to_dict())
+
+@app.route('/api/receitas/<int:rid>', methods=['PUT'])
+def update_receita(rid):
+    r = Receita.query.get_or_404(rid)
+    d = request.json or {}
+    if 'nome' in d: r.nome = (d['nome'] or '').strip()
+    if 'referencia' in d: r.referencia = (d['referencia'] or '').strip()
+    if 'lavacao' in d: r.lavacao = (d['lavacao'] or '').strip()
+    if 'status' in d: r.status = d['status']
+    if 'observacoes' in d: r.observacoes = (d['observacoes'] or '').strip()
+    if 'criado_por' in d: r.criado_por = (d['criado_por'] or '').strip()
+    # Se vieram etapas, substitui todas (forma simples de salvar a lista editada)
+    if 'etapas' in d:
+        for e in list(r.etapas):
+            db.session.delete(e)
+        db.session.flush()
+        for i, e in enumerate(d.get('etapas') or []):
+            _add_etapa(r.id, e, i + 1)
+    db.session.commit()
+    return jsonify(r.to_dict())
+
+def _add_etapa(receita_id, e, ordem_default):
+    db.session.add(ReceitaEtapa(
+        receita_id=receita_id,
+        ordem=safe_int(e.get('ordem'), ordem_default),
+        titulo=(e.get('titulo') or '').strip() or f'Etapa {ordem_default}',
+        tipo=e.get('tipo') or 'quimico',
+        produto_quimico_id=e.get('produto_quimico_id') or None,
+        quantidade=safe_float(e.get('quantidade')),
+        unidade=(e.get('unidade') or '').strip(),
+        temperatura_agua=safe_float(e.get('temperatura_agua')) if e.get('temperatura_agua') not in (None, '') else None,
+        tempo_min=safe_int(e.get('tempo_min')),
+        instrucao_texto=(e.get('instrucao_texto') or '').strip(),
+    ))
+
+@app.route('/api/receitas/<int:rid>', methods=['DELETE'])
+def delete_receita(rid):
+    r = Receita.query.get_or_404(rid)
+    db.session.delete(r); db.session.commit()
+    return jsonify({'ok': True})
+
+@app.route('/api/receitas/<int:rid>/duplicar', methods=['POST'])
+def duplicar_receita(rid):
+    """Cria uma nova versão da receita (usado quando uma amostra é reprovada e precisa de ajuste)."""
+    original = Receita.query.get_or_404(rid)
+    nova = Receita(
+        nome=original.nome, referencia=original.referencia, lavacao=original.lavacao,
+        versao=(original.versao or 1) + 1, receita_pai_id=original.id, status='rascunho',
+        observacoes=original.observacoes, criado_por=original.criado_por,
+    )
+    db.session.add(nova); db.session.commit()
+    for e in original.etapas:
+        _add_etapa(nova.id, e.to_dict(), e.ordem)
+    db.session.commit()
+    return jsonify(nova.to_dict())
+
+@app.route('/api/receitas/<int:rid>/executar', methods=['POST'])
+def executar_receita(rid):
+    """Dá baixa no estoque de químicos de todas as etapas da receita que usam produto cadastrado."""
+    r = Receita.query.get_or_404(rid)
+    etapas_com_produto = [e for e in r.etapas if e.produto_quimico_id and (e.quantidade or 0) > 0]
+    # valida saldo de todos antes de aplicar qualquer baixa
+    faltantes = []
+    for e in etapas_com_produto:
+        p = e.produto
+        if not p or p.quantidade_atual < e.quantidade:
+            faltantes.append(f'{e.produto.nome if e.produto else "produto removido"} (necessário {e.quantidade}, disponível {p.quantidade_atual if p else 0})')
+    if faltantes:
+        return jsonify({'error': 'Estoque insuficiente para: ' + '; '.join(faltantes)}), 400
+    d = request.json or {}
+    movimentacoes = []
+    for e in etapas_com_produto:
+        p = e.produto
+        p.quantidade_atual = (p.quantidade_atual or 0.0) - e.quantidade
+        mov = MovimentacaoEstoque(
+            produto_id=p.id, tipo='saida', quantidade=e.quantidade,
+            observacao=f'Baixa automática — Receita "{r.nome}" (etapa: {e.titulo})' + (f' — OP {d.get("op")}' if d.get('op') else ''),
+            saldo_apos=p.quantidade_atual,
+        )
+        db.session.add(mov)
+        movimentacoes.append(mov)
+    db.session.commit()
+    return jsonify({'ok': True, 'movimentacoes': [m.to_dict() for m in movimentacoes]})
+
+# ── PEÇAS DE AMOSTRA ─────────────────────────────────────────────────
+@app.route('/api/amostras', methods=['GET'])
+def get_amostras():
+    q = PecaAmostra.query
+    status = request.args.get('status')
+    if status:
+        q = q.filter_by(status=status)
+    rows = q.order_by(PecaAmostra.data_criacao.desc()).all()
+    return jsonify([a.to_dict() for a in rows])
+
+@app.route('/api/amostras/<int:aid>', methods=['GET'])
+def get_amostra(aid):
+    a = PecaAmostra.query.get_or_404(aid)
+    return jsonify(a.to_dict())
+
+@app.route('/api/amostras', methods=['POST'])
+def add_amostra():
+    d = request.json or {}
+    if not d.get('referencia'):
+        return jsonify({'error': 'Referência é obrigatória'}), 400
+    a = PecaAmostra(
+        referencia=d.get('referencia', '').strip(),
+        lavacao=(d.get('lavacao') or '').strip(),
+        receita_id=d.get('receita_id') or None,
+        observacoes=(d.get('observacoes') or '').strip(),
+        status='em_teste',
+    )
+    db.session.add(a); db.session.commit()
+    return jsonify(a.to_dict())
+
+@app.route('/api/amostras/<int:aid>', methods=['PUT'])
+def update_amostra(aid):
+    a = PecaAmostra.query.get_or_404(aid)
+    d = request.json or {}
+    if 'referencia' in d: a.referencia = (d['referencia'] or '').strip()
+    if 'lavacao' in d: a.lavacao = (d['lavacao'] or '').strip()
+    if 'receita_id' in d: a.receita_id = d['receita_id'] or None
+    if 'observacoes' in d: a.observacoes = (d['observacoes'] or '').strip()
+    db.session.commit()
+    return jsonify(a.to_dict())
+
+@app.route('/api/amostras/<int:aid>', methods=['DELETE'])
+def delete_amostra(aid):
+    a = PecaAmostra.query.get_or_404(aid)
+    db.session.delete(a); db.session.commit()
+    return jsonify({'ok': True})
+
+@app.route('/api/amostras/<int:aid>/aprovar', methods=['POST'])
+def aprovar_amostra(aid):
+    a = PecaAmostra.query.get_or_404(aid)
+    d = request.json or {}
+    ano = datetime.utcnow().year
+    total_ano = PecaAmostra.query.filter(PecaAmostra.numero_lacre.like(f'LAC-{ano}-%')).count()
+    a.numero_lacre = f'LAC-{ano}-{total_ano + 1:04d}'
+    a.status = 'aprovada'
+    a.aprovado_por = (d.get('aprovado_por') or '').strip()
+    a.data_aprovacao = datetime.utcnow()
+    if a.receita_id:
+        rec = Receita.query.get(a.receita_id)
+        if rec:
+            rec.status = 'ativa'
+    db.session.commit()
+    return jsonify(a.to_dict())
+
+@app.route('/api/amostras/<int:aid>/reprovar', methods=['POST'])
+def reprovar_amostra(aid):
+    a = PecaAmostra.query.get_or_404(aid)
+    d = request.json or {}
+    a.status = 'reprovada'
+    if d.get('observacoes'):
+        a.observacoes = (d.get('observacoes') or '').strip()
+    db.session.commit()
+    return jsonify(a.to_dict())
+
+@app.route('/api/amostras/<int:aid>/nova_versao', methods=['POST'])
+def nova_versao_amostra(aid):
+    """Cria uma nova peça de amostra a partir de uma reprovada, para retestar o ajuste."""
+    original = PecaAmostra.query.get_or_404(aid)
+    d = request.json or {}
+    nova_receita_id = d.get('receita_id', original.receita_id)
+    nova = PecaAmostra(
+        referencia=original.referencia, lavacao=original.lavacao,
+        receita_id=nova_receita_id, versao_anterior_id=original.id,
+        status='em_teste', observacoes=(d.get('observacoes') or '').strip(),
+    )
+    db.session.add(nova); db.session.commit()
+    return jsonify(nova.to_dict())
 
 if __name__ == '__main__':
     with app.app_context():

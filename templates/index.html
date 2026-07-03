@@ -215,6 +215,8 @@ tbody td{padding:10px 14px;vertical-align:middle;color:var(--txt)}
     <button class="nav-btn" onclick="goPage('ops')"><i class="fas fa-file-alt"></i>Ordens de Produção</button>
     <button class="nav-btn" onclick="goPage('funcionarios')"><i class="fas fa-users"></i>Funcionários</button>
     <button class="nav-btn" onclick="goPage('quimicos')"><i class="fas fa-flask"></i>Estoque de Químicos</button>
+    <button class="nav-btn" onclick="goPage('receitas')"><i class="fas fa-vial"></i>Receitas de Lavagem</button>
+    <button class="nav-btn" onclick="goPage('amostras')"><i class="fas fa-tshirt"></i>Peças de Amostra</button>
     <div class="nav-section">Máquinas de Lavar</div>
     <button class="nav-btn" onclick="goMaqPage('lavar')"><i class="fas fa-soap"></i>Máquinas de Lavar</button>
     <div class="nav-section">Centrífugas</div>
@@ -344,6 +346,43 @@ tbody td{padding:10px 14px;vertical-align:middle;color:var(--txt)}
         <div class="tbl-wrap"><table><thead><tr><th>Produto</th><th>Categoria</th><th>Unidade</th><th>Qtd. Atual</th><th>Mín / Máx</th><th>Custo Unit.</th><th>Valor em Estoque</th><th>Status</th><th>Ações</th></tr></thead><tbody id="quimicos-tbody"></tbody></table></div>
       </div>
     </div>
+
+    <div class="page" id="page-receitas">
+      <div class="card" style="margin-bottom:16px">
+        <div class="card-header">
+          <div class="card-title"><i class="fas fa-vial"></i>Receitas de Lavagem</div>
+          <div style="display:flex;gap:8px">
+            <select class="form-control" id="rec-filtro-status" style="width:200px" onchange="loadReceitas()">
+              <option value="">Todos os Status</option>
+              <option value="rascunho">Rascunho</option>
+              <option value="ativa">Ativa</option>
+              <option value="descontinuada">Descontinuada</option>
+            </select>
+            <button class="btn btn-primary" onclick="openReceitaForm()"><i class="fas fa-plus"></i>Nova Receita</button>
+          </div>
+        </div>
+        <div class="tbl-wrap"><table><thead><tr><th>Receita</th><th>Referência / Lavação</th><th>Versão</th><th>Etapas</th><th>Tempo Total</th><th>Status</th><th>Ações</th></tr></thead><tbody id="receitas-tbody"></tbody></table></div>
+      </div>
+    </div>
+
+    <div class="page" id="page-amostras">
+      <div class="card" style="margin-bottom:16px">
+        <div class="card-header">
+          <div class="card-title"><i class="fas fa-tshirt"></i>Peças de Amostra</div>
+          <div style="display:flex;gap:8px">
+            <select class="form-control" id="amo-filtro-status" style="width:200px" onchange="loadAmostras()">
+              <option value="">Todos os Status</option>
+              <option value="em_teste">Em Teste</option>
+              <option value="aprovada">Aprovada</option>
+              <option value="reprovada">Reprovada</option>
+              <option value="arquivada">Arquivada</option>
+            </select>
+            <button class="btn btn-primary" onclick="openAmostraForm()"><i class="fas fa-plus"></i>Nova Amostra</button>
+          </div>
+        </div>
+        <div class="tbl-wrap"><table><thead><tr><th>Referência / Lavação</th><th>Receita Usada</th><th>Lacre</th><th>Status</th><th>Criada em</th><th>Ações</th></tr></thead><tbody id="amostras-tbody"></tbody></table></div>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -407,6 +446,35 @@ tbody td{padding:10px 14px;vertical-align:middle;color:var(--txt)}
 </div><div class="panel-foot"><button class="btn btn-ghost" onclick="closePanel('mov-panel')">Cancelar</button><button class="btn btn-primary" onclick="confirmarMovimentacao()"><i class="fas fa-save"></i>Confirmar</button></div></div></div>
 
 <div class="panel-overlay" id="hist-panel"><div class="panel" style="width:min(560px,97vw)"><div class="panel-head"><div class="panel-title" id="hist-panel-title">Histórico de Movimentações</div><button class="btn btn-ghost btn-sm" onclick="closePanel('hist-panel')"><i class="fas fa-times"></i></button></div><div class="panel-body"><div class="tbl-wrap"><table><thead><tr><th>Data</th><th>Tipo</th><th>Qtd</th><th>Lote</th><th>Obs.</th><th>Saldo</th></tr></thead><tbody id="hist-tbody"></tbody></table></div></div></div></div>
+
+<div class="panel-overlay" id="receita-panel"><div class="panel" style="width:min(820px,97vw)"><div class="panel-head"><div class="panel-title" id="receita-panel-title"><i class="fas fa-vial" style="color:var(--ciano)"></i> Nova Receita de Lavagem</div><button class="btn btn-ghost btn-sm" onclick="closePanel('receita-panel')"><i class="fas fa-times"></i></button></div><div class="panel-body"><input type="hidden" id="rec-edit-id">
+  <div class="form-grid">
+    <div class="form-group" style="grid-column:1/-1"><label>Nome da Receita</label><input class="form-control" id="rec-nome" placeholder="Ex: Stonagem Médio - CFHV41827"></div>
+    <div class="form-group"><label>Referência</label><input class="form-control" id="rec-ref" placeholder="Ex: CFHV41827-1"></div>
+    <div class="form-group"><label>Tipo de Lavação</label><input class="form-control" id="rec-lav" placeholder="Ex: STONAGEM"></div>
+    <div class="form-group"><label>Status</label><select class="form-control" id="rec-status"><option value="rascunho">Rascunho</option><option value="ativa">Ativa</option><option value="descontinuada">Descontinuada</option></select></div>
+    <div class="form-group"><label>Criado por</label><input class="form-control" id="rec-criado-por" placeholder="Seu nome"></div>
+    <div class="form-group" style="grid-column:1/-1"><label>Observações Gerais</label><input class="form-control" id="rec-obs" placeholder="Ex: Cuidado com peças pretas — reduzir tempo de alvejante"></div>
+  </div>
+  <div style="margin-top:16px;padding-top:14px;border-top:1px solid var(--brd)">
+    <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:10px">
+      <label style="font-weight:700;color:var(--txt)">Passo a Passo <span style="font-weight:400;color:var(--txt2);font-size:11px">— escreva de forma clara, um operador sem experiência vai seguir isso</span></label>
+      <div><span style="font-size:12px;color:var(--txt2);margin-right:12px">Tempo total: <b id="rec-tempo-total" style="color:var(--ciano)">0 min</b></span><button class="btn btn-sm btn-primary" onclick="addEtapa()"><i class="fas fa-plus"></i> Add Etapa</button></div>
+    </div>
+    <div id="rec-etapas-list"></div>
+  </div>
+</div><div class="panel-foot"><button class="btn btn-ghost" onclick="closePanel('receita-panel')">Cancelar</button><button class="btn btn-primary" onclick="saveReceita()"><i class="fas fa-save"></i>Salvar Receita</button></div></div></div>
+
+<div class="panel-overlay" id="amostra-panel"><div class="panel" style="width:min(560px,97vw)"><div class="panel-head"><div class="panel-title" id="amostra-panel-title"><i class="fas fa-tshirt" style="color:var(--ciano)"></i> Nova Peça de Amostra</div><button class="btn btn-ghost btn-sm" onclick="closePanel('amostra-panel')"><i class="fas fa-times"></i></button></div><div class="panel-body"><input type="hidden" id="amo-edit-id">
+  <div class="form-grid">
+    <div class="form-group"><label>Referência</label><input class="form-control" id="amo-ref" placeholder="Ex: CFHV41827-1"></div>
+    <div class="form-group"><label>Tipo de Lavação</label><input class="form-control" id="amo-lav" placeholder="Ex: STONAGEM"></div>
+    <div class="form-group" style="grid-column:1/-1"><label>Receita Usada no Teste</label><select class="form-control" id="amo-receita"><option value="">-- Nenhuma / a definir --</option></select></div>
+    <div class="form-group" style="grid-column:1/-1"><label>Observações</label><input class="form-control" id="amo-obs" placeholder="Ex: 2ª tentativa, reduzido tempo de alvejante em 5min"></div>
+  </div>
+  <div id="amo-status-info" style="margin-top:14px;display:none;background:var(--cinza3);border-radius:10px;padding:14px"></div>
+</div><div class="panel-foot" id="amo-panel-foot"><button class="btn btn-ghost" onclick="closePanel('amostra-panel')">Cancelar</button><button class="btn btn-primary" onclick="saveAmostra()"><i class="fas fa-save"></i>Salvar Amostra</button></div></div></div>
+
 
 <div class="panel-overlay" id="op-panel"><div class="panel"><div class="panel-head"><div class="panel-title" id="op-panel-title"><i class="fas fa-file-alt" style="color:var(--ciano)"></i> Nova Ordem de Produção</div><button class="btn btn-ghost btn-sm" onclick="closePanel('op-panel')"><i class="fas fa-times"></i></button></div><div class="panel-body"><input type="hidden" id="op-edit-id"><div class="form-grid"><div class="form-group"><label>Nº OP</label><input class="form-control" id="op-num" placeholder="Ex: 48000"></div><div class="form-group"><label>Referência</label><input class="form-control" id="op-ref" placeholder="Ex: CFHV41827-1"></div><div class="form-group" style="grid-column:1/-1"><label>Tipo de Lavação</label><input class="form-control" id="op-lav" placeholder="Ex: STONAGEM / SKY / LASER"></div><div class="form-group"><label>Cap. Peças/Carga</label><input class="form-control" id="op-cap" type="number" placeholder="134"></div></div><div class="sizes-section"><p class="sizes-group-title" style="color:var(--laranja)">🅰️ ADULTO – LETRAS</p><div class="sizes-grid" id="sizes-letras"></div><p class="sizes-group-title" style="color:var(--roxo)">🔢 ADULTO – NUMÉRICO</p><div class="sizes-grid" id="sizes-num"></div><p class="sizes-group-title" style="color:var(--verde)">👶 INFANTIL</p><div class="sizes-grid" id="sizes-inf"></div></div><div style="margin-top:20px;padding-top:20px;border-top:1px solid var(--brd)"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px"><p class="sizes-group-title" style="margin:0">⚖️ PESO POR TAMANHO (kg/peça)</p><div style="display:flex;align-items:center;gap:10px"><input class="form-control" id="cap-arredondar" type="number" step="0.1" placeholder="Cap. kg/carga" style="width:140px"><button class="btn btn-warning btn-sm" onclick="calcArredondar()"><i class="fas fa-calculator"></i> Arredondar Cargas</button></div></div><div class="sizes-grid" id="pesos-grid"></div><div class="arr-result" id="arr-result" style="display:none"><div style="display:flex;align-items:center;gap:20px;flex-wrap:wrap"><div><div class="arr-big" id="arr-cargas">0</div><div class="arr-sub">Cargas necessárias</div></div><div><div style="font-family:'DM Mono',monospace;font-size:20px;color:var(--amarelo)" id="arr-peso">0.000</div><div class="arr-sub">Peso total (kg)</div></div><div><div style="font-family:'DM Mono',monospace;font-size:20px;color:var(--verde)" id="arr-ultimo">0.000</div><div class="arr-sub">Peso última carga</div></div></div></div></div></div><div class="panel-foot"><div style="flex:1;font-size:13px;color:var(--txt2);display:flex;gap:18px;align-items:center"><span>Peças: <b id="live-pecas" style="color:var(--txt)">0</b></span><span>Peso Total: <b id="live-peso" style="color:var(--ciano)">0.000 kg</b></span></div><button class="btn btn-ghost" onclick="closePanel('op-panel')">Cancelar</button><button class="btn btn-primary" onclick="saveOp()"><i class="fas fa-save"></i>Salvar OP</button></div></div></div>
 
@@ -639,7 +707,7 @@ function closePanel(id){document.getElementById(id).classList.remove('open')}
 document.querySelectorAll('.panel-overlay').forEach(p=>{p.addEventListener('click',e=>{if(e.target===p)p.classList.remove('open')})});
 
 let currentLaserId=null,_laserEquipData=null;
-function goPage(page){document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));document.getElementById('page-'+page)?.classList.add('active');event?.currentTarget?.classList.add('active');const titles={dashboard:'Dashboard / Resumo',ops:'Ordens de Produção',maquinas:'Máquinas',calendario:'Calendário de Turnos',faturamento:'Faturamento',dre:'DRE / Demonstrativo de Resultado',laser:'Fila de Laser / Equipamentos',funcionarios:'Funcionários / Custo de Mão de Obra',quimicos:'Estoque de Químicos'};const t=titles[page]||page;document.getElementById('topbar-title').innerHTML=t.includes('/')?t.replace(/\/(.*)/,'<span>/ $1</span>'):t;if(page==='dashboard')loadDashboard();if(page==='ops')loadOps();if(page==='calendario')renderCalendario();if(page==='faturamento')loadPrecos();if(page==='dre')initDRE();if(page==='laser')loadLaserGrid();if(page==='funcionarios')loadFuncionarios();if(page==='quimicos')loadQuimicos()}
+function goPage(page){document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));document.getElementById('page-'+page)?.classList.add('active');event?.currentTarget?.classList.add('active');const titles={dashboard:'Dashboard / Resumo',ops:'Ordens de Produção',maquinas:'Máquinas',calendario:'Calendário de Turnos',faturamento:'Faturamento',dre:'DRE / Demonstrativo de Resultado',laser:'Fila de Laser / Equipamentos',funcionarios:'Funcionários / Custo de Mão de Obra',quimicos:'Estoque de Químicos',receitas:'Receitas de Lavagem',amostras:'Peças de Amostra'};const t=titles[page]||page;document.getElementById('topbar-title').innerHTML=t.includes('/')?t.replace(/\/(.*)/,'<span>/ $1</span>'):t;if(page==='dashboard')loadDashboard();if(page==='ops')loadOps();if(page==='calendario')renderCalendario();if(page==='faturamento')loadPrecos();if(page==='dre')initDRE();if(page==='laser')loadLaserGrid();if(page==='funcionarios')loadFuncionarios();if(page==='quimicos')loadQuimicos();if(page==='receitas')loadReceitas();if(page==='amostras')loadAmostras()}
 async function loadLaserGrid(){const equips=await api('/api/laser/equipamentos');document.getElementById('laser-grid').innerHTML=equips.map(e=>{const pct=e.total_filas>0?Math.round((e.concluido/e.total_filas)*100)||0:0;return`<div class="laser-card maq-card" onclick="openLaserPanel(${e.id},${e.numero})"><div class="maq-header" style="background:linear-gradient(135deg,#0d3b2e,#10b981)"><div class="maq-name">⚡ LASER ${String(e.numero).padStart(2,'0')}</div><div class="maq-icon">🔆</div></div><div class="maq-body"><div class="maq-stat-row"><div class="maq-stat"><div class="maq-stat-val">${e.total_filas}</div><div class="maq-stat-lbl">na fila</div></div><div class="maq-stat"><div class="maq-stat-val" style="color:var(--amarelo)">${e.em_processo}</div><div class="maq-stat-lbl">em processo</div></div><div class="maq-stat"><div class="maq-stat-val" style="color:var(--verde)">${e.concluido}</div><div class="maq-stat-lbl">concluídos</div></div><div class="maq-stat"><div class="maq-stat-val">${e.total_pecas.toLocaleString('pt-BR')}</div><div class="maq-stat-lbl">peças</div></div></div><div class="maq-progress"><div class="maq-progress-bar" style="width:${pct}%;background:linear-gradient(90deg,#10b981,#059669)"></div></div></div></div>`}).join('')}
 async function openLaserPanel(id,numero){currentLaserId=id;document.getElementById('laser-panel-title').innerHTML=`⚡ Laser ${String(numero).padStart(2,'0')}`;switchLaserTab('fila',document.querySelector('#laser-tabs .tab'));await loadLaserFila();document.getElementById('ap-data').value=new Date().toISOString().slice(0,10);document.getElementById('laser-panel').classList.add('open')}
 function switchLaserTab(tab,el){['fila','apontamento','config'].forEach(t=>{document.getElementById(`laser-tab-${t}`).style.display=t===tab?'':'none'});document.querySelectorAll('#laser-tabs .tab').forEach(b=>b.classList.remove('active'));if(el)el.classList.add('active');if(tab==='config')loadLaserConfig();if(tab==='apontamento')loadApontamentos()}
@@ -918,6 +986,274 @@ async function verHistorico(id, nome){
     <td class="mono">${Number(m.saldo_apos).toLocaleString('pt-BR',{minimumFractionDigits:2})}</td>
   </tr>`).join('') : '<tr><td colspan="6" style="text-align:center;padding:20px;color:var(--txt2)">Nenhuma movimentação registrada.</td></tr>';
   document.getElementById('hist-panel').classList.add('open');
+}
+
+// ══════════════ RECEITAS DE LAVAGEM ══════════════
+let _recEtapaSeq = 0;
+let _recEtapas = [];
+const TIPO_ETAPA_LABEL = {agua:'💧 Água',quimico:'🧪 Químico',mecanico:'⚙️ Mecânico',temperatura:'🌡️ Temperatura',secagem:'🌬️ Secagem',outro:'📌 Outro'};
+
+function statusReceitaBadge(status){
+  if(status==='ativa') return '<span style="color:var(--verde)"><i class="fas fa-circle" style="font-size:8px"></i> Ativa</span>';
+  if(status==='descontinuada') return '<span style="color:var(--txt2)"><i class="fas fa-circle" style="font-size:8px"></i> Descontinuada</span>';
+  return '<span style="color:#fbbf24"><i class="fas fa-circle" style="font-size:8px"></i> Rascunho</span>';
+}
+
+async function loadReceitas(){
+  const status = document.getElementById('rec-filtro-status').value;
+  const rows = await api('/api/receitas' + (status ? `?status=${status}` : ''));
+  document.getElementById('receitas-tbody').innerHTML = rows.length ? rows.map(r=>`<tr>
+    <td><b>${r.nome}</b>${r.receita_pai_id?`<div style="font-size:11px;color:var(--txt2)">v${r.versao} (ajustada)</div>`:''}</td>
+    <td>${r.referencia||'--'} ${r.lavacao?`/ ${r.lavacao}`:''}</td>
+    <td class="mono">v${r.versao}</td>
+    <td class="mono">${r.total_etapas}</td>
+    <td class="mono">${r.tempo_total_min} min</td>
+    <td>${statusReceitaBadge(r.status)}</td>
+    <td><div style="display:flex;gap:4px;flex-wrap:wrap">
+      <button class="btn btn-ghost btn-xs" title="Editar" onclick="openReceitaFormById(${r.id})"><i class="fas fa-edit"></i></button>
+      <button class="btn btn-ghost btn-xs" title="Duplicar / Nova Versão" onclick="duplicarReceita(${r.id})"><i class="fas fa-copy"></i></button>
+      <button class="btn btn-danger btn-xs" title="Excluir" onclick="deleteReceita(${r.id})"><i class="fas fa-trash"></i></button>
+    </div></td>
+  </tr>`).join('') : '<tr><td colspan="7" style="text-align:center;padding:24px;color:var(--txt2)">Nenhuma receita cadastrada ainda.</td></tr>';
+}
+
+async function openReceitaForm(r=null){
+  document.getElementById('rec-edit-id').value = r ? r.id : '';
+  document.getElementById('receita-panel-title').innerHTML = r
+    ? `<i class="fas fa-edit" style="color:var(--ciano)"></i> Editar: ${r.nome}`
+    : `<i class="fas fa-vial" style="color:var(--ciano)"></i> Nova Receita de Lavagem`;
+  document.getElementById('rec-nome').value = r?.nome || '';
+  document.getElementById('rec-ref').value = r?.referencia || '';
+  document.getElementById('rec-lav').value = r?.lavacao || '';
+  document.getElementById('rec-status').value = r?.status || 'rascunho';
+  document.getElementById('rec-criado-por').value = r?.criado_por || '';
+  document.getElementById('rec-obs').value = r?.observacoes || '';
+  _recEtapas = (r?.etapas || []).map(e => ({...e, _key: ++_recEtapaSeq}));
+  await ensureQuimicosCache();
+  renderEtapas();
+  document.getElementById('receita-panel').classList.add('open');
+}
+
+async function openReceitaFormById(id){
+  const r = await api(`/api/receitas/${id}`);
+  openReceitaForm(r);
+}
+
+let _quimicosCache = null;
+async function ensureQuimicosCache(){
+  if(!_quimicosCache) _quimicosCache = await api('/api/quimicos');
+  return _quimicosCache;
+}
+
+function addEtapa(){
+  _recEtapas.push({_key: ++_recEtapaSeq, ordem: _recEtapas.length+1, titulo:'', tipo:'quimico', produto_quimico_id:null, quantidade:0, unidade:'', temperatura_agua:null, tempo_min:0, instrucao_texto:''});
+  renderEtapas();
+}
+
+function removeEtapa(key){
+  _recEtapas = _recEtapas.filter(e=>e._key!==key);
+  renderEtapas();
+}
+
+function moveEtapa(key, dir){
+  const idx = _recEtapas.findIndex(e=>e._key===key);
+  const novoIdx = idx + dir;
+  if(novoIdx < 0 || novoIdx >= _recEtapas.length) return;
+  [_recEtapas[idx], _recEtapas[novoIdx]] = [_recEtapas[novoIdx], _recEtapas[idx]];
+  renderEtapas();
+}
+
+function updateEtapaField(key, field, value){
+  const e = _recEtapas.find(e=>e._key===key);
+  if(e) e[field] = value;
+  if(field==='tempo_min') recalcTempoTotal();
+}
+
+function recalcTempoTotal(){
+  const total = _recEtapas.reduce((s,e)=>s+(parseInt(e.tempo_min)||0),0);
+  document.getElementById('rec-tempo-total').textContent = total + ' min';
+}
+
+function renderEtapas(){
+  const quimicos = _quimicosCache || [];
+  const list = document.getElementById('rec-etapas-list');
+  list.innerHTML = _recEtapas.length ? _recEtapas.map((e,i)=>`
+    <div class="card card-compact" style="margin-bottom:8px;background:var(--cinza3)">
+      <div style="display:flex;gap:8px;align-items:flex-start">
+        <div style="display:flex;flex-direction:column;gap:2px;padding-top:6px">
+          <button class="btn btn-ghost btn-xs" onclick="moveEtapa(${e._key},-1)" ${i===0?'disabled':''}><i class="fas fa-arrow-up"></i></button>
+          <div style="text-align:center;font-family:'DM Mono',monospace;font-size:12px;color:var(--txt2)">${i+1}</div>
+          <button class="btn btn-ghost btn-xs" onclick="moveEtapa(${e._key},1)" ${i===_recEtapas.length-1?'disabled':''}><i class="fas fa-arrow-down"></i></button>
+        </div>
+        <div style="flex:1">
+          <div class="form-grid" style="grid-template-columns:2fr 1fr 1fr;gap:8px">
+            <div class="form-group"><label>Título da Etapa</label><input class="form-control" value="${(e.titulo||'').replace(/"/g,'&quot;')}" placeholder="Ex: Pré-lavagem" oninput="updateEtapaField(${e._key},'titulo',this.value)"></div>
+            <div class="form-group"><label>Tipo</label><select class="form-control" onchange="updateEtapaField(${e._key},'tipo',this.value)">
+              ${Object.entries(TIPO_ETAPA_LABEL).map(([v,l])=>`<option value="${v}" ${e.tipo===v?'selected':''}>${l}</option>`).join('')}
+            </select></div>
+            <div class="form-group"><label>Tempo (min)</label><input class="form-control" type="number" value="${e.tempo_min||0}" oninput="updateEtapaField(${e._key},'tempo_min',this.value)"></div>
+          </div>
+          <div class="form-grid" style="grid-template-columns:2fr 1fr 1fr">
+            <div class="form-group"><label>Produto Químico (opcional)</label><select class="form-control" onchange="updateEtapaField(${e._key},'produto_quimico_id',this.value||null)">
+              <option value="">-- Nenhum --</option>
+              ${quimicos.map(q=>`<option value="${q.id}" ${e.produto_quimico_id==q.id?'selected':''}>${q.nome} (${q.unidade})</option>`).join('')}
+            </select></div>
+            <div class="form-group"><label>Quantidade</label><input class="form-control" type="number" step="0.01" value="${e.quantidade||0}" oninput="updateEtapaField(${e._key},'quantidade',this.value)"></div>
+            <div class="form-group"><label>Temp. Água (°C)</label><input class="form-control" type="number" value="${e.temperatura_agua??''}" oninput="updateEtapaField(${e._key},'temperatura_agua',this.value)"></div>
+          </div>
+          <div class="form-group"><label>Instrução para o Operador <span style="font-weight:400;color:var(--txt2);font-size:11px">— explique de forma simples, sem termos técnicos</span></label><textarea class="form-control" rows="2" placeholder="Ex: Adicionar o produto na máquina e ligar por 15 minutos com água morna" oninput="updateEtapaField(${e._key},'instrucao_texto',this.value)">${e.instrucao_texto||''}</textarea></div>
+        </div>
+        <button class="btn btn-danger btn-xs" onclick="removeEtapa(${e._key})" style="margin-top:6px"><i class="fas fa-trash"></i></button>
+      </div>
+    </div>
+  `).join('') : '<div style="text-align:center;padding:20px;color:var(--txt2)">Nenhuma etapa ainda. Clique em "Add Etapa" para começar o passo a passo.</div>';
+  recalcTempoTotal();
+}
+
+async function saveReceita(){
+  const id = document.getElementById('rec-edit-id').value;
+  const nome = document.getElementById('rec-nome').value.trim();
+  if(!nome){ toast('Informe o nome da receita','error'); return; }
+  if(!_recEtapas.length){ toast('Adicione ao menos uma etapa no passo a passo','error'); return; }
+  const payload = {
+    nome,
+    referencia: document.getElementById('rec-ref').value,
+    lavacao: document.getElementById('rec-lav').value,
+    status: document.getElementById('rec-status').value,
+    criado_por: document.getElementById('rec-criado-por').value,
+    observacoes: document.getElementById('rec-obs').value,
+    etapas: _recEtapas.map((e,i)=>({...e, ordem:i+1})),
+  };
+  try{
+    if(id) await api(`/api/receitas/${id}`, 'PUT', payload);
+    else await api('/api/receitas', 'POST', payload);
+    toast(id ? 'Receita atualizada!' : 'Receita cadastrada!');
+    closePanel('receita-panel');
+    loadReceitas();
+  }catch(e){ /* erro já mostrado pelo api() */ }
+}
+
+async function deleteReceita(id){
+  if(!confirm('Excluir esta receita? Todas as etapas também serão apagadas.')) return;
+  await api(`/api/receitas/${id}`, 'DELETE');
+  toast('Receita excluída','info');
+  loadReceitas();
+}
+
+async function duplicarReceita(id){
+  if(!confirm('Criar uma nova versão desta receita para ajustar?')) return;
+  const nova = await api(`/api/receitas/${id}/duplicar`, 'POST');
+  toast(`Nova versão v${nova.versao} criada!`);
+  loadReceitas();
+}
+
+// ══════════════ PEÇAS DE AMOSTRA ══════════════
+function statusAmostraBadge(status){
+  if(status==='aprovada') return '<span style="color:var(--verde)"><i class="fas fa-check-circle"></i> Aprovada</span>';
+  if(status==='reprovada') return '<span style="color:#f87171"><i class="fas fa-times-circle"></i> Reprovada</span>';
+  if(status==='arquivada') return '<span style="color:var(--txt2)"><i class="fas fa-archive"></i> Arquivada</span>';
+  return '<span style="color:#fbbf24"><i class="fas fa-flask"></i> Em Teste</span>';
+}
+
+async function loadAmostras(){
+  const status = document.getElementById('amo-filtro-status').value;
+  const rows = await api('/api/amostras' + (status ? `?status=${status}` : ''));
+  document.getElementById('amostras-tbody').innerHTML = rows.length ? rows.map(a=>`<tr>
+    <td><b>${a.referencia}</b>${a.lavacao?`<div style="font-size:11px;color:var(--txt2)">${a.lavacao}</div>`:''}${a.versao_anterior_id?`<div style="font-size:11px;color:var(--txt2)">retest de amostra #${a.versao_anterior_id}</div>`:''}</td>
+    <td>${a.receita_nome || '<span style="color:var(--txt2)">--</span>'}</td>
+    <td class="mono" style="color:var(--ciano)">${a.numero_lacre || '--'}</td>
+    <td>${statusAmostraBadge(a.status)}</td>
+    <td style="font-size:12px;color:var(--txt2)">${a.data_criacao}</td>
+    <td><div style="display:flex;gap:4px;flex-wrap:wrap">
+      ${a.status==='em_teste' ? `<button class="btn btn-success btn-xs" title="Aprovar e Lacrar" onclick="aprovarAmostra(${a.id})"><i class="fas fa-check"></i></button><button class="btn btn-danger btn-xs" title="Reprovar" onclick="reprovarAmostra(${a.id})"><i class="fas fa-times"></i></button>` : ''}
+      ${a.status==='reprovada' ? `<button class="btn btn-ghost btn-xs" title="Nova Versão para Retestar" onclick="novaVersaoAmostra(${a.id})"><i class="fas fa-redo"></i></button>` : ''}
+      <button class="btn btn-ghost btn-xs" title="Editar" onclick="openAmostraFormById(${a.id})"><i class="fas fa-edit"></i></button>
+      <button class="btn btn-danger btn-xs" title="Excluir" onclick="deleteAmostra(${a.id})"><i class="fas fa-trash"></i></button>
+    </div></td>
+  </tr>`).join('') : '<tr><td colspan="6" style="text-align:center;padding:24px;color:var(--txt2)">Nenhuma peça de amostra cadastrada ainda.</td></tr>';
+}
+
+async function ensureReceitasSelect(selectedId){
+  const receitas = await api('/api/receitas');
+  const sel = document.getElementById('amo-receita');
+  sel.innerHTML = '<option value="">-- Nenhuma / a definir --</option>' +
+    receitas.map(r=>`<option value="${r.id}" ${selectedId==r.id?'selected':''}>${r.nome} (v${r.versao})</option>`).join('');
+}
+
+async function openAmostraForm(a=null){
+  document.getElementById('amo-edit-id').value = a ? a.id : '';
+  document.getElementById('amostra-panel-title').innerHTML = a
+    ? `<i class="fas fa-edit" style="color:var(--ciano)"></i> Editar Amostra: ${a.referencia}`
+    : `<i class="fas fa-tshirt" style="color:var(--ciano)"></i> Nova Peça de Amostra`;
+  document.getElementById('amo-ref').value = a?.referencia || '';
+  document.getElementById('amo-lav').value = a?.lavacao || '';
+  document.getElementById('amo-obs').value = a?.observacoes || '';
+  await ensureReceitasSelect(a?.receita_id);
+  const info = document.getElementById('amo-status-info');
+  if(a && a.status !== 'em_teste'){
+    info.style.display = 'block';
+    info.innerHTML = `${statusAmostraBadge(a.status)}${a.numero_lacre?` — Lacre <b style="color:var(--ciano)">${a.numero_lacre}</b>`:''}${a.data_aprovacao?` <span style="color:var(--txt2)">em ${a.data_aprovacao}</span>`:''}`;
+  } else {
+    info.style.display = 'none';
+  }
+  document.getElementById('amostra-panel').classList.add('open');
+}
+
+async function openAmostraFormById(id){
+  const a = await api(`/api/amostras/${id}`);
+  openAmostraForm(a);
+}
+
+async function saveAmostra(){
+  const id = document.getElementById('amo-edit-id').value;
+  const referencia = document.getElementById('amo-ref').value.trim();
+  if(!referencia){ toast('Informe a referência','error'); return; }
+  const payload = {
+    referencia,
+    lavacao: document.getElementById('amo-lav').value,
+    receita_id: document.getElementById('amo-receita').value || null,
+    observacoes: document.getElementById('amo-obs').value,
+  };
+  try{
+    if(id) await api(`/api/amostras/${id}`, 'PUT', payload);
+    else await api('/api/amostras', 'POST', payload);
+    toast(id ? 'Amostra atualizada!' : 'Amostra cadastrada!');
+    closePanel('amostra-panel');
+    loadAmostras();
+  }catch(e){ /* erro já mostrado pelo api() */ }
+}
+
+async function deleteAmostra(id){
+  if(!confirm('Excluir esta peça de amostra?')) return;
+  await api(`/api/amostras/${id}`, 'DELETE');
+  toast('Amostra excluída','info');
+  loadAmostras();
+}
+
+async function aprovarAmostra(id){
+  const nome = prompt('Aprovado por (nome):');
+  if(nome===null) return;
+  try{
+    const a = await api(`/api/amostras/${id}/aprovar`, 'POST', {aprovado_por: nome});
+    toast(`Amostra aprovada e lacrada! Lacre: ${a.numero_lacre}`);
+    loadAmostras();
+  }catch(e){ /* erro já mostrado */ }
+}
+
+async function reprovarAmostra(id){
+  const obs = prompt('Motivo da reprovação (opcional):') || '';
+  try{
+    await api(`/api/amostras/${id}/reprovar`, 'POST', {observacoes: obs});
+    toast('Amostra reprovada','info');
+    loadAmostras();
+  }catch(e){ /* erro já mostrado */ }
+}
+
+async function novaVersaoAmostra(id){
+  if(!confirm('Criar uma nova peça de amostra para retestar o ajuste?')) return;
+  const nova = await api(`/api/amostras/${id}/nova_versao`, 'POST', {});
+  toast('Nova versão criada para reteste!');
+  loadAmostras();
 }
 
 initHistMes();
