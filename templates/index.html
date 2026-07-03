@@ -225,6 +225,8 @@ tbody td{padding:10px 14px;vertical-align:middle;color:var(--txt)}
     <button class="nav-btn" onclick="goMaqPage('secador')"><i class="fas fa-wind"></i>Secadores</button>
     <div class="nav-section">Laser</div>
     <button class="nav-btn" onclick="goPage('laser')"><i class="fas fa-bolt"></i>Fila de Laser</button>
+    <div class="nav-section">Passadoria</div>
+    <button class="nav-btn" onclick="goPage('passadoria')"><i class="fas fa-tshirt"></i>Fila de Passadoria</button>
     <div class="nav-section">Calendário</div>
     <button class="nav-btn" onclick="goPage('calendario')"><i class="fas fa-calendar-alt"></i>Turnos e H.Extra</button>
     <div class="nav-section">Financeiro</div>
@@ -383,6 +385,29 @@ tbody td{padding:10px 14px;vertical-align:middle;color:var(--txt)}
         <div class="tbl-wrap"><table><thead><tr><th>Referência / Lavação</th><th>Receita Usada</th><th>Lacre</th><th>Status</th><th>Criada em</th><th>Ações</th></tr></thead><tbody id="amostras-tbody"></tbody></table></div>
       </div>
     </div>
+
+    <div class="page" id="page-passadoria">
+      <div class="card" style="margin-bottom:16px;border-color:rgba(124,58,237,.3);background:rgba(124,58,237,.07)">
+        <div class="card-header"><div class="card-title"><i class="fas fa-calculator" style="color:#a78bfa"></i>Calculadora de Capacidade Diária</div></div>
+        <div style="padding:16px 20px;display:flex;gap:14px;flex-wrap:wrap;align-items:flex-end">
+          <div class="form-group" style="width:150px"><label>Minutos do Turno</label><input class="form-control" id="pass-calc-turno-min" type="number" value="540" oninput="calcCapacidadePassadoria()"></div>
+          <div class="form-group" style="width:150px"><label>Tempo Padrão/Peça (min)</label><input class="form-control" id="pass-calc-tempo" type="number" step="0.01" value="0.85" oninput="calcCapacidadePassadoria()"></div>
+          <div class="form-group" style="width:150px"><label>Qtde de Passadeiras</label><input class="form-control" id="pass-calc-qtd" type="number" value="14" oninput="calcCapacidadePassadoria()"></div>
+          <div style="background:var(--cinza3);border-radius:10px;padding:10px 20px;text-align:center">
+            <div style="font-family:'Syne',sans-serif;font-size:24px;font-weight:800;color:#a78bfa" id="pass-calc-resultado">0</div>
+            <div style="font-size:11px;color:var(--txt2)">peças / dia (capacidade)</div>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title"><i class="fas fa-tshirt"></i>Fila de Passadoria</div>
+          <div><button class="btn btn-primary" onclick="openPassadoriaForm()"><i class="fas fa-plus"></i>Novo Item</button></div>
+        </div>
+        <div style="padding:8px 20px;font-size:13px;color:var(--txt2)" id="passadoria-total">Total: 0 itens</div>
+        <div class="tbl-wrap"><table><thead><tr><th>Nº</th><th>OP</th><th>Referência</th><th>Descrição</th><th>Qtde Peças</th><th>Tempo/Peça</th><th>Qtde Passadeiras</th><th>Início</th><th>Previsão Fim</th><th>Status</th><th>Ações</th></tr></thead><tbody id="passadoria-tbody"></tbody></table></div>
+      </div>
+    </div>
   </div>
 </div>
 
@@ -474,6 +499,33 @@ tbody td{padding:10px 14px;vertical-align:middle;color:var(--txt)}
   </div>
   <div id="amo-status-info" style="margin-top:14px;display:none;background:var(--cinza3);border-radius:10px;padding:14px"></div>
 </div><div class="panel-foot" id="amo-panel-foot"><button class="btn btn-ghost" onclick="closePanel('amostra-panel')">Cancelar</button><button class="btn btn-primary" onclick="saveAmostra()"><i class="fas fa-save"></i>Salvar Amostra</button></div></div></div>
+
+<div class="panel-overlay" id="passadoria-panel"><div class="panel" style="width:min(620px,97vw)"><div class="panel-head"><div class="panel-title" id="passadoria-panel-title"><i class="fas fa-tshirt" style="color:var(--ciano)"></i> Novo Item de Passadoria</div><button class="btn btn-ghost btn-sm" onclick="closePanel('passadoria-panel')"><i class="fas fa-times"></i></button></div><div class="panel-body"><input type="hidden" id="pass-edit-id">
+  <div class="form-grid">
+    <div class="form-group"><label>OP</label><input class="form-control" id="pass-op" placeholder="Ex: 48000"></div>
+    <div class="form-group"><label>Referência</label><input class="form-control" id="pass-ref" placeholder="Ex: CFHV41827-1"></div>
+    <div class="form-group" style="grid-column:1/-1"><label>Descrição do Produto</label><input class="form-control" id="pass-desc" placeholder="Ex: Camisa Jeans Manga Longa"></div>
+    <div class="form-group"><label>Qtde de Peças</label><input class="form-control" id="pass-pecas" type="number" placeholder="Ex: 1000"></div>
+    <div class="form-group"><label>Tempo Padrão/Peça (min)</label><input class="form-control" id="pass-tempo" type="number" step="0.01" value="0.85"></div>
+    <div class="form-group"><label>Qtde de Passadeiras</label><input class="form-control" id="pass-qtd-passadeiras" type="number" value="1"></div>
+    <div class="form-group"><label>Data Início</label><input class="form-control" id="pass-data" type="date"></div>
+    <div class="form-group"><label>Hora Início</label><input class="form-control" id="pass-hora" type="time"></div>
+    <div class="form-group"><label>Status</label><select class="form-control" id="pass-status"><option value="aguardando">⏳ Aguardando</option><option value="em_processo">🔄 Em Processo</option><option value="concluido">✅ Concluído</option></select></div>
+    <div class="form-group" style="grid-column:1/-1"><label>Observação</label><input class="form-control" id="pass-obs" placeholder="Opcional"></div>
+  </div>
+  <div id="pass-simulacao" style="display:none;margin-top:14px;background:var(--cinza3);border-radius:10px;padding:14px">
+    <div style="display:flex;gap:20px;flex-wrap:wrap;align-items:center">
+      <div style="text-align:center"><div style="font-family:'DM Mono',monospace;font-size:14px;color:var(--ciano)" id="pass-sim-inicio">--</div><div style="font-size:11px;color:var(--txt2)">Início</div></div>
+      <div style="text-align:center"><div style="font-family:'DM Mono',monospace;font-size:14px;color:var(--laranja)" id="pass-sim-fim">--</div><div style="font-size:11px;color:var(--txt2)">Previsão de Fim</div></div>
+      <div style="text-align:center"><div style="font-family:'DM Mono',monospace;font-size:14px;color:var(--verde)" id="pass-sim-dur">--</div><div style="font-size:11px;color:var(--txt2)">Duração</div></div>
+      <div style="text-align:center"><div style="font-family:'DM Mono',monospace;font-size:14px;color:#a78bfa" id="pass-sim-ph">--</div><div style="font-size:11px;color:var(--txt2)">Peças/hora (total)</div></div>
+    </div>
+  </div>
+</div><div class="panel-foot">
+  <button class="btn btn-ghost" onclick="closePanel('passadoria-panel')">Cancelar</button>
+  <button class="btn btn-warning btn-sm" onclick="simularPassadoria()"><i class="fas fa-calculator"></i>Simular</button>
+  <button class="btn btn-primary" id="pass-btn-salvar" onclick="addPassadoria()"><i class="fas fa-plus"></i>Adicionar</button>
+</div></div></div>
 
 
 <div class="panel-overlay" id="op-panel"><div class="panel"><div class="panel-head"><div class="panel-title" id="op-panel-title"><i class="fas fa-file-alt" style="color:var(--ciano)"></i> Nova Ordem de Produção</div><button class="btn btn-ghost btn-sm" onclick="closePanel('op-panel')"><i class="fas fa-times"></i></button></div><div class="panel-body"><input type="hidden" id="op-edit-id"><div class="form-grid"><div class="form-group"><label>Nº OP</label><input class="form-control" id="op-num" placeholder="Ex: 48000"></div><div class="form-group"><label>Referência</label><input class="form-control" id="op-ref" placeholder="Ex: CFHV41827-1"></div><div class="form-group" style="grid-column:1/-1"><label>Tipo de Lavação</label><input class="form-control" id="op-lav" placeholder="Ex: STONAGEM / SKY / LASER"></div><div class="form-group"><label>Cap. Peças/Carga</label><input class="form-control" id="op-cap" type="number" placeholder="134"></div></div><div class="sizes-section"><p class="sizes-group-title" style="color:var(--laranja)">🅰️ ADULTO – LETRAS</p><div class="sizes-grid" id="sizes-letras"></div><p class="sizes-group-title" style="color:var(--roxo)">🔢 ADULTO – NUMÉRICO</p><div class="sizes-grid" id="sizes-num"></div><p class="sizes-group-title" style="color:var(--verde)">👶 INFANTIL</p><div class="sizes-grid" id="sizes-inf"></div></div><div style="margin-top:20px;padding-top:20px;border-top:1px solid var(--brd)"><div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:14px"><p class="sizes-group-title" style="margin:0">⚖️ PESO POR TAMANHO (kg/peça)</p><div style="display:flex;align-items:center;gap:10px"><input class="form-control" id="cap-arredondar" type="number" step="0.1" placeholder="Cap. kg/carga" style="width:140px"><button class="btn btn-warning btn-sm" onclick="calcArredondar()"><i class="fas fa-calculator"></i> Arredondar Cargas</button></div></div><div class="sizes-grid" id="pesos-grid"></div><div class="arr-result" id="arr-result" style="display:none"><div style="display:flex;align-items:center;gap:20px;flex-wrap:wrap"><div><div class="arr-big" id="arr-cargas">0</div><div class="arr-sub">Cargas necessárias</div></div><div><div style="font-family:'DM Mono',monospace;font-size:20px;color:var(--amarelo)" id="arr-peso">0.000</div><div class="arr-sub">Peso total (kg)</div></div><div><div style="font-family:'DM Mono',monospace;font-size:20px;color:var(--verde)" id="arr-ultimo">0.000</div><div class="arr-sub">Peso última carga</div></div></div></div></div></div><div class="panel-foot"><div style="flex:1;font-size:13px;color:var(--txt2);display:flex;gap:18px;align-items:center"><span>Peças: <b id="live-pecas" style="color:var(--txt)">0</b></span><span>Peso Total: <b id="live-peso" style="color:var(--ciano)">0.000 kg</b></span></div><button class="btn btn-ghost" onclick="closePanel('op-panel')">Cancelar</button><button class="btn btn-primary" onclick="saveOp()"><i class="fas fa-save"></i>Salvar OP</button></div></div></div>
@@ -707,7 +759,7 @@ function closePanel(id){document.getElementById(id).classList.remove('open')}
 document.querySelectorAll('.panel-overlay').forEach(p=>{p.addEventListener('click',e=>{if(e.target===p)p.classList.remove('open')})});
 
 let currentLaserId=null,_laserEquipData=null;
-function goPage(page){document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));document.getElementById('page-'+page)?.classList.add('active');event?.currentTarget?.classList.add('active');const titles={dashboard:'Dashboard / Resumo',ops:'Ordens de Produção',maquinas:'Máquinas',calendario:'Calendário de Turnos',faturamento:'Faturamento',dre:'DRE / Demonstrativo de Resultado',laser:'Fila de Laser / Equipamentos',funcionarios:'Funcionários / Custo de Mão de Obra',quimicos:'Estoque de Químicos',receitas:'Receitas de Lavagem',amostras:'Peças de Amostra'};const t=titles[page]||page;document.getElementById('topbar-title').innerHTML=t.includes('/')?t.replace(/\/(.*)/,'<span>/ $1</span>'):t;if(page==='dashboard')loadDashboard();if(page==='ops')loadOps();if(page==='calendario')renderCalendario();if(page==='faturamento')loadPrecos();if(page==='dre')initDRE();if(page==='laser')loadLaserGrid();if(page==='funcionarios')loadFuncionarios();if(page==='quimicos')loadQuimicos();if(page==='receitas')loadReceitas();if(page==='amostras')loadAmostras()}
+function goPage(page){document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));document.getElementById('page-'+page)?.classList.add('active');event?.currentTarget?.classList.add('active');const titles={dashboard:'Dashboard / Resumo',ops:'Ordens de Produção',maquinas:'Máquinas',calendario:'Calendário de Turnos',faturamento:'Faturamento',dre:'DRE / Demonstrativo de Resultado',laser:'Fila de Laser / Equipamentos',funcionarios:'Funcionários / Custo de Mão de Obra',quimicos:'Estoque de Químicos',receitas:'Receitas de Lavagem',amostras:'Peças de Amostra',passadoria:'Fila de Passadoria'};const t=titles[page]||page;document.getElementById('topbar-title').innerHTML=t.includes('/')?t.replace(/\/(.*)/,'<span>/ $1</span>'):t;if(page==='dashboard')loadDashboard();if(page==='ops')loadOps();if(page==='calendario')renderCalendario();if(page==='faturamento')loadPrecos();if(page==='dre')initDRE();if(page==='laser')loadLaserGrid();if(page==='funcionarios')loadFuncionarios();if(page==='quimicos')loadQuimicos();if(page==='receitas')loadReceitas();if(page==='amostras')loadAmostras();if(page==='passadoria'){loadPassadoria();calcCapacidadePassadoria()}}
 async function loadLaserGrid(){const equips=await api('/api/laser/equipamentos');document.getElementById('laser-grid').innerHTML=equips.map(e=>{const pct=e.total_filas>0?Math.round((e.concluido/e.total_filas)*100)||0:0;return`<div class="laser-card maq-card" onclick="openLaserPanel(${e.id},${e.numero})"><div class="maq-header" style="background:linear-gradient(135deg,#0d3b2e,#10b981)"><div class="maq-name">⚡ LASER ${String(e.numero).padStart(2,'0')}</div><div class="maq-icon">🔆</div></div><div class="maq-body"><div class="maq-stat-row"><div class="maq-stat"><div class="maq-stat-val">${e.total_filas}</div><div class="maq-stat-lbl">na fila</div></div><div class="maq-stat"><div class="maq-stat-val" style="color:var(--amarelo)">${e.em_processo}</div><div class="maq-stat-lbl">em processo</div></div><div class="maq-stat"><div class="maq-stat-val" style="color:var(--verde)">${e.concluido}</div><div class="maq-stat-lbl">concluídos</div></div><div class="maq-stat"><div class="maq-stat-val">${e.total_pecas.toLocaleString('pt-BR')}</div><div class="maq-stat-lbl">peças</div></div></div><div class="maq-progress"><div class="maq-progress-bar" style="width:${pct}%;background:linear-gradient(90deg,#10b981,#059669)"></div></div></div></div>`}).join('')}
 async function openLaserPanel(id,numero){currentLaserId=id;document.getElementById('laser-panel-title').innerHTML=`⚡ Laser ${String(numero).padStart(2,'0')}`;switchLaserTab('fila',document.querySelector('#laser-tabs .tab'));await loadLaserFila();document.getElementById('ap-data').value=new Date().toISOString().slice(0,10);document.getElementById('laser-panel').classList.add('open')}
 function switchLaserTab(tab,el){['fila','apontamento','config'].forEach(t=>{document.getElementById(`laser-tab-${t}`).style.display=t===tab?'':'none'});document.querySelectorAll('#laser-tabs .tab').forEach(b=>b.classList.remove('active'));if(el)el.classList.add('active');if(tab==='config')loadLaserConfig();if(tab==='apontamento')loadApontamentos()}
@@ -1254,6 +1306,132 @@ async function novaVersaoAmostra(id){
   const nova = await api(`/api/amostras/${id}/nova_versao`, 'POST', {});
   toast('Nova versão criada para reteste!');
   loadAmostras();
+}
+
+// ══════════════ PASSADORIA ══════════════
+function calcCapacidadePassadoria(){
+  const turnoMin = parseFloat(document.getElementById('pass-calc-turno-min').value) || 0;
+  const tempo = parseFloat(document.getElementById('pass-calc-tempo').value) || 0;
+  const qtd = parseInt(document.getElementById('pass-calc-qtd').value) || 0;
+  const cap = tempo > 0 ? Math.floor(turnoMin / tempo) * qtd : 0;
+  document.getElementById('pass-calc-resultado').textContent = cap.toLocaleString('pt-BR');
+}
+
+function statusPassadoriaBadge(status){
+  if(status==='concluido') return '<span style="color:var(--verde)">✅ Concluído</span>';
+  if(status==='em_processo') return '<span style="color:var(--amarelo)">🔄 Em Proc.</span>';
+  return '<span style="color:var(--txt2)">⏳ Aguard.</span>';
+}
+
+async function loadPassadoria(){
+  const rows = await api('/api/passadoria/fila');
+  document.getElementById('passadoria-total').textContent = `Total: ${rows.length} itens | ${rows.reduce((a,r)=>a+(r.qtde_pecas||0),0).toLocaleString('pt-BR')} peças`;
+  document.getElementById('passadoria-tbody').innerHTML = rows.length ? rows.map(r=>`<tr>
+    <td class="mono">${r.numero}</td>
+    <td>${r.op||'--'}</td>
+    <td>${r.referencia||'--'}</td>
+    <td>${r.descricao_produto||'--'}</td>
+    <td class="mono">${(r.qtde_pecas||0).toLocaleString('pt-BR')}</td>
+    <td class="mono">${r.tempo_padrao_min}</td>
+    <td class="mono">${r.qtde_passadeiras}</td>
+    <td style="font-size:11px;color:var(--ciano)">${r.data_inicio?fmtDT(r.data_inicio):'--'}</td>
+    <td style="font-size:11px;color:var(--laranja)">${r.data_fim?fmtDT(r.data_fim):'--'}</td>
+    <td>${statusPassadoriaBadge(r.status)}</td>
+    <td><div style="display:flex;gap:4px">
+      <button class="btn btn-ghost btn-xs" title="Editar" onclick='openPassadoriaForm(${JSON.stringify(r)})'><i class="fas fa-edit"></i></button>
+      <button class="btn btn-danger btn-xs" title="Excluir" onclick="deletePassadoria(${r.id})"><i class="fas fa-trash"></i></button>
+    </div></td>
+  </tr>`).join('') : '<tr><td colspan="11" style="text-align:center;padding:24px;color:var(--txt2)">Fila vazia. Clique em "Novo Item" para adicionar.</td></tr>';
+}
+
+function openPassadoriaForm(r=null){
+  document.getElementById('pass-edit-id').value = r ? r.id : '';
+  document.getElementById('passadoria-panel-title').innerHTML = r
+    ? `<i class="fas fa-edit" style="color:var(--ciano)"></i> Editar Item #${r.numero}`
+    : `<i class="fas fa-tshirt" style="color:var(--ciano)"></i> Novo Item de Passadoria`;
+  document.getElementById('pass-op').value = r?.op || '';
+  document.getElementById('pass-ref').value = r?.referencia || '';
+  document.getElementById('pass-desc').value = r?.descricao_produto || '';
+  document.getElementById('pass-pecas').value = r?.qtde_pecas || '';
+  document.getElementById('pass-tempo').value = r?.tempo_padrao_min ?? 0.85;
+  document.getElementById('pass-qtd-passadeiras').value = r?.qtde_passadeiras ?? 1;
+  document.getElementById('pass-status').value = r?.status || 'aguardando';
+  document.getElementById('pass-obs').value = r?.observacao || '';
+  if(r?.data_inicio){
+    const [d,h] = r.data_inicio.split('T');
+    document.getElementById('pass-data').value = d;
+    document.getElementById('pass-hora').value = h;
+  } else {
+    document.getElementById('pass-data').value = new Date().toISOString().slice(0,10);
+    document.getElementById('pass-hora').value = '';
+  }
+  document.getElementById('pass-simulacao').style.display = 'none';
+  const btn = document.getElementById('pass-btn-salvar');
+  if(r){ btn.innerHTML = '<i class="fas fa-save"></i>Atualizar'; btn.onclick = () => updatePassadoria(r.id); }
+  else { btn.innerHTML = '<i class="fas fa-plus"></i>Adicionar'; btn.onclick = addPassadoria; }
+  document.getElementById('passadoria-panel').classList.add('open');
+}
+
+function getPassadoriaPayload(){
+  return {
+    op: document.getElementById('pass-op').value,
+    referencia: document.getElementById('pass-ref').value,
+    descricao_produto: document.getElementById('pass-desc').value,
+    qtde_pecas: document.getElementById('pass-pecas').value,
+    tempo_padrao_min: document.getElementById('pass-tempo').value,
+    qtde_passadeiras: document.getElementById('pass-qtd-passadeiras').value,
+    status: document.getElementById('pass-status').value,
+    observacao: document.getElementById('pass-obs').value,
+    data_inicio: (document.getElementById('pass-data').value && document.getElementById('pass-hora').value)
+      ? `${document.getElementById('pass-data').value}T${document.getElementById('pass-hora').value}` : null,
+  };
+}
+
+async function simularPassadoria(){
+  const data = document.getElementById('pass-data').value;
+  const hora = document.getElementById('pass-hora').value;
+  const pecas = parseInt(document.getElementById('pass-pecas').value || 0);
+  const tempo = parseFloat(document.getElementById('pass-tempo').value || 0.85);
+  const qtd = parseInt(document.getElementById('pass-qtd-passadeiras').value || 1);
+  if(!data || !hora){ toast('Informe data e hora de início','error'); return; }
+  if(!pecas){ toast('Informe a quantidade de peças','error'); return; }
+  try{
+    const r = await api('/api/passadoria/simular', 'POST', {data_inicio:`${data}T${hora}`, qtde_pecas:pecas, tempo_padrao_min:tempo, qtde_passadeiras:qtd});
+    document.getElementById('pass-sim-inicio').textContent = r.data_inicio;
+    document.getElementById('pass-sim-fim').textContent = r.data_fim || '--';
+    document.getElementById('pass-sim-dur').textContent = r.duracao_fmt;
+    document.getElementById('pass-sim-ph').textContent = r.pecas_hora_total.toLocaleString('pt-BR') + ' pç/h';
+    document.getElementById('pass-simulacao').style.display = '';
+    toast('Simulação calculada com os turnos do calendário!','success');
+  }catch(e){ /* erro já mostrado */ }
+}
+
+async function addPassadoria(){
+  const payload = getPassadoriaPayload();
+  if(!payload.qtde_pecas){ toast('Informe a quantidade de peças','error'); return; }
+  try{
+    await api('/api/passadoria/fila', 'POST', payload);
+    toast('Item adicionado à fila!');
+    closePanel('passadoria-panel');
+    loadPassadoria();
+  }catch(e){ /* erro já mostrado */ }
+}
+
+async function updatePassadoria(id){
+  const payload = getPassadoriaPayload();
+  try{
+    await api(`/api/passadoria/fila/${id}`, 'PUT', payload);
+    toast('Item atualizado!');
+    closePanel('passadoria-panel');
+    loadPassadoria();
+  }catch(e){ /* erro já mostrado */ }
+}
+
+async function deletePassadoria(id){
+  if(!confirm('Excluir este item da fila?')) return;
+  await api(`/api/passadoria/fila/${id}`, 'DELETE');
+  toast('Item excluído','info');
+  loadPassadoria();
 }
 
 initHistMes();
