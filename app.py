@@ -558,6 +558,60 @@ class PecaAmostra(db.Model):
             'data_aprovacao': self.data_aprovacao.strftime('%d/%m/%Y %H:%M') if self.data_aprovacao else None,
         }
 
+# ── MANUTENÇÃO DE EQUIPAMENTOS ───────────────────────────────────────
+class Manutencao(db.Model):
+    id                  = db.Column(db.Integer, primary_key=True)
+    equipamento         = db.Column(db.String(120), nullable=False)
+    tipo                = db.Column(db.String(20), default='PREVENTIVA')  # PREVENTIVA / PERIODICA
+    periodicidade_dias  = db.Column(db.Integer, default=30)
+    data_ultima         = db.Column(db.Date, nullable=True)
+    data_proxima        = db.Column(db.Date, nullable=True)
+    descricao           = db.Column(db.String(300))
+    responsavel         = db.Column(db.String(80))
+    ativo               = db.Column(db.Boolean, default=True)
+    created_at          = db.Column(db.DateTime, default=datetime.utcnow)
+    execucoes           = db.relationship('ManutencaoExecucao', backref='plano', lazy=True,
+                                           cascade='all, delete-orphan',
+                                           order_by='ManutencaoExecucao.data_execucao.desc()')
+
+    @property
+    def status(self):
+        if not self.data_proxima:
+            return 'sem_data'
+        hoje = date.today()
+        if self.data_proxima < hoje:
+            return 'vencida'
+        if self.data_proxima <= hoje + timedelta(days=7):
+            return 'proxima'
+        return 'ok'
+
+    def to_dict(self):
+        return {
+            'id': self.id, 'equipamento': self.equipamento, 'tipo': self.tipo,
+            'periodicidade_dias': self.periodicidade_dias,
+            'data_ultima': self.data_ultima.strftime('%Y-%m-%d') if self.data_ultima else None,
+            'data_proxima': self.data_proxima.strftime('%Y-%m-%d') if self.data_proxima else None,
+            'descricao': self.descricao, 'responsavel': self.responsavel, 'ativo': self.ativo,
+            'status': self.status, 'total_execucoes': len(self.execucoes),
+        }
+
+class ManutencaoExecucao(db.Model):
+    id              = db.Column(db.Integer, primary_key=True)
+    manutencao_id   = db.Column(db.Integer, db.ForeignKey('manutencao.id'), nullable=False)
+    data_execucao   = db.Column(db.Date, nullable=False, default=date.today)
+    custo           = db.Column(db.Float, default=0.0)
+    responsavel     = db.Column(db.String(80))
+    observacao      = db.Column(db.String(300))
+    created_at      = db.Column(db.DateTime, default=datetime.utcnow)
+
+    def to_dict(self):
+        return {
+            'id': self.id, 'manutencao_id': self.manutencao_id,
+            'data_execucao': self.data_execucao.strftime('%Y-%m-%d') if self.data_execucao else None,
+            'data_execucao_fmt': self.data_execucao.strftime('%d/%m/%Y') if self.data_execucao else None,
+            'custo': self.custo, 'responsavel': self.responsavel, 'observacao': self.observacao,
+        }
+
 # ── HELPERS ──────────────────────────────────────────────────────
 def safe_int(v, default=0):
     try: return int(float(v or default))
@@ -2043,6 +2097,107 @@ def nova_versao_amostra(aid):
     )
     db.session.add(nova); db.session.commit()
     return jsonify(nova.to_dict())
+
+# ── MANUTENÇÃO DE EQUIPAMENTOS ───────────────────────────────────────
+@app.route('/api/manutencao/equipamentos', methods=['GET'])
+def get_equipamentos_sugestoes():
+    """Sugestões (datalist) com os equipamentos já cadastrados no sistema."""
+    nomes = []
+    labels = {'lavar': 'MAQ', 'centrifuga': 'CF', 'secador': 'SEC'}
+    for m in Maquina.query.order_by(Maquina.tipo, Maquina.numero).all():
+        nomes.append(f"{labels.get(m.tipo, m.tipo.upper())} {str(m.numero).zfill(2)}")
+    for l in LaserEquipamento.query.order_by(LaserEquipamento.numero).all():
+        nomes.append(f"LASER {str(l.numero).zfill(2)}")
+    return jsonify(nomes)
+
+@app.route('/api/manutencoes', methods=['GET'])
+def get_manutencoes():
+    q = Manutencao.query
+    if request.args.get('ativos') == '1':
+        q = q.filter_by(ativo=True)
+    rows = q.order_by(Manutencao.data_proxima.is_(None), Manutencao.data_proxima).all()
+    return jsonify([m.to_dict() for m in rows])
+
+@app.route('/api/manutencoes', methods=['POST'])
+def add_manutencao():
+    d = request.json or {}
+    if not d.get('equipamento'):
+        return jsonify({'error': 'Equipamento é obrigatório'}), 400
+    periodicidade = safe_int(d.get('periodicidade_dias'), 30)
+    data_ultima = None
+    if d.get('data_ultima'):
+        try: data_ultima = datetime.strptime(d['data_ultima'], '%Y-%m-%d').date()
+        except: pass
+    data_proxima = None
+    if d.get('data_proxima'):
+        try: data_proxima = datetime.strptime(d['data_proxima'], '%Y-%m-%d').date()
+        except: pass
+    elif data_ultima:
+        data_proxima = data_ultima + timedelta(days=periodicidade)
+    m = Manutencao(
+        equipamento=d['equipamento'].strip(),
+        tipo=d.get('tipo') if d.get('tipo') in ('PREVENTIVA', 'PERIODICA') else 'PREVENTIVA',
+        periodicidade_dias=periodicidade,
+        data_ultima=data_ultima,
+        data_proxima=data_proxima,
+        descricao=(d.get('descricao') or '').strip(),
+        responsavel=(d.get('responsavel') or '').strip(),
+        ativo=bool(d.get('ativo', True)),
+    )
+    db.session.add(m); db.session.commit()
+    return jsonify(m.to_dict())
+
+@app.route('/api/manutencoes/<int:mid>', methods=['PUT'])
+def update_manutencao(mid):
+    m = Manutencao.query.get_or_404(mid)
+    d = request.json or {}
+    if 'equipamento' in d: m.equipamento = (d['equipamento'] or '').strip()
+    if 'tipo' in d and d['tipo'] in ('PREVENTIVA', 'PERIODICA'): m.tipo = d['tipo']
+    if 'periodicidade_dias' in d: m.periodicidade_dias = safe_int(d['periodicidade_dias'], m.periodicidade_dias)
+    if 'data_ultima' in d:
+        try: m.data_ultima = datetime.strptime(d['data_ultima'], '%Y-%m-%d').date() if d['data_ultima'] else None
+        except: pass
+    if 'data_proxima' in d:
+        try: m.data_proxima = datetime.strptime(d['data_proxima'], '%Y-%m-%d').date() if d['data_proxima'] else None
+        except: pass
+    if 'descricao' in d: m.descricao = (d['descricao'] or '').strip()
+    if 'responsavel' in d: m.responsavel = (d['responsavel'] or '').strip()
+    if 'ativo' in d: m.ativo = bool(d['ativo'])
+    db.session.commit()
+    return jsonify(m.to_dict())
+
+@app.route('/api/manutencoes/<int:mid>', methods=['DELETE'])
+def delete_manutencao(mid):
+    m = Manutencao.query.get_or_404(mid)
+    db.session.delete(m); db.session.commit()
+    return jsonify({'ok': True})
+
+@app.route('/api/manutencoes/<int:mid>/executar', methods=['POST'])
+def executar_manutencao(mid):
+    """Registra a execução de uma manutenção e recalcula a próxima data com base na periodicidade."""
+    m = Manutencao.query.get_or_404(mid)
+    d = request.json or {}
+    data_exec = date.today()
+    if d.get('data_execucao'):
+        try: data_exec = datetime.strptime(d['data_execucao'], '%Y-%m-%d').date()
+        except: pass
+    exe = ManutencaoExecucao(
+        manutencao_id=m.id, data_execucao=data_exec,
+        custo=safe_float(d.get('custo')),
+        responsavel=(d.get('responsavel') or '').strip(),
+        observacao=(d.get('observacao') or '').strip(),
+    )
+    db.session.add(exe)
+    m.data_ultima = data_exec
+    m.data_proxima = data_exec + timedelta(days=m.periodicidade_dias or 30)
+    db.session.commit()
+    return jsonify({'ok': True, 'manutencao': m.to_dict(), 'execucao': exe.to_dict()})
+
+@app.route('/api/manutencoes/<int:mid>/historico', methods=['GET'])
+def get_historico_manutencao(mid):
+    Manutencao.query.get_or_404(mid)
+    rows = ManutencaoExecucao.query.filter_by(manutencao_id=mid).order_by(ManutencaoExecucao.data_execucao.desc()).all()
+    return jsonify([e.to_dict() for e in rows])
 
 if __name__ == '__main__':
     with app.app_context():

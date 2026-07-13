@@ -228,6 +228,8 @@ tbody td{padding:10px 14px;vertical-align:middle;color:var(--txt)}
     <div class="nav-section">Passadoria</div>
     <button class="nav-btn" onclick="goPage('passadoria')"><i class="fas fa-tshirt"></i>Fila de Passadoria</button>
     <button class="nav-btn" onclick="goPage('passadoriarobo')"><i class="fas fa-robot"></i>Robô de Passadoria</button>
+    <div class="nav-section">Manutenção</div>
+    <button class="nav-btn" onclick="goPage('manutencao')"><i class="fas fa-tools"></i>Manutenção de Equipamentos</button>
     <div class="nav-section">Calendário</div>
     <button class="nav-btn" onclick="goPage('calendario')"><i class="fas fa-calendar-alt"></i>Turnos e H.Extra</button>
     <div class="nav-section">Financeiro</div>
@@ -430,6 +432,25 @@ tbody td{padding:10px 14px;vertical-align:middle;color:var(--txt)}
         </div>
         <div style="padding:8px 20px;font-size:13px;color:var(--txt2)" id="robo-total">Total: 0 itens</div>
         <div class="tbl-wrap"><table><thead><tr><th>Nº</th><th>OP</th><th>Referência</th><th>Descrição</th><th>Qtde Peças</th><th>Tempo/Peça</th><th>Qtde Robôs</th><th>Início</th><th>Previsão Fim</th><th>Status</th><th>Ações</th></tr></thead><tbody id="robo-tbody"></tbody></table></div>
+      </div>
+    </div>
+
+    <div class="page" id="page-manutencao">
+      <div class="stats-grid" id="manut-stats"></div>
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title"><i class="fas fa-tools"></i>Manutenção de Equipamentos</div>
+          <div style="display:flex;gap:8px">
+            <select class="form-control" id="manut-filtro-status" style="width:180px" onchange="loadManutencoes()">
+              <option value="">Todos os Status</option>
+              <option value="vencida">Vencidas</option>
+              <option value="proxima">Próximas (7 dias)</option>
+              <option value="ok">Em dia</option>
+            </select>
+            <button class="btn btn-primary" onclick="openManutForm()"><i class="fas fa-plus"></i>Novo Plano</button>
+          </div>
+        </div>
+        <div class="tbl-wrap"><table><thead><tr><th>Equipamento</th><th>Tipo</th><th>Periodicidade</th><th>Última</th><th>Próxima</th><th>Responsável</th><th>Status</th><th>Ações</th></tr></thead><tbody id="manut-tbody"></tbody></table></div>
       </div>
     </div>
   </div>
@@ -697,6 +718,29 @@ tbody td{padding:10px 14px;vertical-align:middle;color:var(--txt)}
   </div>
 </div>
 
+<div class="panel-overlay" id="manut-panel"><div class="panel" style="width:min(560px,97vw)"><div class="panel-head"><div class="panel-title" id="manut-panel-title"><i class="fas fa-tools" style="color:var(--ciano)"></i> Novo Plano de Manutenção</div><button class="btn btn-ghost btn-sm" onclick="closePanel('manut-panel')"><i class="fas fa-times"></i></button></div><div class="panel-body"><input type="hidden" id="manut-edit-id">
+  <div class="form-grid">
+    <div class="form-group" style="grid-column:1/-1"><label>Equipamento</label><input class="form-control" id="manut-equipamento" list="manut-equip-list" placeholder="Ex: MAQ 01, LASER 02, Caldeira, Compressor..."><datalist id="manut-equip-list"></datalist></div>
+    <div class="form-group"><label>Tipo de Manutenção</label><select class="form-control" id="manut-tipo"><option value="PREVENTIVA">Preventiva</option><option value="PERIODICA">Periódica</option></select></div>
+    <div class="form-group"><label>Periodicidade (dias)</label><input class="form-control" id="manut-periodicidade" type="number" step="1" value="30"></div>
+    <div class="form-group"><label>Última Execução</label><input class="form-control" id="manut-data-ultima" type="date"></div>
+    <div class="form-group"><label>Próxima Execução</label><input class="form-control" id="manut-data-proxima" type="date"></div>
+    <div class="form-group"><label>Responsável</label><input class="form-control" id="manut-responsavel" placeholder="Ex: Técnico / Empresa terceirizada"></div>
+    <div class="form-group"><label><input type="checkbox" id="manut-ativo" checked style="width:auto;margin-right:6px"> Ativo</label></div>
+    <div class="form-group" style="grid-column:1/-1"><label>Descrição do Serviço</label><textarea class="form-control" id="manut-descricao" rows="3" placeholder="Ex: Troca de óleo, lubrificação de rolamentos, verificação de correias..."></textarea></div>
+  </div>
+</div><div class="panel-foot"><button class="btn btn-ghost" onclick="closePanel('manut-panel')">Cancelar</button><button class="btn btn-primary" onclick="saveManutencao()"><i class="fas fa-save"></i>Salvar Plano</button></div></div></div>
+
+<div class="panel-overlay" id="manut-exec-panel"><div class="panel" style="width:min(460px,97vw)"><div class="panel-head"><div class="panel-title" id="manut-exec-panel-title">Registrar Execução</div><button class="btn btn-ghost btn-sm" onclick="closePanel('manut-exec-panel')"><i class="fas fa-times"></i></button></div><div class="panel-body"><input type="hidden" id="manut-exec-id">
+  <div class="form-group"><label>Data da Execução</label><input class="form-control" id="manut-exec-data" type="date"></div>
+  <div class="form-group"><label>Custo (R$)</label><input class="form-control" id="manut-exec-custo" type="number" step="0.01" placeholder="0.00"></div>
+  <div class="form-group"><label>Responsável</label><input class="form-control" id="manut-exec-responsavel" placeholder="Quem executou"></div>
+  <div class="form-group"><label>Observação</label><textarea class="form-control" id="manut-exec-obs" rows="3" placeholder="Ex: Peça trocada, condição encontrada..."></textarea></div>
+  <div style="font-size:12px;color:var(--txt2)">Ao confirmar, a próxima data será recalculada automaticamente com base na periodicidade do plano.</div>
+</div><div class="panel-foot"><button class="btn btn-ghost" onclick="closePanel('manut-exec-panel')">Cancelar</button><button class="btn btn-success" onclick="confirmarExecucaoManut()"><i class="fas fa-check"></i>Confirmar Execução</button></div></div></div>
+
+<div class="panel-overlay" id="manut-hist-panel"><div class="panel" style="width:min(560px,97vw)"><div class="panel-head"><div class="panel-title" id="manut-hist-panel-title">Histórico de Manutenções</div><button class="btn btn-ghost btn-sm" onclick="closePanel('manut-hist-panel')"><i class="fas fa-times"></i></button></div><div class="panel-body"><div class="tbl-wrap"><table><thead><tr><th>Data</th><th>Custo</th><th>Responsável</th><th>Observação</th></tr></thead><tbody id="manut-hist-tbody"></tbody></table></div></div></div></div>
+
 <div class="toast-area" id="toast-area"></div>
 <div id="print-area" style="display:none;position:fixed;top:0;left:0;width:100%;background:#fff;z-index:9999"></div>
 
@@ -810,7 +854,7 @@ function closePanel(id){document.getElementById(id).classList.remove('open')}
 document.querySelectorAll('.panel-overlay').forEach(p=>{p.addEventListener('click',e=>{if(e.target===p)p.classList.remove('open')})});
 
 let currentLaserId=null,_laserEquipData=null;
-function goPage(page){document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));document.getElementById('page-'+page)?.classList.add('active');event?.currentTarget?.classList.add('active');const titles={dashboard:'Dashboard / Resumo',ops:'Ordens de Produção',maquinas:'Máquinas',calendario:'Calendário de Turnos',faturamento:'Faturamento',dre:'DRE / Demonstrativo de Resultado',laser:'Fila de Laser / Equipamentos',funcionarios:'Funcionários / Custo de Mão de Obra',quimicos:'Estoque de Químicos',receitas:'Receitas de Lavagem',amostras:'Peças de Amostra',passadoria:'Fila de Passadoria',passadoriarobo:'Robô de Passadoria'};const t=titles[page]||page;document.getElementById('topbar-title').innerHTML=t.includes('/')?t.replace(/\/(.*)/,'<span>/ $1</span>'):t;if(page==='dashboard')loadDashboard();if(page==='ops')loadOps();if(page==='calendario')renderCalendario();if(page==='faturamento')loadPrecos();if(page==='dre')initDRE();if(page==='laser')loadLaserGrid();if(page==='funcionarios')loadFuncionarios();if(page==='quimicos')loadQuimicos();if(page==='receitas')loadReceitas();if(page==='amostras')loadAmostras();if(page==='passadoria'){loadPassadoria();calcCapacidadePassadoria()}if(page==='passadoriarobo'){loadRobo();calcCapacidadeRobo()}}
+function goPage(page){document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));document.getElementById('page-'+page)?.classList.add('active');event?.currentTarget?.classList.add('active');const titles={dashboard:'Dashboard / Resumo',ops:'Ordens de Produção',maquinas:'Máquinas',calendario:'Calendário de Turnos',faturamento:'Faturamento',dre:'DRE / Demonstrativo de Resultado',laser:'Fila de Laser / Equipamentos',funcionarios:'Funcionários / Custo de Mão de Obra',quimicos:'Estoque de Químicos',receitas:'Receitas de Lavagem',amostras:'Peças de Amostra',passadoria:'Fila de Passadoria',passadoriarobo:'Robô de Passadoria',manutencao:'Manutenção de Equipamentos'};const t=titles[page]||page;document.getElementById('topbar-title').innerHTML=t.includes('/')?t.replace(/\/(.*)/,'<span>/ $1</span>'):t;if(page==='dashboard')loadDashboard();if(page==='ops')loadOps();if(page==='calendario')renderCalendario();if(page==='faturamento')loadPrecos();if(page==='dre')initDRE();if(page==='laser')loadLaserGrid();if(page==='funcionarios')loadFuncionarios();if(page==='quimicos')loadQuimicos();if(page==='receitas')loadReceitas();if(page==='amostras')loadAmostras();if(page==='passadoria'){loadPassadoria();calcCapacidadePassadoria()}if(page==='passadoriarobo'){loadRobo();calcCapacidadeRobo()}if(page==='manutencao')loadManutencoes();}
 async function loadLaserGrid(){const equips=await api('/api/laser/equipamentos');document.getElementById('laser-grid').innerHTML=equips.map(e=>{const pct=e.total_filas>0?Math.round((e.concluido/e.total_filas)*100)||0:0;return`<div class="laser-card maq-card" onclick="openLaserPanel(${e.id},${e.numero})"><div class="maq-header" style="background:linear-gradient(135deg,#0d3b2e,#10b981)"><div class="maq-name">⚡ LASER ${String(e.numero).padStart(2,'0')}</div><div class="maq-icon">🔆</div></div><div class="maq-body"><div class="maq-stat-row"><div class="maq-stat"><div class="maq-stat-val">${e.total_filas}</div><div class="maq-stat-lbl">na fila</div></div><div class="maq-stat"><div class="maq-stat-val" style="color:var(--amarelo)">${e.em_processo}</div><div class="maq-stat-lbl">em processo</div></div><div class="maq-stat"><div class="maq-stat-val" style="color:var(--verde)">${e.concluido}</div><div class="maq-stat-lbl">concluídos</div></div><div class="maq-stat"><div class="maq-stat-val">${e.total_pecas.toLocaleString('pt-BR')}</div><div class="maq-stat-lbl">peças</div></div></div><div class="maq-progress"><div class="maq-progress-bar" style="width:${pct}%;background:linear-gradient(90deg,#10b981,#059669)"></div></div></div></div>`}).join('')}
 async function openLaserPanel(id,numero){currentLaserId=id;document.getElementById('laser-panel-title').innerHTML=`⚡ Laser ${String(numero).padStart(2,'0')}`;switchLaserTab('fila',document.querySelector('#laser-tabs .tab'));await loadLaserFila();document.getElementById('ap-data').value=new Date().toISOString().slice(0,10);document.getElementById('laser-panel').classList.add('open')}
 function switchLaserTab(tab,el){['fila','apontamento','config'].forEach(t=>{document.getElementById(`laser-tab-${t}`).style.display=t===tab?'':'none'});document.querySelectorAll('#laser-tabs .tab').forEach(b=>b.classList.remove('active'));if(el)el.classList.add('active');if(tab==='config')loadLaserConfig();if(tab==='apontamento')loadApontamentos()}
@@ -1603,6 +1647,137 @@ async function deleteRobo(id){
   await api(`/api/passadoria-robo/fila/${id}`, 'DELETE');
   toast('Item excluído','info');
   loadRobo();
+}
+
+// ── MANUTENÇÃO DE EQUIPAMENTOS ──────────────────────────────────────
+function statusManutBadge(status){
+  if(status==='vencida') return '<span style="color:#f87171"><i class="fas fa-circle" style="font-size:8px"></i> Vencida</span>';
+  if(status==='proxima') return '<span style="color:#fbbf24"><i class="fas fa-circle" style="font-size:8px"></i> Próxima</span>';
+  if(status==='sem_data') return '<span style="color:var(--txt2)"><i class="fas fa-circle" style="font-size:8px"></i> Sem data</span>';
+  return '<span style="color:var(--verde)"><i class="fas fa-circle" style="font-size:8px"></i> Em dia</span>';
+}
+function fmtDataBR(d){ if(!d) return '--'; const [y,m,dd]=d.split('-'); return `${dd}/${m}/${y}`; }
+
+async function loadManutEquipDatalist(){
+  try{
+    const nomes = await api('/api/manutencao/equipamentos');
+    document.getElementById('manut-equip-list').innerHTML = nomes.map(n=>`<option value="${n}">`).join('');
+  }catch(e){ /* erro já mostrado */ }
+}
+
+async function loadManutencoes(){
+  const filtro = document.getElementById('manut-filtro-status').value;
+  const rows = await api('/api/manutencoes');
+  const filtradas = filtro ? rows.filter(m=>m.status===filtro) : rows;
+
+  document.getElementById('manut-tbody').innerHTML = filtradas.length ? filtradas.map(m=>`<tr>
+    <td><b>${m.equipamento}</b>${m.descricao?`<div style="font-size:11px;color:var(--txt2)">${m.descricao}</div>`:''}</td>
+    <td>${m.tipo==='PERIODICA'?'Periódica':'Preventiva'}</td>
+    <td class="mono">${m.periodicidade_dias} dias</td>
+    <td class="mono" style="color:var(--txt2)">${fmtDataBR(m.data_ultima)}</td>
+    <td class="mono">${fmtDataBR(m.data_proxima)}</td>
+    <td>${m.responsavel||'--'}</td>
+    <td>${statusManutBadge(m.status)}</td>
+    <td><div style="display:flex;gap:4px;flex-wrap:wrap">
+      <button class="btn btn-success btn-xs" title="Registrar Execução" onclick='openExecForm(${JSON.stringify(m)})'><i class="fas fa-check"></i></button>
+      <button class="btn btn-ghost btn-xs" title="Histórico" onclick="verHistoricoManut(${m.id},'${m.equipamento.replace(/'/g,"\\'")}')"><i class="fas fa-history"></i></button>
+      <button class="btn btn-ghost btn-xs" title="Editar" onclick='openManutForm(${JSON.stringify(m)})'><i class="fas fa-edit"></i></button>
+      <button class="btn btn-danger btn-xs" title="Excluir" onclick="deleteManutencao(${m.id})"><i class="fas fa-trash"></i></button>
+    </div></td>
+  </tr>`).join('') : '<tr><td colspan="8" style="text-align:center;padding:24px;color:var(--txt2)">Nenhum plano de manutenção cadastrado ainda.</td></tr>';
+
+  const vencidas = rows.filter(m=>m.status==='vencida').length;
+  const proximas = rows.filter(m=>m.status==='proxima').length;
+  const emDia = rows.filter(m=>m.status==='ok').length;
+  document.getElementById('manut-stats').innerHTML = `
+    <div class="stat-card orange"><div class="stat-icon"><i class="fas fa-exclamation-triangle"></i></div><div class="stat-value">${vencidas}</div><div class="stat-label">Manutenções Vencidas</div></div>
+    <div class="stat-card purple"><div class="stat-icon"><i class="fas fa-clock"></i></div><div class="stat-value">${proximas}</div><div class="stat-label">Próximas (7 dias)</div></div>
+    <div class="stat-card green"><div class="stat-icon"><i class="fas fa-check-circle"></i></div><div class="stat-value">${emDia}</div><div class="stat-label">Em Dia</div></div>
+    <div class="stat-card blue"><div class="stat-icon"><i class="fas fa-tools"></i></div><div class="stat-value">${rows.length}</div><div class="stat-label">Total de Planos</div></div>`;
+}
+
+function openManutForm(m=null){
+  loadManutEquipDatalist();
+  document.getElementById('manut-edit-id').value = m ? m.id : '';
+  document.getElementById('manut-panel-title').innerHTML = m
+    ? `<i class="fas fa-edit" style="color:var(--ciano)"></i> Editar Plano: ${m.equipamento}`
+    : `<i class="fas fa-tools" style="color:var(--ciano)"></i> Novo Plano de Manutenção`;
+  document.getElementById('manut-equipamento').value = m?.equipamento || '';
+  document.getElementById('manut-tipo').value = m?.tipo || 'PREVENTIVA';
+  document.getElementById('manut-periodicidade').value = m?.periodicidade_dias ?? 30;
+  document.getElementById('manut-data-ultima').value = m?.data_ultima || '';
+  document.getElementById('manut-data-proxima').value = m?.data_proxima || '';
+  document.getElementById('manut-responsavel').value = m?.responsavel || '';
+  document.getElementById('manut-ativo').checked = m ? !!m.ativo : true;
+  document.getElementById('manut-descricao').value = m?.descricao || '';
+  document.getElementById('manut-panel').classList.add('open');
+}
+
+async function saveManutencao(){
+  const id = document.getElementById('manut-edit-id').value;
+  const equipamento = document.getElementById('manut-equipamento').value.trim();
+  if(!equipamento){ toast('Informe o equipamento','error'); return; }
+  const payload = {
+    equipamento,
+    tipo: document.getElementById('manut-tipo').value,
+    periodicidade_dias: document.getElementById('manut-periodicidade').value,
+    data_ultima: document.getElementById('manut-data-ultima').value || null,
+    data_proxima: document.getElementById('manut-data-proxima').value || null,
+    responsavel: document.getElementById('manut-responsavel').value,
+    ativo: document.getElementById('manut-ativo').checked,
+    descricao: document.getElementById('manut-descricao').value,
+  };
+  try{
+    if(id){ await api(`/api/manutencoes/${id}`, 'PUT', payload); toast('Plano atualizado!'); }
+    else  { await api('/api/manutencoes', 'POST', payload); toast('Plano de manutenção cadastrado!'); }
+    closePanel('manut-panel');
+    loadManutencoes();
+  }catch(e){ /* erro já mostrado */ }
+}
+
+async function deleteManutencao(id){
+  if(!confirm('Excluir este plano de manutenção? O histórico de execuções também será apagado.')) return;
+  await api(`/api/manutencoes/${id}`, 'DELETE');
+  toast('Plano excluído','info');
+  loadManutencoes();
+}
+
+function openExecForm(m){
+  document.getElementById('manut-exec-id').value = m.id;
+  document.getElementById('manut-exec-panel-title').innerHTML = `<i class="fas fa-check" style="color:var(--verde)"></i> Registrar Execução — ${m.equipamento}`;
+  document.getElementById('manut-exec-data').value = new Date().toISOString().slice(0,10);
+  document.getElementById('manut-exec-custo').value = '';
+  document.getElementById('manut-exec-responsavel').value = m.responsavel || '';
+  document.getElementById('manut-exec-obs').value = '';
+  document.getElementById('manut-exec-panel').classList.add('open');
+}
+
+async function confirmarExecucaoManut(){
+  const id = document.getElementById('manut-exec-id').value;
+  const payload = {
+    data_execucao: document.getElementById('manut-exec-data').value,
+    custo: document.getElementById('manut-exec-custo').value,
+    responsavel: document.getElementById('manut-exec-responsavel').value,
+    observacao: document.getElementById('manut-exec-obs').value,
+  };
+  try{
+    await api(`/api/manutencoes/${id}/executar`, 'POST', payload);
+    toast('Execução registrada! Próxima data recalculada.');
+    closePanel('manut-exec-panel');
+    loadManutencoes();
+  }catch(e){ /* erro já mostrado */ }
+}
+
+async function verHistoricoManut(id, equipamento){
+  document.getElementById('manut-hist-panel-title').innerHTML = `Histórico — ${equipamento}`;
+  const rows = await api(`/api/manutencoes/${id}/historico`);
+  document.getElementById('manut-hist-tbody').innerHTML = rows.length ? rows.map(e=>`<tr>
+    <td class="mono">${e.data_execucao_fmt}</td>
+    <td class="mono">${fmtBRL2(e.custo)}</td>
+    <td>${e.responsavel||'--'}</td>
+    <td style="font-size:12px;color:var(--txt2)">${e.observacao||'--'}</td>
+  </tr>`).join('') : '<tr><td colspan="4" style="text-align:center;padding:24px;color:var(--txt2)">Nenhuma execução registrada ainda.</td></tr>';
+  document.getElementById('manut-hist-panel').classList.add('open');
 }
 
 initHistMes();
