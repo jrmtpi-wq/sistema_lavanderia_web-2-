@@ -230,6 +230,8 @@ tbody td{padding:10px 14px;vertical-align:middle;color:var(--txt)}
     <button class="nav-btn" onclick="goPage('passadoriarobo')"><i class="fas fa-robot"></i>Robô de Passadoria</button>
     <div class="nav-section">Manutenção</div>
     <button class="nav-btn" onclick="goPage('manutencao')"><i class="fas fa-tools"></i>Manutenção de Equipamentos</button>
+    <button class="nav-btn" onclick="goPage('checklist')"><i class="fas fa-clipboard-check"></i>Checklist Diário</button>
+    <button class="nav-btn" onclick="goPage('ordemservico')"><i class="fas fa-wrench"></i>Ordens de Serviço</button>
     <div class="nav-section">Calendário</div>
     <button class="nav-btn" onclick="goPage('calendario')"><i class="fas fa-calendar-alt"></i>Turnos e H.Extra</button>
     <div class="nav-section">Financeiro</div>
@@ -451,6 +453,35 @@ tbody td{padding:10px 14px;vertical-align:middle;color:var(--txt)}
           </div>
         </div>
         <div class="tbl-wrap"><table><thead><tr><th>Equipamento</th><th>Tipo</th><th>Periodicidade</th><th>Última</th><th>Próxima</th><th>Responsável</th><th>Status</th><th>Ações</th></tr></thead><tbody id="manut-tbody"></tbody></table></div>
+      </div>
+    </div>
+
+    <div class="page" id="page-checklist">
+      <div class="card" style="margin-bottom:16px">
+        <div class="card-header">
+          <div class="card-title"><i class="fas fa-clipboard-check"></i>Checklist Diário de Inspeção</div>
+          <button class="btn btn-primary" onclick="openChecklistForm()"><i class="fas fa-plus"></i>Novo Checklist</button>
+        </div>
+        <div class="tbl-wrap"><table><thead><tr><th>Data</th><th>Turno</th><th>Operador</th><th>Itens</th><th>Não Conformes</th><th>Status</th><th>Ações</th></tr></thead><tbody id="checklist-tbody"></tbody></table></div>
+      </div>
+    </div>
+
+    <div class="page" id="page-ordemservico">
+      <div class="stats-grid" id="os-stats"></div>
+      <div class="card">
+        <div class="card-header">
+          <div class="card-title"><i class="fas fa-wrench"></i>Ordens de Serviço</div>
+          <div style="display:flex;gap:8px">
+            <select class="form-control" id="os-filtro-status" style="width:170px" onchange="loadOrdensServico()">
+              <option value="">Todos os Status</option>
+              <option value="ABERTA">Aberta</option>
+              <option value="EM_ANDAMENTO">Em Andamento</option>
+              <option value="CONCLUIDA">Concluída</option>
+            </select>
+            <button class="btn btn-primary" onclick="openOSForm()"><i class="fas fa-plus"></i>Nova O.S.</button>
+          </div>
+        </div>
+        <div class="tbl-wrap"><table><thead><tr><th>Equipamento</th><th>Origem</th><th>Problema</th><th>Prioridade</th><th>Responsável</th><th>Aberta em</th><th>Status</th><th>Ações</th></tr></thead><tbody id="os-tbody"></tbody></table></div>
       </div>
     </div>
   </div>
@@ -741,6 +772,34 @@ tbody td{padding:10px 14px;vertical-align:middle;color:var(--txt)}
 
 <div class="panel-overlay" id="manut-hist-panel"><div class="panel" style="width:min(560px,97vw)"><div class="panel-head"><div class="panel-title" id="manut-hist-panel-title">Histórico de Manutenções</div><button class="btn btn-ghost btn-sm" onclick="closePanel('manut-hist-panel')"><i class="fas fa-times"></i></button></div><div class="panel-body"><div class="tbl-wrap"><table><thead><tr><th>Data</th><th>Custo</th><th>Responsável</th><th>Observação</th></tr></thead><tbody id="manut-hist-tbody"></tbody></table></div></div></div></div>
 
+<div class="panel-overlay" id="checklist-panel"><div class="panel" style="width:min(720px,97vw)"><div class="panel-head"><div class="panel-title"><i class="fas fa-clipboard-check" style="color:var(--ciano)"></i> Novo Checklist Diário</div><button class="btn btn-ghost btn-sm" onclick="closePanel('checklist-panel')"><i class="fas fa-times"></i></button></div><div class="panel-body">
+  <div class="form-grid">
+    <div class="form-group"><label>Data</label><input class="form-control" id="check-data" type="date"></div>
+    <div class="form-group"><label>Turno</label><select class="form-control" id="check-turno"><option value="MANHA">Manhã</option><option value="TARDE">Tarde</option><option value="NOITE">Noite</option></select></div>
+    <div class="form-group"><label>Operador</label><input class="form-control" id="check-operador" placeholder="Nome do operador"></div>
+  </div>
+  <div id="checklist-itens-container" style="margin-top:16px"></div>
+  <div class="form-group" style="margin-top:10px"><label>Observações Gerais</label><textarea class="form-control" id="check-observacoes" rows="2"></textarea></div>
+</div><div class="panel-foot"><button class="btn btn-ghost" onclick="closePanel('checklist-panel')">Cancelar</button><button class="btn btn-primary" onclick="saveChecklist()"><i class="fas fa-save"></i>Salvar Checklist</button></div></div></div>
+
+<div class="panel-overlay" id="checklist-view-panel"><div class="panel" style="width:min(680px,97vw)"><div class="panel-head"><div class="panel-title" id="checklist-view-title">Checklist</div><button class="btn btn-ghost btn-sm" onclick="closePanel('checklist-view-panel')"><i class="fas fa-times"></i></button></div><div class="panel-body"><div id="checklist-view-body"></div></div></div></div>
+
+<div class="panel-overlay" id="os-panel"><div class="panel" style="width:min(560px,97vw)"><div class="panel-head"><div class="panel-title" id="os-panel-title"><i class="fas fa-wrench" style="color:var(--ciano)"></i> Nova Ordem de Serviço</div><button class="btn btn-ghost btn-sm" onclick="closePanel('os-panel')"><i class="fas fa-times"></i></button></div><div class="panel-body"><input type="hidden" id="os-edit-id">
+  <div class="form-grid">
+    <div class="form-group" style="grid-column:1/-1"><label>Equipamento</label><input class="form-control" id="os-equipamento" list="manut-equip-list" placeholder="Ex: MAQ 01, LASER 02, Caldeira..."></div>
+    <div class="form-group" style="grid-column:1/-1"><label>Descrição do Problema</label><textarea class="form-control" id="os-descricao" rows="3" placeholder="Descreva o problema encontrado"></textarea></div>
+    <div class="form-group"><label>Prioridade</label><select class="form-control" id="os-prioridade"><option value="BAIXA">Baixa</option><option value="MEDIA" selected>Média</option><option value="ALTA">Alta</option><option value="URGENTE">Urgente</option></select></div>
+    <div class="form-group"><label>Status</label><select class="form-control" id="os-status"><option value="ABERTA">Aberta</option><option value="EM_ANDAMENTO">Em Andamento</option><option value="CONCLUIDA">Concluída</option></select></div>
+    <div class="form-group" style="grid-column:1/-1"><label>Responsável</label><input class="form-control" id="os-responsavel" placeholder="Técnico responsável"></div>
+  </div>
+</div><div class="panel-foot"><button class="btn btn-ghost" onclick="closePanel('os-panel')">Cancelar</button><button class="btn btn-primary" onclick="saveOS()"><i class="fas fa-save"></i>Salvar O.S.</button></div></div></div>
+
+<div class="panel-overlay" id="os-fechar-panel"><div class="panel" style="width:min(460px,97vw)"><div class="panel-head"><div class="panel-title" id="os-fechar-panel-title">Fechar Ordem de Serviço</div><button class="btn btn-ghost btn-sm" onclick="closePanel('os-fechar-panel')"><i class="fas fa-times"></i></button></div><div class="panel-body"><input type="hidden" id="os-fechar-id">
+  <div class="form-group"><label>Custo (R$)</label><input class="form-control" id="os-fechar-custo" type="number" step="0.01" placeholder="0.00"></div>
+  <div class="form-group"><label>Responsável</label><input class="form-control" id="os-fechar-responsavel" placeholder="Quem executou"></div>
+  <div class="form-group"><label>Observação de Fechamento</label><textarea class="form-control" id="os-fechar-obs" rows="3" placeholder="O que foi feito para resolver"></textarea></div>
+</div><div class="panel-foot"><button class="btn btn-ghost" onclick="closePanel('os-fechar-panel')">Cancelar</button><button class="btn btn-success" onclick="confirmarFecharOS()"><i class="fas fa-check"></i>Concluir O.S.</button></div></div></div>
+
 <div class="toast-area" id="toast-area"></div>
 <div id="print-area" style="display:none;position:fixed;top:0;left:0;width:100%;background:#fff;z-index:9999"></div>
 
@@ -854,7 +913,7 @@ function closePanel(id){document.getElementById(id).classList.remove('open')}
 document.querySelectorAll('.panel-overlay').forEach(p=>{p.addEventListener('click',e=>{if(e.target===p)p.classList.remove('open')})});
 
 let currentLaserId=null,_laserEquipData=null;
-function goPage(page){document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));document.getElementById('page-'+page)?.classList.add('active');event?.currentTarget?.classList.add('active');const titles={dashboard:'Dashboard / Resumo',ops:'Ordens de Produção',maquinas:'Máquinas',calendario:'Calendário de Turnos',faturamento:'Faturamento',dre:'DRE / Demonstrativo de Resultado',laser:'Fila de Laser / Equipamentos',funcionarios:'Funcionários / Custo de Mão de Obra',quimicos:'Estoque de Químicos',receitas:'Receitas de Lavagem',amostras:'Peças de Amostra',passadoria:'Fila de Passadoria',passadoriarobo:'Robô de Passadoria',manutencao:'Manutenção de Equipamentos'};const t=titles[page]||page;document.getElementById('topbar-title').innerHTML=t.includes('/')?t.replace(/\/(.*)/,'<span>/ $1</span>'):t;if(page==='dashboard')loadDashboard();if(page==='ops')loadOps();if(page==='calendario')renderCalendario();if(page==='faturamento')loadPrecos();if(page==='dre')initDRE();if(page==='laser')loadLaserGrid();if(page==='funcionarios')loadFuncionarios();if(page==='quimicos')loadQuimicos();if(page==='receitas')loadReceitas();if(page==='amostras')loadAmostras();if(page==='passadoria'){loadPassadoria();calcCapacidadePassadoria()}if(page==='passadoriarobo'){loadRobo();calcCapacidadeRobo()}if(page==='manutencao')loadManutencoes();}
+function goPage(page){document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));document.querySelectorAll('.nav-btn').forEach(b=>b.classList.remove('active'));document.getElementById('page-'+page)?.classList.add('active');event?.currentTarget?.classList.add('active');const titles={dashboard:'Dashboard / Resumo',ops:'Ordens de Produção',maquinas:'Máquinas',calendario:'Calendário de Turnos',faturamento:'Faturamento',dre:'DRE / Demonstrativo de Resultado',laser:'Fila de Laser / Equipamentos',funcionarios:'Funcionários / Custo de Mão de Obra',quimicos:'Estoque de Químicos',receitas:'Receitas de Lavagem',amostras:'Peças de Amostra',passadoria:'Fila de Passadoria',passadoriarobo:'Robô de Passadoria',manutencao:'Manutenção de Equipamentos',checklist:'Checklist Diário de Inspeção',ordemservico:'Ordens de Serviço'};const t=titles[page]||page;document.getElementById('topbar-title').innerHTML=t.includes('/')?t.replace(/\/(.*)/,'<span>/ $1</span>'):t;if(page==='dashboard')loadDashboard();if(page==='ops')loadOps();if(page==='calendario')renderCalendario();if(page==='faturamento')loadPrecos();if(page==='dre')initDRE();if(page==='laser')loadLaserGrid();if(page==='funcionarios')loadFuncionarios();if(page==='quimicos')loadQuimicos();if(page==='receitas')loadReceitas();if(page==='amostras')loadAmostras();if(page==='passadoria'){loadPassadoria();calcCapacidadePassadoria()}if(page==='passadoriarobo'){loadRobo();calcCapacidadeRobo()}if(page==='manutencao')loadManutencoes();if(page==='checklist')loadChecklists();if(page==='ordemservico')loadOrdensServico();}
 async function loadLaserGrid(){const equips=await api('/api/laser/equipamentos');document.getElementById('laser-grid').innerHTML=equips.map(e=>{const pct=e.total_filas>0?Math.round((e.concluido/e.total_filas)*100)||0:0;return`<div class="laser-card maq-card" onclick="openLaserPanel(${e.id},${e.numero})"><div class="maq-header" style="background:linear-gradient(135deg,#0d3b2e,#10b981)"><div class="maq-name">⚡ LASER ${String(e.numero).padStart(2,'0')}</div><div class="maq-icon">🔆</div></div><div class="maq-body"><div class="maq-stat-row"><div class="maq-stat"><div class="maq-stat-val">${e.total_filas}</div><div class="maq-stat-lbl">na fila</div></div><div class="maq-stat"><div class="maq-stat-val" style="color:var(--amarelo)">${e.em_processo}</div><div class="maq-stat-lbl">em processo</div></div><div class="maq-stat"><div class="maq-stat-val" style="color:var(--verde)">${e.concluido}</div><div class="maq-stat-lbl">concluídos</div></div><div class="maq-stat"><div class="maq-stat-val">${e.total_pecas.toLocaleString('pt-BR')}</div><div class="maq-stat-lbl">peças</div></div></div><div class="maq-progress"><div class="maq-progress-bar" style="width:${pct}%;background:linear-gradient(90deg,#10b981,#059669)"></div></div></div></div>`}).join('')}
 async function openLaserPanel(id,numero){currentLaserId=id;document.getElementById('laser-panel-title').innerHTML=`⚡ Laser ${String(numero).padStart(2,'0')}`;switchLaserTab('fila',document.querySelector('#laser-tabs .tab'));await loadLaserFila();document.getElementById('ap-data').value=new Date().toISOString().slice(0,10);document.getElementById('laser-panel').classList.add('open')}
 function switchLaserTab(tab,el){['fila','apontamento','config'].forEach(t=>{document.getElementById(`laser-tab-${t}`).style.display=t===tab?'':'none'});document.querySelectorAll('#laser-tabs .tab').forEach(b=>b.classList.remove('active'));if(el)el.classList.add('active');if(tab==='config')loadLaserConfig();if(tab==='apontamento')loadApontamentos()}
@@ -1778,6 +1837,221 @@ async function verHistoricoManut(id, equipamento){
     <td style="font-size:12px;color:var(--txt2)">${e.observacao||'--'}</td>
   </tr>`).join('') : '<tr><td colspan="4" style="text-align:center;padding:24px;color:var(--txt2)">Nenhuma execução registrada ainda.</td></tr>';
   document.getElementById('manut-hist-panel').classList.add('open');
+}
+
+// ── CHECKLIST DIÁRIO DE INSPEÇÃO ────────────────────────────────────
+function statusChecklistBadge(status){
+  if(status==='nao_conforme') return '<span style="color:#f87171"><i class="fas fa-circle" style="font-size:8px"></i> Não Conforme</span>';
+  return '<span style="color:var(--verde)"><i class="fas fa-circle" style="font-size:8px"></i> Conforme</span>';
+}
+const turnoLabel = {MANHA:'Manhã',TARDE:'Tarde',NOITE:'Noite'};
+
+async function loadChecklists(){
+  const rows = await api('/api/checklist/inspecoes');
+  document.getElementById('checklist-tbody').innerHTML = rows.length ? rows.map(i=>`<tr>
+    <td class="mono">${i.data_fmt}</td>
+    <td>${turnoLabel[i.turno]||i.turno}</td>
+    <td>${i.operador||'--'}</td>
+    <td class="mono">${i.total_itens}</td>
+    <td class="mono" style="color:${i.total_nc?'#f87171':'var(--txt2)'}">${i.total_nc}</td>
+    <td>${statusChecklistBadge(i.status_geral)}</td>
+    <td><button class="btn btn-ghost btn-xs" title="Ver" onclick="verChecklist(${i.id})"><i class="fas fa-eye"></i></button></td>
+  </tr>`).join('') : '<tr><td colspan="7" style="text-align:center;padding:24px;color:var(--txt2)">Nenhum checklist registrado ainda.</td></tr>';
+}
+
+let _checklistItensCache = [];
+async function openChecklistForm(){
+  document.getElementById('check-data').value = new Date().toISOString().slice(0,10);
+  document.getElementById('check-turno').value = 'MANHA';
+  document.getElementById('check-operador').value = '';
+  document.getElementById('check-observacoes').value = '';
+  _checklistItensCache = await api('/api/checklist/itens');
+  renderChecklistItensForm(_checklistItensCache);
+  document.getElementById('checklist-panel').classList.add('open');
+}
+
+function renderChecklistItensForm(itens){
+  const grupos = {};
+  itens.forEach(it=>{ (grupos[it.modulo] = grupos[it.modulo]||[]).push(it); });
+  document.getElementById('checklist-itens-container').innerHTML = Object.keys(grupos).map(modulo=>`
+    <div style="margin-bottom:16px">
+      <div style="font-weight:700;color:var(--ciano);font-size:12px;text-transform:uppercase;letter-spacing:1px;margin-bottom:8px">${modulo}</div>
+      ${grupos[modulo].map(it=>`
+        <div style="background:var(--cinza3);border-radius:10px;padding:10px 14px;margin-bottom:8px">
+          <div style="font-size:13px;margin-bottom:6px"><b>${it.codigo}</b> ${it.descricao}</div>
+          <div style="display:flex;gap:14px;align-items:center">
+            <label style="display:flex;align-items:center;gap:4px;font-size:12px;cursor:pointer"><input type="radio" name="check-item-${it.id}" value="C" checked onchange="toggleJustificativa(${it.id})"> Conforme</label>
+            <label style="display:flex;align-items:center;gap:4px;font-size:12px;cursor:pointer"><input type="radio" name="check-item-${it.id}" value="NC" onchange="toggleJustificativa(${it.id})"> Não Conforme</label>
+            <label style="display:flex;align-items:center;gap:4px;font-size:12px;cursor:pointer"><input type="radio" name="check-item-${it.id}" value="NA" onchange="toggleJustificativa(${it.id})"> N/A</label>
+          </div>
+          <textarea class="form-control" id="check-just-${it.id}" placeholder="Justificativa obrigatória para Não Conforme" style="display:none;margin-top:8px" rows="2"></textarea>
+        </div>`).join('')}
+    </div>`).join('');
+}
+
+function toggleJustificativa(itemId){
+  const checked = document.querySelector(`input[name="check-item-${itemId}"]:checked`);
+  const ta = document.getElementById(`check-just-${itemId}`);
+  ta.style.display = (checked && checked.value==='NC') ? '' : 'none';
+}
+
+async function saveChecklist(){
+  const itens = _checklistItensCache.map(it=>{
+    const checked = document.querySelector(`input[name="check-item-${it.id}"]:checked`);
+    const status = checked ? checked.value : 'C';
+    const justificativa = status==='NC' ? (document.getElementById(`check-just-${it.id}`).value||'').trim() : '';
+    return {item_id: it.id, status, justificativa};
+  });
+  const semJustificativa = itens.find(i=>i.status==='NC' && !i.justificativa);
+  if(semJustificativa){ toast('Todo item Não Conforme precisa de justificativa','error'); return; }
+  const payload = {
+    data: document.getElementById('check-data').value,
+    turno: document.getElementById('check-turno').value,
+    operador: document.getElementById('check-operador').value,
+    observacoes: document.getElementById('check-observacoes').value,
+    itens,
+  };
+  try{
+    const r = await api('/api/checklist/inspecoes', 'POST', payload);
+    if(r.os_abertas && r.os_abertas.length){
+      toast(`Checklist salvo! ${r.os_abertas.length} Ordem(ns) de Serviço aberta(s) automaticamente.`,'error');
+    } else {
+      toast('Checklist salvo! Tudo conforme.');
+    }
+    closePanel('checklist-panel');
+    loadChecklists();
+  }catch(e){ /* erro já mostrado */ }
+}
+
+async function verChecklist(id){
+  const i = await api(`/api/checklist/inspecoes/${id}`);
+  document.getElementById('checklist-view-title').innerHTML = `Checklist — ${i.data_fmt} (${turnoLabel[i.turno]||i.turno})`;
+  const grupos = {};
+  i.respostas.forEach(r=>{ (grupos[r.modulo] = grupos[r.modulo]||[]).push(r); });
+  const statusIcon = {C:'<span style="color:var(--verde)">✓ Conforme</span>',NC:'<span style="color:#f87171">✕ Não Conforme</span>',NA:'<span style="color:var(--txt2)">— N/A</span>'};
+  document.getElementById('checklist-view-body').innerHTML = `
+    <div style="font-size:12px;color:var(--txt2);margin-bottom:12px">Operador: <b style="color:var(--txt)">${i.operador||'--'}</b> ${i.observacoes?`— ${i.observacoes}`:''}</div>
+    ${Object.keys(grupos).map(modulo=>`
+      <div style="margin-bottom:14px">
+        <div style="font-weight:700;color:var(--ciano);font-size:12px;text-transform:uppercase;margin-bottom:6px">${modulo}</div>
+        ${grupos[modulo].map(r=>`
+          <div style="background:var(--cinza3);border-radius:8px;padding:8px 12px;margin-bottom:6px;font-size:13px">
+            <div style="display:flex;justify-content:space-between;gap:10px"><span><b>${r.codigo}</b> ${r.descricao}</span>${statusIcon[r.status]||r.status}</div>
+            ${r.justificativa?`<div style="font-size:12px;color:var(--txt2);margin-top:4px">${r.justificativa}${r.ordem_servico_id?` — O.S. #${r.ordem_servico_id} aberta`:''}</div>`:''}
+          </div>`).join('')}
+      </div>`).join('')}`;
+  document.getElementById('checklist-view-panel').classList.add('open');
+}
+
+// ── ORDENS DE SERVIÇO ────────────────────────────────────────────────
+function statusOSBadge(status){
+  if(status==='ABERTA') return '<span style="color:#f87171"><i class="fas fa-circle" style="font-size:8px"></i> Aberta</span>';
+  if(status==='EM_ANDAMENTO') return '<span style="color:#fbbf24"><i class="fas fa-circle" style="font-size:8px"></i> Em Andamento</span>';
+  return '<span style="color:var(--verde)"><i class="fas fa-circle" style="font-size:8px"></i> Concluída</span>';
+}
+function prioridadeBadge(p){
+  const cores = {BAIXA:'var(--txt2)',MEDIA:'var(--ciano)',ALTA:'var(--amarelo)',URGENTE:'#f87171'};
+  const labels = {BAIXA:'Baixa',MEDIA:'Média',ALTA:'Alta',URGENTE:'Urgente'};
+  return `<span style="color:${cores[p]||'var(--txt2)'};font-weight:700">${labels[p]||p}</span>`;
+}
+
+async function loadOrdensServico(){
+  const status = document.getElementById('os-filtro-status').value;
+  const rows = await api('/api/os' + (status?`?status=${status}`:''));
+  document.getElementById('os-tbody').innerHTML = rows.length ? rows.map(o=>`<tr>
+    <td><b>${o.equipamento}</b></td>
+    <td style="font-size:12px;color:var(--txt2)">${o.origem==='CHECKLIST'?'Checklist':'Manual'}</td>
+    <td style="font-size:13px;max-width:260px">${o.descricao_problema}</td>
+    <td>${prioridadeBadge(o.prioridade)}</td>
+    <td>${o.responsavel||'--'}</td>
+    <td style="font-size:11px;color:var(--txt2)">${o.data_abertura_fmt}</td>
+    <td>${statusOSBadge(o.status)}</td>
+    <td><div style="display:flex;gap:4px;flex-wrap:wrap">
+      ${o.status!=='CONCLUIDA'?`<button class="btn btn-success btn-xs" title="Fechar O.S." onclick='openFecharOS(${JSON.stringify(o)})'><i class="fas fa-check"></i></button>`:''}
+      ${o.status==='ABERTA'?`<button class="btn btn-ghost btn-xs" title="Iniciar" onclick="iniciarOS(${o.id})"><i class="fas fa-play"></i></button>`:''}
+      <button class="btn btn-ghost btn-xs" title="Editar" onclick='openOSForm(${JSON.stringify(o)})'><i class="fas fa-edit"></i></button>
+      <button class="btn btn-danger btn-xs" title="Excluir" onclick="deleteOS(${o.id})"><i class="fas fa-trash"></i></button>
+    </div></td>
+  </tr>`).join('') : '<tr><td colspan="8" style="text-align:center;padding:24px;color:var(--txt2)">Nenhuma ordem de serviço registrada.</td></tr>';
+
+  const abertas = rows.filter(o=>o.status==='ABERTA').length;
+  const andamento = rows.filter(o=>o.status==='EM_ANDAMENTO').length;
+  const concluidas = rows.filter(o=>o.status==='CONCLUIDA').length;
+  document.getElementById('os-stats').innerHTML = `
+    <div class="stat-card orange"><div class="stat-icon"><i class="fas fa-exclamation-circle"></i></div><div class="stat-value">${abertas}</div><div class="stat-label">Abertas</div></div>
+    <div class="stat-card purple"><div class="stat-icon"><i class="fas fa-cogs"></i></div><div class="stat-value">${andamento}</div><div class="stat-label">Em Andamento</div></div>
+    <div class="stat-card green"><div class="stat-icon"><i class="fas fa-check-circle"></i></div><div class="stat-value">${concluidas}</div><div class="stat-label">Concluídas</div></div>
+    <div class="stat-card blue"><div class="stat-icon"><i class="fas fa-wrench"></i></div><div class="stat-value">${rows.length}</div><div class="stat-label">Total</div></div>`;
+}
+
+function openOSForm(o=null){
+  loadManutEquipDatalist();
+  document.getElementById('os-edit-id').value = o ? o.id : '';
+  document.getElementById('os-panel-title').innerHTML = o
+    ? `<i class="fas fa-edit" style="color:var(--ciano)"></i> Editar O.S. — ${o.equipamento}`
+    : `<i class="fas fa-wrench" style="color:var(--ciano)"></i> Nova Ordem de Serviço`;
+  document.getElementById('os-equipamento').value = o?.equipamento || '';
+  document.getElementById('os-descricao').value = o?.descricao_problema || '';
+  document.getElementById('os-prioridade').value = o?.prioridade || 'MEDIA';
+  document.getElementById('os-status').value = o?.status || 'ABERTA';
+  document.getElementById('os-responsavel').value = o?.responsavel || '';
+  document.getElementById('os-panel').classList.add('open');
+}
+
+async function saveOS(){
+  const id = document.getElementById('os-edit-id').value;
+  const equipamento = document.getElementById('os-equipamento').value.trim();
+  const descricao_problema = document.getElementById('os-descricao').value.trim();
+  if(!equipamento || !descricao_problema){ toast('Informe equipamento e descrição do problema','error'); return; }
+  const payload = {
+    equipamento, descricao_problema,
+    prioridade: document.getElementById('os-prioridade').value,
+    status: document.getElementById('os-status').value,
+    responsavel: document.getElementById('os-responsavel').value,
+  };
+  try{
+    if(id){ await api(`/api/os/${id}`, 'PUT', payload); toast('O.S. atualizada!'); }
+    else  { await api('/api/os', 'POST', payload); toast('Ordem de serviço aberta!'); }
+    closePanel('os-panel');
+    loadOrdensServico();
+  }catch(e){ /* erro já mostrado */ }
+}
+
+async function iniciarOS(id){
+  await api(`/api/os/${id}`, 'PUT', {status:'EM_ANDAMENTO'});
+  toast('O.S. em andamento');
+  loadOrdensServico();
+}
+
+async function deleteOS(id){
+  if(!confirm('Excluir esta ordem de serviço?')) return;
+  await api(`/api/os/${id}`, 'DELETE');
+  toast('O.S. excluída','info');
+  loadOrdensServico();
+}
+
+function openFecharOS(o){
+  document.getElementById('os-fechar-id').value = o.id;
+  document.getElementById('os-fechar-panel-title').innerHTML = `Fechar O.S. — ${o.equipamento}`;
+  document.getElementById('os-fechar-custo').value = '';
+  document.getElementById('os-fechar-responsavel').value = o.responsavel || '';
+  document.getElementById('os-fechar-obs').value = '';
+  document.getElementById('os-fechar-panel').classList.add('open');
+}
+
+async function confirmarFecharOS(){
+  const id = document.getElementById('os-fechar-id').value;
+  const payload = {
+    custo: document.getElementById('os-fechar-custo').value,
+    responsavel: document.getElementById('os-fechar-responsavel').value,
+    observacao_fechamento: document.getElementById('os-fechar-obs').value,
+  };
+  try{
+    await api(`/api/os/${id}/fechar`, 'POST', payload);
+    toast('Ordem de serviço concluída!');
+    closePanel('os-fechar-panel');
+    loadOrdensServico();
+  }catch(e){ /* erro já mostrado */ }
 }
 
 initHistMes();

@@ -612,6 +612,91 @@ class ManutencaoExecucao(db.Model):
             'custo': self.custo, 'responsavel': self.responsavel, 'observacao': self.observacao,
         }
 
+# ── ORDENS DE SERVIÇO (MANUTENÇÃO CORRETIVA) ─────────────────────────
+class OrdemServico(db.Model):
+    id                    = db.Column(db.Integer, primary_key=True)
+    equipamento           = db.Column(db.String(120), nullable=False)
+    origem                = db.Column(db.String(20), default='MANUAL')   # MANUAL / CHECKLIST
+    descricao_problema    = db.Column(db.String(400), nullable=False)
+    prioridade            = db.Column(db.String(10), default='MEDIA')    # BAIXA / MEDIA / ALTA / URGENTE
+    status                = db.Column(db.String(20), default='ABERTA')   # ABERTA / EM_ANDAMENTO / CONCLUIDA
+    responsavel           = db.Column(db.String(80))
+    custo                 = db.Column(db.Float, default=0.0)
+    observacao_fechamento = db.Column(db.String(400))
+    data_abertura         = db.Column(db.DateTime, default=datetime.utcnow)
+    data_fechamento       = db.Column(db.DateTime, nullable=True)
+
+    def to_dict(self):
+        return {
+            'id': self.id, 'equipamento': self.equipamento, 'origem': self.origem,
+            'descricao_problema': self.descricao_problema, 'prioridade': self.prioridade,
+            'status': self.status, 'responsavel': self.responsavel, 'custo': self.custo,
+            'observacao_fechamento': self.observacao_fechamento,
+            'data_abertura': self.data_abertura.strftime('%Y-%m-%dT%H:%M') if self.data_abertura else None,
+            'data_abertura_fmt': self.data_abertura.strftime('%d/%m/%Y %H:%M') if self.data_abertura else None,
+            'data_fechamento_fmt': self.data_fechamento.strftime('%d/%m/%Y %H:%M') if self.data_fechamento else None,
+        }
+
+# ── CHECKLIST DIÁRIO DE INSPEÇÃO ──────────────────────────────────────
+class ChecklistItemDef(db.Model):
+    id          = db.Column(db.Integer, primary_key=True)
+    modulo      = db.Column(db.String(80), nullable=False)
+    codigo      = db.Column(db.String(10))
+    descricao   = db.Column(db.String(300), nullable=False)
+    ordem       = db.Column(db.Integer, default=0)
+    ativo       = db.Column(db.Boolean, default=True)
+
+    def to_dict(self):
+        return {'id': self.id, 'modulo': self.modulo, 'codigo': self.codigo,
+                'descricao': self.descricao, 'ordem': self.ordem, 'ativo': self.ativo}
+
+class ChecklistInspecao(db.Model):
+    id          = db.Column(db.Integer, primary_key=True)
+    data        = db.Column(db.Date, nullable=False, default=date.today)
+    turno       = db.Column(db.String(10), default='MANHA')  # MANHA / TARDE / NOITE
+    operador    = db.Column(db.String(80))
+    observacoes = db.Column(db.String(400))
+    created_at  = db.Column(db.DateTime, default=datetime.utcnow)
+    respostas   = db.relationship('ChecklistResposta', backref='inspecao', lazy=True,
+                                   cascade='all, delete-orphan', order_by='ChecklistResposta.id')
+
+    @property
+    def status_geral(self):
+        return 'nao_conforme' if any(r.status == 'NC' for r in self.respostas) else 'conforme'
+
+    def to_dict(self, with_respostas=True):
+        d = {
+            'id': self.id, 'data': self.data.strftime('%Y-%m-%d') if self.data else None,
+            'data_fmt': self.data.strftime('%d/%m/%Y') if self.data else None,
+            'turno': self.turno, 'operador': self.operador, 'observacoes': self.observacoes,
+            'status_geral': self.status_geral,
+            'total_nc': sum(1 for r in self.respostas if r.status == 'NC'),
+            'total_itens': len(self.respostas),
+            'created_at': self.created_at.strftime('%d/%m/%Y %H:%M') if self.created_at else None,
+        }
+        if with_respostas:
+            d['respostas'] = [r.to_dict() for r in self.respostas]
+        return d
+
+class ChecklistResposta(db.Model):
+    id               = db.Column(db.Integer, primary_key=True)
+    inspecao_id      = db.Column(db.Integer, db.ForeignKey('checklist_inspecao.id'), nullable=False)
+    item_id          = db.Column(db.Integer, db.ForeignKey('checklist_item_def.id'), nullable=False)
+    status           = db.Column(db.String(4), default='C')  # C / NC / NA
+    justificativa    = db.Column(db.String(400))
+    ordem_servico_id = db.Column(db.Integer, db.ForeignKey('ordem_servico.id'), nullable=True)
+    item             = db.relationship('ChecklistItemDef', lazy=True)
+
+    def to_dict(self):
+        return {
+            'id': self.id, 'inspecao_id': self.inspecao_id, 'item_id': self.item_id,
+            'modulo': self.item.modulo if self.item else None,
+            'codigo': self.item.codigo if self.item else None,
+            'descricao': self.item.descricao if self.item else None,
+            'status': self.status, 'justificativa': self.justificativa,
+            'ordem_servico_id': self.ordem_servico_id,
+        }
+
 # ── HELPERS ──────────────────────────────────────────────────────
 def safe_int(v, default=0):
     try: return int(float(v or default))
@@ -632,6 +717,29 @@ def init_db():
     for n in range(1, 4):
         if not LaserEquipamento.query.filter_by(numero=n).first():
             db.session.add(LaserEquipamento(numero=n, tempo_min=1.42))
+    db.session.commit()
+    _seed_checklist_itens()
+
+def _seed_checklist_itens():
+    """Catálogo padrão de itens do checklist diário — lavanderia industrial de jeans/tingimento."""
+    catalogo = [
+        ('Lavadoras Industriais e Estonadoras', '1.1', 'Limpeza de Pedras: fundo do tambor esvaziado, livre de pedras pomes e areia do ciclo anterior', 1),
+        ('Lavadoras Industriais e Estonadoras', '1.2', 'Filtro de Fiapos: filtro de retenção de linhas e resíduos de índigo limpo', 2),
+        ('Lavadoras Industriais e Estonadoras', '1.3', 'Vedação da Porta: borracha sem cortes e sem vazamentos de água quente/química', 3),
+        ('Lavadoras Industriais e Estonadoras', '1.4', 'Bombas de Insumos: mangueiras das bombas dosadoras de químicos sem vazamentos ou cristalizações', 4),
+        ('Lavadoras Industriais e Estonadoras', '1.5', 'Ruídos/Vibrações: máquina operou sem ruídos anômalos nos rolamentos durante a centrifugação', 5),
+        ('Utilitários (Vapor e Ar Comprimido)', '2.1', 'Purgadores de Vapor: operando sem reter condensado nas lavadoras/secadoras', 1),
+        ('Utilitários (Vapor e Ar Comprimido)', '2.2', 'Pressão de Trabalho: pressão do vapor e do ar comprimido dentro da faixa operacional nominal', 2),
+        ('Utilitários (Vapor e Ar Comprimido)', '2.3', 'Drenagem do Compressor: realizada a drenagem de água do reservatório/filtro de ar comprimido', 3),
+        ('Estação de Tratamento de Efluentes (ETE)', '3.1', 'Gradeamento/Peneira: peneira rotativa ou grade de entrada limpa e livre de fiapos de jeans', 1),
+        ('Estação de Tratamento de Efluentes (ETE)', '3.2', 'Sensores de pH: eletrodos de leitura limpos e apresentando leitura estável', 2),
+        ('Estação de Tratamento de Efluentes (ETE)', '3.3', 'Dosadores de Químicos: tanques de polímero/coagulante/neutralizante com nível e bombas injetando corretamente', 3),
+        ('Estação de Tratamento de Efluentes (ETE)', '3.4', 'Flotador (DAF)/Decantador: sistema de raspagem de lodo superficial ativo e removendo a cor do efluente', 4),
+        ('Estação de Tratamento de Efluentes (ETE)', '3.5', 'Filtro Prensa: liberado para descarte de lodo, lonas sem saturação ou rasgos', 5),
+    ]
+    for modulo, codigo, descricao, ordem in catalogo:
+        if not ChecklistItemDef.query.filter_by(modulo=modulo, codigo=codigo).first():
+            db.session.add(ChecklistItemDef(modulo=modulo, codigo=codigo, descricao=descricao, ordem=ordem))
     db.session.commit()
 
 # ── ROUTES ───────────────────────────────────────────────────────
@@ -2198,6 +2306,128 @@ def get_historico_manutencao(mid):
     Manutencao.query.get_or_404(mid)
     rows = ManutencaoExecucao.query.filter_by(manutencao_id=mid).order_by(ManutencaoExecucao.data_execucao.desc()).all()
     return jsonify([e.to_dict() for e in rows])
+
+# ── ORDENS DE SERVIÇO (MANUTENÇÃO CORRETIVA) ─────────────────────────
+@app.route('/api/os', methods=['GET'])
+def get_ordens_servico():
+    q = OrdemServico.query
+    status = request.args.get('status')
+    if status:
+        q = q.filter_by(status=status)
+    prioridade = request.args.get('prioridade')
+    if prioridade:
+        q = q.filter_by(prioridade=prioridade)
+    rows = q.order_by(OrdemServico.status, OrdemServico.data_abertura.desc()).all()
+    return jsonify([o.to_dict() for o in rows])
+
+@app.route('/api/os', methods=['POST'])
+def add_ordem_servico():
+    d = request.json or {}
+    if not d.get('equipamento') or not d.get('descricao_problema'):
+        return jsonify({'error': 'Equipamento e descrição do problema são obrigatórios'}), 400
+    o = OrdemServico(
+        equipamento=d['equipamento'].strip(),
+        origem=d.get('origem') if d.get('origem') in ('MANUAL', 'CHECKLIST') else 'MANUAL',
+        descricao_problema=d['descricao_problema'].strip(),
+        prioridade=d.get('prioridade') if d.get('prioridade') in ('BAIXA', 'MEDIA', 'ALTA', 'URGENTE') else 'MEDIA',
+        responsavel=(d.get('responsavel') or '').strip(),
+    )
+    db.session.add(o); db.session.commit()
+    return jsonify(o.to_dict())
+
+@app.route('/api/os/<int:oid>', methods=['PUT'])
+def update_ordem_servico(oid):
+    o = OrdemServico.query.get_or_404(oid)
+    d = request.json or {}
+    if 'equipamento' in d: o.equipamento = (d['equipamento'] or '').strip()
+    if 'descricao_problema' in d: o.descricao_problema = (d['descricao_problema'] or '').strip()
+    if 'prioridade' in d and d['prioridade'] in ('BAIXA', 'MEDIA', 'ALTA', 'URGENTE'): o.prioridade = d['prioridade']
+    if 'status' in d and d['status'] in ('ABERTA', 'EM_ANDAMENTO', 'CONCLUIDA'): o.status = d['status']
+    if 'responsavel' in d: o.responsavel = (d['responsavel'] or '').strip()
+    db.session.commit()
+    return jsonify(o.to_dict())
+
+@app.route('/api/os/<int:oid>', methods=['DELETE'])
+def delete_ordem_servico(oid):
+    o = OrdemServico.query.get_or_404(oid)
+    db.session.delete(o); db.session.commit()
+    return jsonify({'ok': True})
+
+@app.route('/api/os/<int:oid>/fechar', methods=['POST'])
+def fechar_ordem_servico(oid):
+    o = OrdemServico.query.get_or_404(oid)
+    d = request.json or {}
+    o.status = 'CONCLUIDA'
+    o.data_fechamento = datetime.utcnow()
+    o.custo = safe_float(d.get('custo'), o.custo)
+    if d.get('responsavel'): o.responsavel = d['responsavel'].strip()
+    o.observacao_fechamento = (d.get('observacao_fechamento') or '').strip()
+    db.session.commit()
+    return jsonify(o.to_dict())
+
+# ── CHECKLIST DIÁRIO DE INSPEÇÃO ──────────────────────────────────────
+@app.route('/api/checklist/itens', methods=['GET'])
+def get_checklist_itens():
+    rows = ChecklistItemDef.query.filter_by(ativo=True).order_by(ChecklistItemDef.modulo, ChecklistItemDef.ordem).all()
+    return jsonify([i.to_dict() for i in rows])
+
+@app.route('/api/checklist/inspecoes', methods=['GET'])
+def get_checklist_inspecoes():
+    rows = ChecklistInspecao.query.order_by(ChecklistInspecao.data.desc(), ChecklistInspecao.id.desc()).limit(60).all()
+    return jsonify([i.to_dict(with_respostas=False) for i in rows])
+
+@app.route('/api/checklist/inspecoes/<int:iid>', methods=['GET'])
+def get_checklist_inspecao(iid):
+    i = ChecklistInspecao.query.get_or_404(iid)
+    return jsonify(i.to_dict())
+
+@app.route('/api/checklist/inspecoes', methods=['POST'])
+def add_checklist_inspecao():
+    """Cria uma inspeção com suas respostas. Cada resposta NC abre automaticamente uma O.S. corretiva."""
+    d = request.json or {}
+    itens = d.get('itens') or []
+    if not itens:
+        return jsonify({'error': 'Informe as respostas do checklist'}), 400
+    for it in itens:
+        if it.get('status') == 'NC' and not (it.get('justificativa') or '').strip():
+            return jsonify({'error': 'Todo item Não Conforme precisa de uma justificativa'}), 400
+
+    data_insp = date.today()
+    if d.get('data'):
+        try: data_insp = datetime.strptime(d['data'], '%Y-%m-%d').date()
+        except: pass
+
+    insp = ChecklistInspecao(
+        data=data_insp,
+        turno=d.get('turno') if d.get('turno') in ('MANHA', 'TARDE', 'NOITE') else 'MANHA',
+        operador=(d.get('operador') or '').strip(),
+        observacoes=(d.get('observacoes') or '').strip(),
+    )
+    db.session.add(insp); db.session.flush()
+
+    os_abertas = []
+    for it in itens:
+        item_def = ChecklistItemDef.query.get(it.get('item_id'))
+        if not item_def:
+            continue
+        resp = ChecklistResposta(
+            inspecao_id=insp.id, item_id=item_def.id,
+            status=it.get('status') if it.get('status') in ('C', 'NC', 'NA') else 'C',
+            justificativa=(it.get('justificativa') or '').strip(),
+        )
+        db.session.add(resp); db.session.flush()
+        if resp.status == 'NC':
+            os_nova = OrdemServico(
+                equipamento=item_def.modulo,
+                origem='CHECKLIST',
+                descricao_problema=f"[{item_def.codigo}] {item_def.descricao} — {resp.justificativa}",
+                prioridade='ALTA',
+            )
+            db.session.add(os_nova); db.session.flush()
+            resp.ordem_servico_id = os_nova.id
+            os_abertas.append(os_nova.id)
+    db.session.commit()
+    return jsonify({'ok': True, 'inspecao': insp.to_dict(), 'os_abertas': os_abertas})
 
 if __name__ == '__main__':
     with app.app_context():
