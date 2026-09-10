@@ -1,10 +1,20 @@
 from flask import Flask, render_template, request, jsonify
 from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime, date, timedelta
-import json, math, calendar
+import json, math, calendar, os
 
 app = Flask(__name__)
-app.config['SQLALCHEMY_DATABASE_URI'] = 'postgresql://postgres.xjkgqqshpdbpssnugwfd:NkgivoWymEzGQFYM@aws-1-us-west-1.pooler.supabase.com:5432/postgres'
+
+# A connection string do banco vem da variável de ambiente DATABASE_URL
+# (configurada no painel do Render, nunca commitada no código).
+# Sem essa variável definida, cai para um banco SQLite local (uso em desenvolvimento).
+_db_url = os.environ.get('DATABASE_URL', 'sqlite:///lavanderia.db')
+# O Supabase/Render às vezes fornece a URL com o prefixo antigo "postgres://",
+# que o SQLAlchemy 1.4+ não aceita mais — precisa ser "postgresql://".
+if _db_url.startswith('postgres://'):
+    _db_url = _db_url.replace('postgres://', 'postgresql://', 1)
+
+app.config['SQLALCHEMY_DATABASE_URI'] = _db_url
 app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
 db = SQLAlchemy(app)
 
