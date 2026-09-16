@@ -1,5 +1,13 @@
 # Chrona Lavanderia — cópia local
 
+## Estoque seco e roteiros (16/09/2026)
+
+O menu **Estoque seco e roteiros** reúne cadastro de OPs por tamanho e peso,
+receitas, modelos de roteiro e movimentações por fase. Consulte
+`ESTOQUE-SECO-E-ROTEIROS.md` para uso, conferência de OPs antigas e validação.
+Novas programações passam pela transferência do roteiro; a OP só fica pronta
+para faturar após todas as fases, terminando em Passadoria final ou Laser final.
+
 ## Relatórios
 
 No menu **Visão geral → Relatórios**, escolha produção por máquina, acompanhamento de OPs ou custos por OP. Informe o período e a busca, depois clique em **Gerar relatório**. A produção permite selecionar uma máquina. Use **Exportar CSV (Excel)** para baixar a planilha ou **Imprimir / salvar PDF** para imprimir em A4 paisagem. Alterar filtros exige gerar novamente antes de imprimir.

@@ -182,6 +182,10 @@ def register_gestao(app, db, models):
         return result, not unique
 
     def route(op, production):
+        if 'fluxo' in app.extensions:
+            current = app.extensions['fluxo'].route(op)
+            if current is not None:
+                return current
         rows = EtapaOP.query.filter_by(op_id=op.id).order_by(EtapaOP.ordem).all()
         out = []
         prior_end = None
@@ -249,7 +253,7 @@ def register_gestao(app, db, models):
         f = db.session.get(FichaOP, oid)
         production, ambiguous = related(op)
         etapas = route(op, production)
-        finished = bool(etapas) and all(e['status'] == 'concluido' for e in etapas)
+        finished = app.extensions['fluxo'].ready(oid) if 'fluxo' in app.extensions else False
         for row in production:
             for field in ('inicio_real','fim_real','previsto'):
                 row[field] = row[field].isoformat() if row[field] else None
@@ -260,6 +264,7 @@ def register_gestao(app, db, models):
                 'revisao': f.revisao if f else 0, 'arquivada': bool(archived('ops',oid)),
                 'atrasada': bool(f and f.prazo and f.prazo < agora_local().date() and not finished),
                 'concluida': finished, 'vinculo_ambiguo': ambiguous, 'etapas': etapas,
+                'fluxo_novo': bool('fluxo' in app.extensions and app.extensions['fluxo'].route(op) is not None),
                 'producao': production, 'custos': costs(op, f),
                 'historico': [{'acao': h.acao, 'detalhe': h.detalhe, 'operador': h.operador, 'data': h.data.isoformat()}
                               for h in HistoricoGestao.query.filter_by(tipo='ops',registro_id=oid).order_by(HistoricoGestao.id.desc()).all()]}
@@ -271,10 +276,10 @@ def register_gestao(app, db, models):
             f = db.session.get(FichaOP,op.id)
             production,_ = related(op)
             etapas = route(op,production)
-            done = bool(etapas) and all(e['status']=='concluido' for e in etapas)
+            done = app.extensions['fluxo'].ready(op.id) if 'fluxo' in app.extensions else False
             result.append({'id':op.id,'op':op.op,'referencia':op.referencia,'cliente':f.cliente if f else '',
                            'responsavel':f.responsavel if f else '', 'prazo':f.prazo.isoformat() if f and f.prazo else None,
-                           'etapa_atual':next((e['nome'] for e in etapas if e['status']!='concluido'), 'Concluída' if done else 'Sem roteiro'),
+                           'etapa_atual':next((e['nome'] for e in etapas if e['status']!='concluido'), 'Concluída' if done else 'Conferir fase final' if etapas else 'Sem roteiro'),
                            'concluida':done,'atrasada':bool(f and f.prazo and f.prazo<agora_local().date() and not done),
                            'etapas_concluidas':sum(e['status']=='concluido' for e in etapas),'total_etapas':len(etapas)})
         return jsonify(result)

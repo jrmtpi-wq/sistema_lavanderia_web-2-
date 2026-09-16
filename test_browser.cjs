@@ -46,10 +46,11 @@ const fs=require('node:fs');
   await page.getByText('Histórico de apontamentos (4)',{exact:true}).waitFor();
   await page.evaluate(()=>goPage('dashboard'));
   await page.getByText('80 kg realizados',{exact:true}).waitFor();
-  const created=await page.request.post('http://127.0.0.1:5001/api/maquinas/2/cargas',
-    {data:{op:'CONFIRMACAO',referencia:'Teste',peso:20,qtde_pecas:30}});
+  const created=await page.request.post('http://127.0.0.1:5001/api/ops',
+    {data:{op:'CONFIRMACAO',referencia:'Teste',qtd:{M:29},peso_unit:{M:0.7}}});
   assert.equal(created.status(),200);
-  const carga=await created.json();
+  const flow=await require('./test_fluxo_helpers.cjs').programar(page,'http://127.0.0.1:5001',(await created.json()).id);
+  const carga={id:flow.etapas[1].vinculos[0].carga_id};
   await page.setViewportSize({width:1440,height:1000});
   await page.evaluate(()=>openMaqPanel(2,'lavar',2));
   await page.locator(`#cr-${carga.id} select`).selectOption('concluido');

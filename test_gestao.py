@@ -42,7 +42,7 @@ class GestaoTest(unittest.TestCase):
         self.assertEqual(self.mutate(f"/etapas/{quality['id']}/apontar", acao='concluir').status_code, 200)
         self.assertEqual(self.mutate(f"/etapas/{dispatch['id']}/apontar", acao='iniciar').status_code, 200)
         self.assertEqual(self.mutate(f"/etapas/{dispatch['id']}/apontar", acao='concluir').status_code, 200)
-        self.assertTrue(self.detail()['concluida'])
+        self.assertFalse(self.detail()['concluida'])  # Roteiro antigo sem fase final não libera a OP.
         stale = self.client.put(self.base, json={'operador':'Ana','revisao':0,'cliente':'Desatualizado'})
         self.assertEqual(stale.status_code, 409)
         self.assertEqual(len(self.detail()['historico']), 5)
@@ -185,8 +185,9 @@ class GestaoTest(unittest.TestCase):
 
     def test_explicit_invoice_link_and_op_identity_preserved(self):
         r=self.client.post('/api/faturamento',json={'op_id':self.op.id,'op_numero':self.op.op,'referencia':self.op.referencia,'valor_total':250})
-        self.assertEqual(r.status_code,200)
-        self.assertEqual(Faturamento.query.first().op_id,self.op.id)
+        # Nova regra: preço/cadastro não bastam; o roteiro precisa terminar numa fase final.
+        self.assertEqual(r.status_code,409)
+        self.assertIsNone(Faturamento.query.first())
         self.mutate(method='PUT',cliente='Cliente')
         self.assertEqual(self.client.put(f'/api/ops/{self.op.id}',json={'op':'NOVO'}).status_code,409)
 

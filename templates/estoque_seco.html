@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="pt-BR">
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Estoque seco e roteiros | Chrona</title>
+<link rel="stylesheet" href="/static/relatorios.css"><link rel="stylesheet" href="/static/fluxo.css"></head>
+<body><header><a href="/">← Voltar ao sistema</a><strong>CHRONA LAVANDERIA</strong></header>
+<main><h1>Estoque seco e fluxo das OPs</h1>
+<p>Cadastre a grade, defina receita e roteiro e acompanhe cada passagem até a última fase.</p>
+<div class="filtros"><label>Responsável pelos registros<input id="actor" maxlength="80" autocomplete="name"></label>
+<button id="refresh">Atualizar OPs</button><button id="new-op">Cadastrar OP no estoque seco</button>
+<button id="templates">Criar roteiro reutilizável</button><button id="new-phase">Cadastrar fase</button></div>
+<p id="feedback" role="status" aria-live="polite"></p>
+<section id="list-section"><div class="resumo" id="totals"></div>
+<div class="filtros"><label>Buscar OP ou referência<input type="search" id="search"></label>
+<label>Situação<select id="filter"><option value="">Todas</option><option value="seco">No estoque seco</option><option value="processo">Em produção</option><option value="prontas">Prontas para faturar</option><option value="legado">Produção anterior</option></select></label></div>
+<div class="tabela"><table><thead><tr><th>OP / referência</th><th>Peças</th><th>Kg</th><th>Saldo seco</th><th>Situação</th><th>Ação</th></tr></thead><tbody id="ops"></tbody></table></div></section>
+<section id="detail" hidden></section>
+<dialog id="editor" aria-labelledby="editor-title"><form id="edit-form"><h2 id="editor-title"></h2><div id="fields"></div><p id="form-error" role="alert"></p><div class="actions"><button type="submit" id="save">Salvar</button><button type="button" id="cancel">Cancelar</button></div></form></dialog>
+</main><script>window.fluxoTamanhos={{ tamanhos|tojson }};window.fluxoSetores={{ setores|tojson }};</script>
+<script src="/static/fluxo.js"></script></body></html>

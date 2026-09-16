@@ -37,4 +37,5 @@ for path in ('/api/ops', '/api/maquinas', '/api/operacao/resumo', '/relatorios')
                 tables = {row[0] for row in connection.execute(
                     "SELECT name FROM sqlite_master WHERE type='table'")}
                 self.assertTrue({'cadastro_arquivo', 'apontamento_carga',
-                                 'medicao_conclusao', 'ficha_op', 'custo_op'} <= tables)
+                                 'medicao_conclusao', 'ficha_op', 'custo_op', 'fluxo_op',
+                                 'passagem_op', 'vinculo_passagem', 'movimento_fluxo'} <= tables)

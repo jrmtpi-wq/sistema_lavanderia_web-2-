@@ -104,6 +104,10 @@ def register_operacao(app, db, Carga, Maquina, Produto, Manutencao, OrdemServico
         db.session.add(evento)
         if acao == 'concluir':
             db.session.add(MedicaoConclusao(apontamento=evento, pecas=pecas))
+        db.session.flush()
+        db.session.refresh(c)
+        if 'fluxo' in app.extensions:
+            app.extensions['fluxo'].sync_source('carga', c.id, operador)
         db.session.commit()
         return jsonify(ok=True, carga=serialize(c))
 

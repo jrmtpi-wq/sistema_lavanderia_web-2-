@@ -921,6 +921,7 @@ def get_ops():
         'programada_lavagem': o.id in ids_programados or (
             pares[(o.op, o.referencia)] == 1 and (o.op, o.referencia) in pares_legados),
         'lavacao': o.lavacao, 'cap_pecas': o.cap_pecas,
+        'liberada_faturamento': fluxo.ready(o.id),
         'qtd': o.qtd_dict, 'peso_unit': o.peso_dict,
         'total_pecas': o.total_pecas, 'peso_total': round(o.peso_total,3),
         'created_at': o.created_at.strftime('%d/%m/%Y %H:%M')
@@ -971,8 +972,10 @@ def update_op(oid):
         op.referencia = str(d.get('referencia', op.referencia)).strip()
         op.lavacao = d.get('lavacao', op.lavacao)
         op.cap_pecas = safe_int(d.get('cap_pecas', op.cap_pecas))
-        op.qtd = json.dumps({k: safe_int(v) for k, v in d.get('qtd', {}).items() if safe_int(v) > 0})
-        op.peso_unit = json.dumps({k: safe_float(v) for k, v in d.get('peso_unit', {}).items() if safe_float(v) > 0})
+        if 'qtd' in d:
+            op.qtd = json.dumps({k: safe_int(v) for k, v in d['qtd'].items() if safe_int(v) > 0})
+        if 'peso_unit' in d:
+            op.peso_unit = json.dumps({k: safe_float(v) for k, v in d['peso_unit'].items() if safe_float(v) > 0})
         db.session.commit()
         return jsonify({'ok': True})
     except Exception as e:
@@ -1294,6 +1297,8 @@ def get_ops_prontas():
     ops = gestao.query(OrdemProducao, 'ops').order_by(OrdemProducao.id.desc()).all()
     prontas = []
     for o in ops:
+        if not fluxo.ready(o.id):
+            continue
         op_key  = o.op.strip().upper()
         ref_key = o.referencia.strip().upper()
         tp = gestao.query(TabelaPreco, 'precos').filter_by(op=op_key, referencia=ref_key).first()
@@ -1615,6 +1620,7 @@ def update_laser_fila(fid):
         except: f.data_inicio = None
     fim = f.calcular_fim(e.intervalos)
     f.data_fim = fim
+    fluxo.sync_source('laser', f.id, d.get('operador') or 'Programação')
     db.session.commit()
     return jsonify({'ok': True,
                     'data_fim': f.data_fim.strftime('%Y-%m-%dT%H:%M') if f.data_fim else None})
@@ -1775,6 +1781,7 @@ def update_passadoria_fila(iid):
         try: item.data_inicio = datetime.strptime(d['data_inicio'], '%Y-%m-%dT%H:%M')
         except: item.data_inicio = None
     item.data_fim = item.calcular_fim()
+    fluxo.sync_source('passadoria', item.id, d.get('operador') or 'Programação')
     db.session.commit()
     return jsonify({'ok': True, 'item': item.to_dict()})
 
@@ -2486,6 +2493,10 @@ gestao = register_gestao(app, db, {
 
 from relatorios import register_relatorios
 register_relatorios(app, db, Carga, Maquina, OrdemProducao, gestao)
+
+from fluxo import register_fluxo
+fluxo = register_fluxo(app, db, OrdemProducao, Carga, Maquina, Receita,
+                      LaserEquipamento, LaserFila, PassadoriaItem, Faturamento, gestao, TAMANHOS)
 
 def inicializar_tabelas():
     """Cria tabelas ausentes também no carregamento por Gunicorn (app:app)."""
