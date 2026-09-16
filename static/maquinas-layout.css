@@ -1,0 +1,20 @@
+#maq-panel .panel{width:100vw;max-width:100vw;height:100vh;height:100dvh;min-height:0;border:0}
+#maq-panel .panel-head{padding:7px 12px;min-height:44px;gap:8px}
+#maq-panel .panel-title{font-size:14px;line-height:1.25}
+.maq-acoes{display:flex;align-items:center;gap:6px}
+#maq-panel .panel-sticky-top{flex-shrink:0;position:relative}
+#maq-panel .panel-sticky-top>div:last-child{padding:0 12px 6px!important}
+#maq-programacao summary{cursor:pointer;padding:7px 0;font-size:12px;font-weight:700;color:var(--ciano);min-height:32px}
+.maq-programacao-campos{max-height:40vh;overflow:auto;padding:2px}
+#maq-panel .card-compact{padding:8px;margin-bottom:6px}
+#maq-panel .form-group{gap:3px;margin-bottom:0;min-width:0}
+#maq-panel .form-group label{font-size:10px;margin-bottom:2px}
+#maq-panel .form-control{padding:5px 8px;min-height:30px;font-size:12px}
+#maq-panel .time-help{font-size:10px;margin-top:2px}
+#maq-panel .panel-scroll-body{min-height:0;padding:0 12px 8px!important;overflow:auto;overscroll-behavior:contain}
+#maq-panel .maq-cols-head,#maq-panel .carga-row{grid-template-columns:44px 36px minmax(82px,1fr) minmax(82px,1fr) minmax(100px,1.3fr) 65px 78px 112px 112px 106px 75px 36px!important;min-width:1080px;gap:4px;padding-left:8px!important;padding-right:8px!important}
+#maq-panel .maq-cols-head{position:sticky;top:0;z-index:2;font-size:10px!important;padding-top:8px!important;padding-bottom:8px!important;border-radius:0}
+#maq-panel .carga-row{min-height:38px}
+#maq-panel .panel-foot{padding:6px 12px;min-height:42px;flex-shrink:0;align-items:center}
+#maq-panel .panel-foot .btn{padding:5px 12px;font-size:12px}
+@media(max-width:600px){#maq-panel .panel-title{font-size:12px}.maq-acoes .btn{font-size:11px;padding:7px}#maq-panel .panel-foot{flex-wrap:wrap}#maq-panel .form-grid{grid-template-columns:repeat(2,minmax(0,1fr))!important}.maq-programacao-campos{max-height:35vh}}

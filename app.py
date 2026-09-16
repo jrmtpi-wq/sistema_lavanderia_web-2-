@@ -1,4 +1,5 @@
-from flask import Flask, render_template, request, jsonify
+from flask import Flask, render_template, request, jsonify, abort
+from werkzeug.exceptions import HTTPException
 from flask_sqlalchemy import SQLAlchemy
 from datetime import datetime, date, timedelta
 import json, math, calendar, os
@@ -878,6 +879,20 @@ def diagnostico():
 def index():
     return render_template('index.html')
 
+@app.get('/imprimir/maquinas/<int:mid>')
+def imprimir_programacao(mid):
+    maquina = db.get_or_404(Maquina, mid)
+    cargas = Carga.query.filter(Carga.maquina_id == mid,
+                               Carga.status.in_(['em_processo', 'pausado', 'aguardando'])).order_by(Carga.numero, Carga.id).all()
+    labels = {'lavar': 'Máquina de Lavar', 'centrifuga': 'Centrífuga', 'secador': 'Secador'}
+    grupos = [('Em processo', [c for c in cargas if c.status != 'aguardando']),
+              ('Aguardando', [c for c in cargas if c.status == 'aguardando'])]
+    response = app.make_response(render_template('impressao_maquina.html', maquina=maquina,
+        titulo=f'{labels.get(maquina.tipo, maquina.tipo)} {maquina.numero:02d}', grupos=grupos,
+        cargas=cargas, peso=sum(c.peso or 0 for c in cargas), pecas=sum(c.qtde_pecas or 0 for c in cargas)))
+    response.headers['Cache-Control'] = 'no-store'
+    return response
+
 @app.route('/debug_index')
 def debug_index():
     import os, hashlib
@@ -893,9 +908,18 @@ def debug_index():
 # ─ OP ─
 @app.route('/api/ops', methods=['GET'])
 def get_ops():
-    ops = OrdemProducao.query.order_by(OrdemProducao.id.desc()).all()
+    ops = gestao.query(OrdemProducao, 'ops').order_by(OrdemProducao.id.desc()).all()
+    # Considera a lavagem, inclusive concluída: a indicação significa "já programada".
+    from collections import Counter
+    pares = Counter((o.op, o.referencia) for o in OrdemProducao.query.all())
+    cargas_lavagem = db.session.query(Carga.op_id, Carga.op_manual, Carga.referencia).join(
+        Maquina, Carga.maquina_id == Maquina.id).filter(Maquina.tipo == 'lavar').all()
+    ids_programados = {c.op_id for c in cargas_lavagem if c.op_id is not None}
+    pares_legados = {(c.op_manual, c.referencia) for c in cargas_lavagem if c.op_id is None}
     return jsonify([{
         'id': o.id, 'op': o.op, 'referencia': o.referencia,
+        'programada_lavagem': o.id in ids_programados or (
+            pares[(o.op, o.referencia)] == 1 and (o.op, o.referencia) in pares_legados),
         'lavacao': o.lavacao, 'cap_pecas': o.cap_pecas,
         'qtd': o.qtd_dict, 'peso_unit': o.peso_dict,
         'total_pecas': o.total_pecas, 'peso_total': round(o.peso_total,3),
@@ -957,9 +981,7 @@ def update_op(oid):
 
 @app.route('/api/ops/<int:oid>', methods=['DELETE'])
 def delete_op(oid):
-    op = OrdemProducao.query.get_or_404(oid)
-    db.session.delete(op); db.session.commit()
-    return jsonify({'ok': True})
+    return gestao.archive('ops', oid)
 
 @app.route('/api/ops/<int:oid>/arredondar', methods=['GET'])
 def arredondar_op(oid):
@@ -1059,7 +1081,8 @@ def add_carga(mid):
         last = sorted(m.cargas, key=lambda x: x.numero)[-1]
         if last.data_saida:
             dt_inicio = last.data_saida
-    c = Carga(maquina_id=mid, numero=num,
+    oid = gestao.resolve_op(d.get('op'), d.get('referencia'), d.get('op_id'))
+    c = Carga(maquina_id=mid, numero=num, op_id=oid,
               op_manual=d.get('op',''), referencia=d.get('referencia',''),
               lavacao=d.get('lavacao',''), qtde_pecas=safe_int(d.get('qtde_pecas',0)),
               peso=safe_float(d.get('peso',0)), data_inicio=dt_inicio,
@@ -1073,6 +1096,13 @@ def add_carga(mid):
 def update_carga(cid):
     c = Carga.query.get_or_404(cid)
     d = request.json
+    if 'status' in d and d['status'] != c.status:
+        return jsonify({'error': 'Registre a alteração pela operação da carga, informando o operador e, na conclusão, quilos e peças.'}), 409
+    if c.apontamentos and any(k in d and str(d[k]) != str(v) for k, v in
+                             [('op', c.op_manual), ('referencia', c.referencia), ('op_id', c.op_id)]):
+        return jsonify({'error': 'Preserve a OP e a referência de cargas com apontamentos.'}), 409
+    c.op_id = gestao.resolve_op(d.get('op', c.op_manual), d.get('referencia', c.referencia),
+                               d.get('op_id', c.op_id))
     if 'op' in d: c.op_manual = d['op']
     if 'referencia' in d: c.referencia = d['referencia']
     if 'lavacao' in d: c.lavacao = d['lavacao']
@@ -1092,6 +1122,8 @@ def update_carga(cid):
 def delete_carga(cid):
     try:
         c = Carga.query.get_or_404(cid)
+        if c.apontamentos:
+            return jsonify({'error': 'Carga com apontamentos não pode ser excluída.'}), 409
         maquina_id = c.maquina_id
         db.session.delete(c)
         db.session.flush()
@@ -1137,8 +1169,13 @@ def gerar_cargas(mid):
         else:
             if not d.get('data_inicio'):
                 return jsonify({'ok': False, 'error': 'data_inicio obrigatório'}), 400
+            if any(c.apontamentos or c.status != 'aguardando' for c in cargas_existentes):
+                return jsonify({'error': 'A programação tem produção ou apontamentos. Use adicionar cargas para preservar o histórico.'}), 409
+            # Valida a data e a OP antes de substituir a programação pendente.
+            datetime.strptime(d['data_inicio'], '%Y-%m-%dT%H:%M')
+            gestao.resolve_op(op, ref, d.get('op_id'))
             Carga.query.filter_by(maquina_id=mid).delete()
-            db.session.commit()
+            db.session.flush()
             dt = datetime.strptime(d['data_inicio'], '%Y-%m-%dT%H:%M')
             num_inicio = 1
 
@@ -1158,14 +1195,18 @@ def gerar_cargas(mid):
                 if ultima_com_pecas:
                     qtde_pecas_padrao = ultima_com_pecas.qtde_pecas
 
+        linked_op = gestao.resolve_op(op, ref, d.get('op_id'))
         for i in range(num_inicio, num_inicio + n):
-            c = Carga(maquina_id=mid, numero=i, op_manual=op,
+            c = Carga(maquina_id=mid, numero=i, op_manual=op, op_id=linked_op,
                       referencia=ref, lavacao=lav, qtde_pecas=qtde_pecas_padrao,
                       peso=peso_carga, data_inicio=dt, status='aguardando')
             db.session.add(c)
             dt = dt + timedelta(minutes=m.tempo_min)
         db.session.commit()
         return jsonify({'ok': True, 'geradas': n})
+    except HTTPException:
+        db.session.rollback()
+        raise
     except Exception as e:
         db.session.rollback()
         return jsonify({'ok': False, 'error': str(e)}), 500
@@ -1176,7 +1217,7 @@ def dashboard():
     for tipo in ['lavar','centrifuga','secador']:
         maquinas = Maquina.query.filter_by(tipo=tipo).order_by(Maquina.numero).all()
         result[tipo] = [{
-            'numero': m.numero, 'capacidade': m.capacidade, 'tempo_min': m.tempo_min,
+            'id': m.id, 'numero': m.numero, 'capacidade': m.capacidade, 'tempo_min': m.tempo_min,
             'total_cargas': len(m.cargas),
             'peso_total': round(sum(c.peso for c in m.cargas), 2),
             'concluidas': sum(1 for c in m.cargas if c.status=='concluido'),
@@ -1188,7 +1229,7 @@ def dashboard():
 # ─ TABELA DE PREÇOS ─
 @app.route('/api/precos', methods=['GET'])
 def get_precos():
-    rows = TabelaPreco.query.order_by(TabelaPreco.op, TabelaPreco.referencia).all()
+    rows = gestao.query(TabelaPreco, 'precos').order_by(TabelaPreco.op, TabelaPreco.referencia).all()
     return jsonify([{
         'id': r.id, 'op': r.op, 'referencia': r.referencia,
         'preco_peca': r.preco_peca,
@@ -1205,11 +1246,15 @@ def create_preco():
         ref_val = d['referencia'].strip().upper()
         existing = TabelaPreco.query.filter_by(op=op_val, referencia=ref_val).first()
         if existing:
+            gestao.check_active('precos', existing.id)
             return jsonify({'ok': False, 'error': 'OP + Referência já cadastrada. Use editar.'}), 400
         r = TabelaPreco(op=op_val, referencia=ref_val,
                         preco_peca=safe_float(d.get('preco_peca', 0)))
         db.session.add(r); db.session.commit()
         return jsonify({'ok': True, 'id': r.id})
+    except HTTPException:
+        db.session.rollback()
+        raise
     except Exception as e:
         db.session.rollback()
         return jsonify({'ok': False, 'error': str(e)}), 500
@@ -1230,9 +1275,7 @@ def update_preco(pid):
 
 @app.route('/api/precos/<int:pid>', methods=['DELETE'])
 def delete_preco(pid):
-    r = TabelaPreco.query.get_or_404(pid)
-    db.session.delete(r); db.session.commit()
-    return jsonify({'ok': True})
+    return gestao.archive('precos', pid)
 
 @app.route('/api/precos/buscar', methods=['GET'])
 def buscar_preco():
@@ -1240,7 +1283,7 @@ def buscar_preco():
     ref = request.args.get('referencia', '').strip().upper()
     if not op or not ref:
         return jsonify({'ok': False, 'error': 'OP e Referência obrigatórios'}), 400
-    r = TabelaPreco.query.filter_by(op=op, referencia=ref).first()
+    r = gestao.query(TabelaPreco, 'precos').filter_by(op=op, referencia=ref).first()
     if not r:
         return jsonify({'ok': False, 'error': f'Preço não cadastrado para OP {op} / Ref {ref}'}), 404
     return jsonify({'ok': True, 'id': r.id, 'op': r.op,
@@ -1248,15 +1291,15 @@ def buscar_preco():
 
 @app.route('/api/ops_prontas', methods=['GET'])
 def get_ops_prontas():
-    ops = OrdemProducao.query.order_by(OrdemProducao.id.desc()).all()
+    ops = gestao.query(OrdemProducao, 'ops').order_by(OrdemProducao.id.desc()).all()
     prontas = []
     for o in ops:
         op_key  = o.op.strip().upper()
         ref_key = o.referencia.strip().upper()
-        tp = TabelaPreco.query.filter_by(op=op_key, referencia=ref_key).first()
+        tp = gestao.query(TabelaPreco, 'precos').filter_by(op=op_key, referencia=ref_key).first()
         if not tp:
             continue
-        ja_faturada = Faturamento.query.filter_by(op_numero=o.op, referencia=o.referencia).first()
+        ja_faturada = gestao.query(Faturamento, 'faturamento').filter_by(op_numero=o.op, referencia=o.referencia).first()
         prontas.append({
             'id': o.id, 'op': o.op, 'referencia': o.referencia,
             'lavacao': o.lavacao, 'total_pecas': o.total_pecas,
@@ -1275,7 +1318,7 @@ def get_faturamento():
     mes = int(request.args.get('mes', date.today().month))
     d1  = date(ano, mes, 1)
     d2  = date(ano, mes, calendar.monthrange(ano,mes)[1])
-    rows = Faturamento.query.filter(
+    rows = gestao.query(Faturamento, 'faturamento').filter(
         Faturamento.data_faturamento.between(d1, d2)
     ).order_by(Faturamento.data_faturamento.desc()).all()
     return jsonify([{
@@ -1291,6 +1334,7 @@ def create_faturamento():
     try:
         d = request.json
         f = Faturamento(
+            op_id=gestao.resolve_op(d.get('op_numero'), d.get('referencia'), d.get('op_id')),
             op_numero=str(d.get('op_numero','')).strip(),
             referencia=str(d.get('referencia','')).strip(),
             lavacao=d.get('lavacao',''),
@@ -1302,15 +1346,16 @@ def create_faturamento():
         )
         db.session.add(f); db.session.commit()
         return jsonify({'ok': True, 'id': f.id})
+    except HTTPException:
+        db.session.rollback()
+        raise
     except Exception as e:
         db.session.rollback()
         return jsonify({'ok': False, 'error': str(e)}), 500
 
 @app.route('/api/faturamento/<int:fid>', methods=['DELETE'])
 def delete_faturamento(fid):
-    f = Faturamento.query.get_or_404(fid)
-    db.session.delete(f); db.session.commit()
-    return jsonify({'ok': True})
+    return gestao.archive('faturamento', fid)
 
 # ─ DRE ─
 @app.route('/api/dre', methods=['GET'])
@@ -1319,7 +1364,7 @@ def get_dre():
     mes = int(request.args.get('mes', date.today().month))
     d1  = date(ano, mes, 1)
     d2  = date(ano, mes, calendar.monthrange(ano,mes)[1])
-    rows = Faturamento.query.filter(
+    rows = gestao.query(Faturamento, 'faturamento').filter(
         Faturamento.data_faturamento.between(d1, d2)
     ).all()
     total_faturado = round(sum(r.valor_total for r in rows), 2)
@@ -1846,7 +1891,7 @@ def delete_robo_passadoria_fila(iid):
 # ── FUNCIONÁRIOS / CUSTO DE MÃO DE OBRA (CPM) ──────────────────────
 @app.route('/api/funcionarios', methods=['GET'])
 def get_funcionarios():
-    q = Funcionario.query
+    q = gestao.query(Funcionario, 'funcionarios')
     if request.args.get('ativos') == '1':
         q = q.filter_by(ativo=True)
     rows = q.order_by(Funcionario.nome).all()
@@ -1904,14 +1949,12 @@ def update_funcionario(fid):
 
 @app.route('/api/funcionarios/<int:fid>', methods=['DELETE'])
 def delete_funcionario(fid):
-    f = Funcionario.query.get_or_404(fid)
-    db.session.delete(f); db.session.commit()
-    return jsonify({'ok': True})
+    return gestao.archive('funcionarios', fid)
 
 # ── ESTOQUE DE QUÍMICOS ─────────────────────────────────────────────
 @app.route('/api/quimicos', methods=['GET'])
 def get_quimicos():
-    q = ProdutoQuimico.query
+    q = gestao.query(ProdutoQuimico, 'quimicos')
     if request.args.get('ativos') == '1':
         q = q.filter_by(ativo=True)
     categoria = request.args.get('categoria')
@@ -1973,9 +2016,7 @@ def update_quimico(pid):
 
 @app.route('/api/quimicos/<int:pid>', methods=['DELETE'])
 def delete_quimico(pid):
-    p = ProdutoQuimico.query.get_or_404(pid)
-    db.session.delete(p); db.session.commit()
-    return jsonify({'ok': True})
+    return gestao.archive('quimicos', pid)
 
 @app.route('/api/quimicos/<int:pid>/movimentar', methods=['POST'])
 def movimentar_quimico(pid):
@@ -2014,7 +2055,7 @@ def relatorio_compras():
 # ── RECEITAS DE LAVAGEM ──────────────────────────────────────────────
 @app.route('/api/receitas', methods=['GET'])
 def get_receitas():
-    q = Receita.query
+    q = gestao.query(Receita, 'receitas')
     status = request.args.get('status')
     if status:
         q = q.filter_by(status=status)
@@ -2081,9 +2122,7 @@ def _add_etapa(receita_id, e, ordem_default):
 
 @app.route('/api/receitas/<int:rid>', methods=['DELETE'])
 def delete_receita(rid):
-    r = Receita.query.get_or_404(rid)
-    db.session.delete(r); db.session.commit()
-    return jsonify({'ok': True})
+    return gestao.archive('receitas', rid)
 
 @app.route('/api/receitas/<int:rid>/duplicar', methods=['POST'])
 def duplicar_receita(rid):
@@ -2131,7 +2170,7 @@ def executar_receita(rid):
 # ── PEÇAS DE AMOSTRA ─────────────────────────────────────────────────
 @app.route('/api/amostras', methods=['GET'])
 def get_amostras():
-    q = PecaAmostra.query
+    q = gestao.query(PecaAmostra, 'amostras')
     status = request.args.get('status')
     if status:
         q = q.filter_by(status=status)
@@ -2171,9 +2210,7 @@ def update_amostra(aid):
 
 @app.route('/api/amostras/<int:aid>', methods=['DELETE'])
 def delete_amostra(aid):
-    a = PecaAmostra.query.get_or_404(aid)
-    db.session.delete(a); db.session.commit()
-    return jsonify({'ok': True})
+    return gestao.archive('amostras', aid)
 
 @app.route('/api/amostras/<int:aid>/aprovar', methods=['POST'])
 def aprovar_amostra(aid):
@@ -2230,7 +2267,7 @@ def get_equipamentos_sugestoes():
 
 @app.route('/api/manutencoes', methods=['GET'])
 def get_manutencoes():
-    q = Manutencao.query
+    q = gestao.query(Manutencao, 'manutencoes')
     if request.args.get('ativos') == '1':
         q = q.filter_by(ativo=True)
     rows = q.order_by(Manutencao.data_proxima.is_(None), Manutencao.data_proxima).all()
@@ -2286,9 +2323,7 @@ def update_manutencao(mid):
 
 @app.route('/api/manutencoes/<int:mid>', methods=['DELETE'])
 def delete_manutencao(mid):
-    m = Manutencao.query.get_or_404(mid)
-    db.session.delete(m); db.session.commit()
-    return jsonify({'ok': True})
+    return gestao.archive('manutencoes', mid)
 
 @app.route('/api/manutencoes/<int:mid>/executar', methods=['POST'])
 def executar_manutencao(mid):
@@ -2320,7 +2355,7 @@ def get_historico_manutencao(mid):
 # ── ORDENS DE SERVIÇO (MANUTENÇÃO CORRETIVA) ─────────────────────────
 @app.route('/api/os', methods=['GET'])
 def get_ordens_servico():
-    q = OrdemServico.query
+    q = gestao.query(OrdemServico, 'os')
     status = request.args.get('status')
     if status:
         q = q.filter_by(status=status)
@@ -2359,9 +2394,7 @@ def update_ordem_servico(oid):
 
 @app.route('/api/os/<int:oid>', methods=['DELETE'])
 def delete_ordem_servico(oid):
-    o = OrdemServico.query.get_or_404(oid)
-    db.session.delete(o); db.session.commit()
-    return jsonify({'ok': True})
+    return gestao.archive('os', oid)
 
 @app.route('/api/os/<int:oid>/fechar', methods=['POST'])
 def fechar_ordem_servico(oid):
@@ -2439,8 +2472,23 @@ def add_checklist_inspecao():
     db.session.commit()
     return jsonify({'ok': True, 'inspecao': insp.to_dict(), 'os_abertas': os_abertas})
 
+from operacao import register_operacao
+register_operacao(app, db, Carga, Maquina, ProdutoQuimico, Manutencao, OrdemServico)
+
+from gestao import register_gestao
+gestao = register_gestao(app, db, {
+    'ops': OrdemProducao, 'cargas': Carga, 'receitas': Receita,
+    'quimicos': ProdutoQuimico, 'funcionarios': Funcionario,
+    'faturamento': Faturamento, 'precos': TabelaPreco,
+    'amostras': PecaAmostra, 'manutencoes': Manutencao, 'os': OrdemServico,
+    'laser': LaserFila, 'passadoria': PassadoriaItem, 'robo': RoboPassadoriaItem,
+})
+
+from relatorios import register_relatorios
+register_relatorios(app, db, Carga, Maquina, OrdemProducao, gestao)
+
 if __name__ == '__main__':
     with app.app_context():
         init_db()
-    app.run(debug=True, host='0.0.0.0', port=5000)
+    app.run(debug=False, host='0.0.0.0', port=int(os.environ.get('PORT', '5000')))
 

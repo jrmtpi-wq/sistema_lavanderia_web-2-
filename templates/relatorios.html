@@ -1,0 +1,37 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Relatórios | Chrona Lavanderia</title>
+  <link rel="stylesheet" href="/static/relatorios.css?v=20260912">
+</head>
+<body>
+  <header><a href="/">← Voltar ao sistema</a><strong>CHRONA LAVANDERIA</strong></header>
+  <main>
+    <h1>Relatórios</h1>
+    <form method="get" class="filtros">
+      <label>Relatório<select name="tipo" id="tipo">{% for key, label in tipos.items() %}<option value="{{ key }}" {% if tipo == key %}selected{% endif %}>{{ label }}</option>{% endfor %}</select></label>
+      <label id="filtro-conclusao">Seleção da produção<select name="sem_data"><option value="0">Período informado</option><option value="1" {% if sem_data %}selected{% endif %}>Concluídas sem data real — todos os períodos</option></select></label>
+      <div class="campo-data"><label for="inicio">Início</label><div class="entrada-data"><input id="inicio" type="date" name="inicio" value="{{ inicio }}" required><button type="button" class="abrir-calendario" data-campo="inicio" aria-label="Abrir calendário de início" aria-expanded="false" aria-controls="calendario-inicio">▦</button></div><div class="calendario" id="calendario-inicio" role="dialog" aria-label="Selecionar data de início" hidden></div></div>
+      <div class="campo-data"><label for="fim">Fim</label><div class="entrada-data"><input id="fim" type="date" name="fim" value="{{ fim }}" required><button type="button" class="abrir-calendario" data-campo="fim" aria-label="Abrir calendário de fim" aria-expanded="false" aria-controls="calendario-fim">▦</button></div><div class="calendario" id="calendario-fim" role="dialog" aria-label="Selecionar data de fim" hidden></div></div>
+      <label><span id="busca-label">{% if tipo == 'producao' %}Buscar OP ou referência{% else %}Buscar OP, referência, cliente ou responsável{% endif %}</span><input type="search" name="busca" value="{{ busca }}" placeholder="Digite para filtrar"></label>
+      <label id="filtro-maquina">Máquina (produção)<select name="maquina"><option value="">Todas</option>{% for m in maquinas %}<option value="{{ m.id }}" {% if maquina == m.id|string %}selected{% endif %}>{{ etapas.get(m.tipo, m.tipo) }} {{ m.numero }}</option>{% endfor %}</select></label>
+      <button type="submit">Gerar relatório</button>
+      <button type="submit" name="formato" value="csv">Exportar CSV (Excel)</button>
+      <button type="button" id="imprimir" {% if not linhas %}disabled{% endif %}>Imprimir / salvar PDF</button>
+    </form>
+    <p id="alterado" hidden>Filtros alterados. Gere o relatório para atualizar a visualização e a impressão.</p>
+    <section aria-label="Resultado do relatório">
+      <h2>{{ tipos[tipo] }}</h2>
+      <p>Período: {{ periodo }} · Emitido em {{ gerado }} (Brasília)</p>
+      <p>Busca: {{ busca or 'Todas' }}{% if tipo == 'producao' %} · Máquina: {% if maquina %}{% for m in maquinas if m.id|string == maquina %}{{ etapas.get(m.tipo, m.tipo) }} {{ m.numero }}{% endfor %}{% else %}Todas{% endif %}{% endif %}</p>
+      <p class="nota">{{ nota }}</p>
+      <div class="resumo">{% for label, valor in resumo %}<article><h3>{{ label }}</h3><p>{{ valor }}</p></article>{% endfor %}</div>
+      <p>{{ linhas|length }} registro(s) encontrado(s).</p>
+      {% if linhas %}<div class="tabela"><table><thead><tr>{% for c in colunas %}<th scope="col">{{ c }}</th>{% endfor %}</tr></thead><tbody>{% for linha in linhas %}<tr>{% for v in linha %}<td>{{ v }}</td>{% endfor %}</tr>{% endfor %}</tbody></table></div>
+      {% else %}<p class="vazio">Nenhum registro encontrado. Confira o período e os filtros.{% if tipo != 'producao' %} OPs precisam ter prazo de entrega informado na ficha.{% endif %}</p>{% endif %}
+    </section>
+  </main>
+  <script src="/static/relatorios.js?v=20260912"></script>
+</body>
+</html>

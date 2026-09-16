@@ -1,0 +1,15 @@
+.gestao-toolbar,.gestao-actions{display:flex;gap:10px;align-items:end;flex-wrap:wrap;margin:16px 0}
+.gestao-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(220px,1fr));gap:14px;margin:16px 0}
+.gestao-card{padding:20px;background:var(--cinza2);border:1px solid var(--brd);border-radius:12px;min-width:0;overflow-wrap:anywhere}
+.gestao-card h3{margin-bottom:12px}.gestao-card p{margin:8px 0}.gestao-card strong{font-size:22px}
+.gestao-field{display:flex;flex-direction:column;gap:6px;min-width:0;font-size:13px}
+.gestao-field input,.gestao-field select,.gestao-field textarea{width:100%;padding:10px;background:var(--cinza1);color:var(--txt);border:1px solid var(--brd);border-radius:7px;font:inherit;min-width:0}
+.gestao-note{color:var(--txt2);font-size:13px;line-height:1.6;margin:10px 0}.gestao-warning{color:var(--laranja)}
+.gestao-table{overflow-x:auto}.gestao-table table{width:100%;border-collapse:collapse}.gestao-table th,.gestao-table td{padding:12px;text-align:left;border-bottom:1px solid var(--brd)}
+.gestao-route{list-style:none;padding:0;display:grid;gap:10px}.gestao-route li{padding:14px;border-left:3px solid var(--ciano);background:var(--cinza3);border-radius:6px}
+.gestao-route select{max-width:200px}.gestao-route input{max-width:220px}.gestao-history{max-height:360px;overflow:auto;padding-left:24px}.gestao-history li{margin-bottom:12px;overflow-wrap:anywhere}
+#gestao-dialog{margin:auto;width:min(620px,94vw);max-height:90vh;overflow:auto;padding:24px;border:1px solid var(--brd);border-radius:14px;background:var(--cinza2);color:var(--txt)}
+#gestao-dialog::backdrop{background:#0009}#gestao-dialog form{display:grid;gap:14px}
+#gestao-feedback{min-height:24px;margin:12px 0;white-space:pre-wrap;overflow-wrap:anywhere}
+.nav-group{margin-bottom:8px}.nav-group summary{cursor:pointer;padding:12px 8px;font-size:12px;font-weight:700;color:var(--txt2)}
+@media(max-width:600px){.gestao-grid{grid-template-columns:1fr}.gestao-card{padding:14px}.gestao-toolbar>*{width:100%}.gestao-route .gestao-actions>*{max-width:none;width:100%}}

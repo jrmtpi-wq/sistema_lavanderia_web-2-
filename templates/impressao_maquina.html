@@ -1,0 +1,30 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Chrona Lavanderia — {{ titulo }} — Impressão</title>
+<style>
+*{box-sizing:border-box}body{margin:24px;color:#111;background:white;font:12px Arial,sans-serif}
+.actions{display:flex;gap:12px;align-items:center;flex-wrap:wrap;margin-bottom:24px;padding:16px;background:#edf3fa}
+button,.actions a{padding:12px 18px;font:inherit;cursor:pointer;border:1px solid #174675;border-radius:5px;background:white;color:#174675}
+button{background:#174675;color:white}h1{font-size:22px;margin:0 0 8px}header{border-bottom:2px solid #174675;padding-bottom:10px}
+h2{font-size:15px;margin:20px 0 8px;break-after:avoid}table{width:100%;border-collapse:collapse;table-layout:fixed;font-size:11px}
+td,th{border:1px solid #777;padding:7px 5px;overflow-wrap:anywhere;text-align:left}th{background:#edf3fa}
+th:nth-child(1){width:5%}th:nth-child(3),th:nth-child(4){width:12%}th:nth-child(5),th:nth-child(6){width:6%}
+th:nth-child(7),th:nth-child(8){width:11%}td.blank{height:32px}.number{text-align:right}footer{margin-top:16px;font-weight:bold}
+thead{display:table-header-group}tr{break-inside:avoid}.table-wrap{overflow-x:auto} .empty{padding:24px;border:1px solid #aaa}
+@page{size:A4 landscape;margin:10mm 8mm}
+@media print{body{margin:0;font-size:10px}.actions{display:none}table{font-size:9px}td,th{padding:5px 4px}.table-wrap{overflow:visible}h1{font-size:18px}h2{font-size:12px}}
+</style>
+</head>
+<body>
+<div class="actions">{% if cargas %}<button type="button" onclick="window.print()">Imprimir / Salvar PDF</button>{% endif %}<a href="/">Voltar ao sistema</a><span>Confira as cargas abaixo antes de imprimir.</span></div>
+<header><h1>Chrona Lavanderia</h1><p><b>{{ titulo }}</b> — Programação de máquina</p><p>{{ cargas|length }} cargas · {{ pecas }} peças · {{ '%.3f'|format(peso)|replace('.', ',') }} kg</p></header>
+{% for nome, linhas in grupos %}{% if linhas %}
+<h2>{{ nome }} — {{ linhas|length }} carga(s)</h2>
+<div class="table-wrap"><table><thead><tr><th>Carga</th><th>OP</th><th>Referência</th><th>Lavação</th><th>Peças</th><th>kg</th><th>Início previsto</th><th>Saída prevista</th><th>Entrada real</th><th>Saída real</th><th>Rubrica</th></tr></thead><tbody>
+{% for c in linhas %}<tr><td>{{ c.numero }}</td><td>{{ c.op_manual or '—' }}</td><td>{{ c.referencia or '—' }}</td><td>{{ c.lavacao or '—' }}</td><td class="number">{{ c.qtde_pecas or 0 }}</td><td class="number">{{ '%.3f'|format(c.peso or 0)|replace('.', ',') }}</td><td>{{ c.data_inicio.strftime('%d/%m/%Y %H:%M') if c.data_inicio else '—' }}</td><td>{{ c.data_saida.strftime('%d/%m/%Y %H:%M') if c.data_saida else '—' }}</td><td class="blank"></td><td class="blank"></td><td class="blank"></td></tr>{% endfor %}
+</tbody></table></div>{% endif %}{% endfor %}
+{% if not cargas %}<p class="empty">Não há cargas em processo ou aguardando nesta máquina.</p>{% endif %}
+<footer>Total da programação: {{ cargas|length }} cargas · {{ pecas }} peças · {{ '%.3f'|format(peso)|replace('.', ',') }} kg</footer>
+</body></html>

@@ -1,0 +1,23 @@
+.operation-toolbar{display:flex;flex-wrap:wrap;gap:16px;align-items:end;margin-bottom:20px}
+.operation-toolbar label{display:flex;flex-direction:column;gap:7px;color:var(--txt2);font-size:13px}
+.operation-toolbar input,.operation-toolbar select{min-height:46px;min-width:180px}
+.operation-note{color:var(--txt2);font-size:13px;line-height:1.6;margin:12px 0}
+.operation-stages{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:16px}
+.operation-stage strong{display:block;font-size:24px;color:var(--ciano);margin:12px 0}
+.operation-alerts{display:flex;flex-wrap:wrap;gap:10px;margin:16px 0}
+.operation-alerts button{min-height:46px;white-space:normal;text-align:left}
+.operator-card{border-left:4px solid var(--ciano)}
+.operator-card[data-status="pausado"]{border-left-color:var(--amarelo)}
+.operator-card h3{font-size:20px;margin-bottom:12px;overflow-wrap:anywhere}
+.operator-card p{line-height:1.7;overflow-wrap:anywhere}
+.operator-actions{display:flex;flex-wrap:wrap;gap:12px;margin-top:18px}
+.operator-actions button{min-height:52px;min-width:120px;font-size:16px}
+.operator-card textarea{margin-top:10px;min-height:70px}
+.operator-card details{margin-top:16px;color:var(--txt2);font-size:13px}
+.operator-card li{margin:10px 0;overflow-wrap:anywhere}
+.operator-card ol{padding-left:22px}
+.operation-feedback{padding:16px;background:var(--cinza3);border-radius:10px;line-height:1.6}
+.operation-mobile-grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}
+.mobile-menu-button,.mobile-menu-backdrop{display:none}
+@media(max-width:900px){.mobile-menu-button{display:block;min-width:48px;min-height:44px}.mobile-menu-backdrop.visible{display:block;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:90;border:0}.topbar-title{font-size:15px}.sidebar{transition:none}}
+@media(max-width:700px){.operation-stages,.operation-mobile-grid{grid-template-columns:1fr}.content{padding:16px}.operation-toolbar>*{width:100%}.operator-actions button{flex:1}.topbar{padding:0 16px}.topbar-right .badge:last-child{display:none}.operator-card{padding:18px}}

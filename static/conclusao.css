@@ -1,0 +1,5 @@
+#conclusao-dialog{width:100vw;max-width:100vw;height:100vh;height:100dvh;max-height:100dvh;margin:0;border:1px solid var(--brd);padding:16px;background:var(--cinza2);color:var(--txt);overflow:auto}
+#conclusao-dialog::backdrop{background:#0009}
+#conclusao-dialog form{max-width:900px;margin:0 auto;display:grid;gap:12px}
+#conclusao-dialog h2{font-size:20px}
+#conclusao-erro{color:var(--laranja);min-height:20px}

@@ -1,0 +1,22 @@
+@media print{
+  @page{size:A4 landscape;margin:10mm 8mm}
+  html,body{overflow:visible!important;height:auto!important;min-height:0!important}
+  body> :not(#print-area){display:none!important}
+  #print-area{display:block!important;position:static!important;width:100%!important;height:auto!important;overflow:visible!important;padding:0!important;color:#000!important;background:#fff!important;font:10px Arial,sans-serif!important}
+  #print-area h1{font-size:18px;margin:0 0 6px}
+  #print-area header{border-bottom:2px solid #1a2e5a;margin-bottom:12px;padding-bottom:8px}
+  #print-area p{margin:4px 0}
+  #print-area h2{font-size:12px;margin:14px 0 6px;break-after:avoid}
+  #print-area table{width:100%;border-collapse:collapse;table-layout:fixed;font-size:9px;margin-bottom:12px}
+  #print-area th,#print-area td{border:1px solid #999;padding:5px 4px;overflow-wrap:anywhere;vertical-align:middle}
+  #print-area th{font-size:9px;text-align:left}
+  #print-area th:first-child{width:5%}
+  #print-area th:nth-child(3),#print-area th:nth-child(4){width:12%}
+  #print-area th:nth-child(5),#print-area th:nth-child(6){width:6%}
+  #print-area th:nth-child(7),#print-area th:nth-child(8){width:11%}
+  #print-area .print-number{text-align:right}
+  #print-area .print-write{height:28px}
+  #print-area thead{display:table-header-group}
+  #print-area tr{break-inside:avoid}
+  #print-area footer{border-top:1px solid #999;padding-top:8px;font-weight:bold}
+}
