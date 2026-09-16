@@ -2487,6 +2487,20 @@ gestao = register_gestao(app, db, {
 from relatorios import register_relatorios
 register_relatorios(app, db, Carga, Maquina, OrdemProducao, gestao)
 
+def inicializar_tabelas():
+    """Cria tabelas ausentes também no carregamento por Gunicorn (app:app)."""
+    with app.app_context():
+        with db.engine.begin() as connection:
+            if connection.dialect.name == 'postgresql':
+                # Impede que workers criem a mesma tabela simultaneamente.
+                connection.execute(db.text('SELECT pg_advisory_xact_lock(739204816)'))
+            db.metadata.create_all(bind=connection)
+
+
+# Todos os módulos precisam registrar seus modelos antes desta inicialização.
+# create_all preserva tabelas e registros existentes; não executa migrações antigas.
+inicializar_tabelas()
+
 if __name__ == '__main__':
     with app.app_context():
         init_db()
